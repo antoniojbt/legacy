@@ -1,0 +1,258 @@
+Pseudomonas sequencing pipeline
+
+#########################################################
+Location of files and directory structure for project 018
+#########################################################
+
+#Project specific pipeline code at:
+/ifs/projects/proj018/src/
+#backed-up at
+/ifs/devel/projects/proj018
+
+#Project data at:
+/ifs/projects/proj018/data/
+
+#Collaborators communication at:
+/ifs/projects/antoniob/Project-018-CF-Pseudomonas/Literature-and-notes
+
+#Should move to something like:
+/ifs/projects/proj018/docs/communication
+
+
+#Public data for tests at:
+/ifs/projects/antoniob/Project-018-CF-Pseudomonas/data-Yang-PNAS-2011/
+/ifs/projects/antoniob/Project-018-CF-Pseudomonas/data-Young-PNAS-2012/
+
+#Pipeline public data tests at:
+/ifs/projects/antoniob/Project-018-CF-Pseudomonas/pipeline-tests/
+
+#Project literature and notes at:
+/ifs/projects/antoniob/Project-018-CF-Pseudomonas/Literature-and-notes
+
+#General pipeline building notes at:
+/ifs/devel/antoniob/projects/Ruffus-and-pipeline-building.ipynb 
+
+
+
+####################################################
+Project notes and questions
+####################################################
+
+
+Project questions and hypotheses:
+####################################################
+
+What allows P. aeruginosa to adapt to the CF lung?
+ie What are the evolutionary dynamics in a bacterial population studied in the environment of cystic fibrosis lung airways?
+
+The CF lung serves as a natural model of bacterial adaptation to a complex environment.
+
+Changes across patients, changes within patients
+Compare to previously studied strains
+
+What type of mutations drive adaptation to the CF environment?
+Where, which, phenotypic consequence...  
+Is there parallel evolution?
+Is reduced virulence a common strategy for adaptation?
+Test the 5 hypotheses in Folkesson et al 2012 Nature Reviews Microbiology:
+    Testable:
+    1- "First, P. aeruginosa and other microorganisms colonizing the CF airway are confronted with a highly selective and heterogeneous environment characterized by various types of stress. Factors such as antibiotics, the host immune response, and oxidative and osmotic stress are all important evolutionary forces that select for genetic variants with an improved ability to survive and proliferate in the CF-associated environment. Sequencing the genomes of such ecologically successful variants sampled from chronic infections in different patients with CF and at different clinics has shown that these variants often share mutations in genes associated with increased stress protection."
+    3- "Third, only a limited number of mutations in important global regulators might be necessary to transform an opportunistic pathogen that causes acute infection into a persistent pathogen that can spread to susceptible hosts."
+    5- "Fifth, the evolutionary dynamics of P. aeruginosa during adaptation to the CF airway resembles the dynamics documented from in vitro experimental evolution35, 96, 97, 98."
+
+Not testable in this project:
+    2- "Second, it seems that the sinuses of patients with CF might act as protected reservoirs for the adaptation of P. aeruginosa to the lung and for later seeding of the rest of the airway70."
+
+Testable if sufficient clinical data is available:
+    4- "Fourth, the adaptive changes in the bacterial population that lead to the chronic stage might occur long before the clinical criteria of chronic infection are met."
+
+Translational questions/areas (from Folkesson 2012):
+    1- "Genes that are controlled by some of the important regulators might constitute novel antimicrobial targets, and trade-off consequences from mutations in the regulatory genes could possibly be exploited as weak defence barriers of the infecting bacteria."
+    2- "...identify biomarkers for the transition to a chronic infection state at an earlier time point, when eradication of the infecting bacterial strain is still possible."
+    3- "If experimental studies of the evolutionary pathways of chronic P. aeruginosa infections are connected to evolutionary and ecological theory, the result will hopefully be improved treatment of the infections, directly based on the resulting evolutionary knowledge."
+
+
+Areas to clarify:
+####################################################
+Compare to environmental strains?
+Phenotypic analysis: homogeneous patient population? Mutation each carried (on CFTR)? Other modifying mutations that are known? Patient DNA available? antibiotic resistance (medical history, on a dish), pathogen gene expression possible (on a dish)?, metabolomics data available (J Bundy Lab), Canada clinic data available (ie single clinic, single team, protocol treatment?),
+
+
+Not possible but interesting --> Within patient strain variability? ie Pathogen diversity and within pathogen diversity within a single host and across time. Multiple biopsies from single patient; post-mortem single patient.
+
+
+
+
+Check my notes for Ruffus tutorials
+Run pipeline_quickstart.py
+Hit hg init src for version control
+
+
+####################################################
+Sequencing strategy:
+####################################################
+We currently think that the best approach may be the following (David, Andreas, me, to check with others):
+
+- As in the original proposal, sequence all samples (assuming 96) on a HiSeq 2000 platform, single lane, using 100 bp paired reads. This should give us approximately ~52x coverage;
+- Add one MiSeq lanes using 250 bp paired reads for the 'baseline samples' ie the first sample collected for each patient (considering n=16 for ~78x coverage).
+
+Using a second sequencing run with longer reads will help us construct better assemblies focussing on the original strain per patient and depend less on a reference genome. This assumes that large structural changes do not occur during a given strain's evolution in a patient. 
+
+Mapping versus assembly?
+
+
+####################################################
+Assembly pipeline:
+####################################################
+From Kisan et al. 2013:
+Two algorithms are widely employed in de novo genome assembly. The first is the overlap layout consensus (OLC) or overlap contig consensus approach, and the other is the de Bruijn graph (DBG) or Eulerian path [17]. The latter is more useful for shorter reads (<150 bp) numbering hundreds millions compared to a few million 454 Titanium pyrosequencing reads (>400 bp).
+
+Check review of assemblers: http://www.sciencedirect.com/science/article/pii/S0888754310000492
+
+    Run Cortex
+    Run Velvet (http://genome.cshlp.org/content/18/5/821.long)
+    Run ? Check MIRA3, Newbler, and CABOG (Kisand et al, BMC Genomics 2013, http://www.biomedcentral.com/1471-2164/14/211)
+    If using reference check SMALT
+    Compare statistics:
+        Genome size, coverage, depth, reads, base pairs, GC content, N50, number of contigs, number of assembled contigs, length of contigs, mean depth of reads, 
+        Use annotations of protein coding genes based on COGs instead of directly comparing the nucleotide sequences of coding sequences (CDSs; table 2 in Kisan et al 2013).
+        Table of Clusters of Orthologous Groups (COGs): total, missing, proportion of missing, predicted genome size, per strain/assembly
+
+    Choose representative isolates on the basis of a central phylogenetic position and high coverage
+    Compare results as in Kisand et al, BMC Genomics 2013 F1 and F2, compare against references (http://www.pseudomonas.com/; ie PAO1)
+
+
+####################################################    
+Variant pipeline
+####################################################
+    
+
+    Run Cortex using the joint and independent workflows (check Iqbal et al. 2012 Bioinformatics: http://bioinformatics.oxfordjournals.org/content/29/2/275.long)
+    Run GATK, samtools, bcftools, etc if necessary; talk to David and Kath for variant pipeline and help
+    SNP detection and filtering:
+        Check Parkhill group pipelines (Bryant et al 2013): parameters to keep false positive SNP calls to a minimum (ref. 41: Harris SR, Feil EJ, Holden MT et al. Evolution of MRSA during hospital transmission and intercontinental spread. Science 2010;327(5964):469-74). 
+       Check Yang et al 2011 PNAS
+
+    Determine types of mutations
+    Estimate the fraction of SNPs in the protein coding part of the genome that results in synonymous substitutions (Yang 2011 PNAS)
+    
+
+
+####################################################
+Annotation pipeline
+####################################################
+    Check pipelines: IMG, PGAAP, and RAST (Kisand et al, BMC Genomics 2013).
+
+
+####################################################
+Phylogenetic analysis pipeline
+####################################################
+
+Specific questions?
+   Genomic evolution, selective forces acting on each strain, phenotypic changes in each strain, 
+
+   Differences between strains at baseline sample
+   Changes across time within a strain
+   Differences between strains over time (ie mutations accumulated, location, phenotypic effect)
+  
+      
+    Check Andreas's tools
+    Figures 2A, B and C of Yang et al PNAS 2011:
+        Calculate the number of bacterial generations (check: Yang L, et al. (2008) In situ growth rates and biofilm development of Pseudomonas aeruginosa populations in chronic lung infections. J Bacteriol 190:2767–2776; http://jb.asm.org/content/190/8/2767.full): 
+        Test overall homology between strains and in individual strains over time
+        Calculate mutational rate
+        Calculate non-synonymous vs. synonymous rate
+        Can the sequence of mutational events over time be reconstructed?
+        Are there mutations that are ambiguous (ie that "...exhibit an aberrant evolutionary distribution that does not fit the observed sequential accumulation..."; these can be due to "...identical, but independent mutational events, direct reversions or horizontal transfer of DNA encoding the SNP.")
+        Attempt to obtain a tree root: determine the direct ancestor of the strain/lineage, compare to other reference strains (ie DK2, PAO1, PA14, LESB58).
+        
+    Check Bryant et al 2013 Lancet (Non-tuberculous mycobacterium sequencing; http://www.sciencedirect.com/science/article/pii/S0140673613606327):
+        Build a maximum likelihood tree using the SNPs detected
+    Run BEAST, multiple tools: https://code.google.com/p/beast-mcmc/wiki/WhatCanBEASTDo
+        Estimate mutation rate and the age of clusters: check these parameters (Bryant et al 2013): BEAST was run on the dataset using both log-normal relaxed and strict clock models, for 100,000,000 states. Each analysis was run in triplicate with the first 10,000,000 states discarded as the burn-in period. The results were visualised in Tracer45 in order 2 to assess whether convergence was reached. All runs reached convergence except those for M. a. bolletii. The results quoted were from runs with the best effective sample size (ESS) and a log-normal relaxed clock model.
+
+    Detect recombination and remove it (Bryant et al 2013, ref 44, Parkhill group, ref. 44: Croucher NJ, Harris SR, Fraser C et al. Rapid pneumococcal evolution in response to clinical interventions. Science 2011;331(6016):430-4.)
+
+    Check PAML and other packages:
+        Use the variable positions to construct a maximum likelihood tree with RAxML (ref. 42) for all isolates
+
+
+####################################################
+Statistical analysis:
+####################################################
+    Bryant et al Lancet 2013:
+        Analyse date and location data to identify possible cross-infection events between patients
+        Use social network analysis to compare the occurrence of cross infection between genetically clustered and unclustered cases
+    
+
+####################################################
+Report and publishing guidelines:
+####################################################
+    Ethics
+    Isolate collection and preliminary analsyis (RAPD)
+    Sequencing and assembly: platform, multiplexing, paired reads, insert size, mean depth of reads,
+    
+    Raw reads to deposit on the European Nucleotide Archive
+    Report where clinical data was extracted from, stored and handled: electronic databases, medical and nursing handover notes and original notes.
+    Report and publish software used: in-house pipelines, Excel, SQL, R, PAML, BEAST, Cytoscape, etc...
+
+
+
+
+####################################################
+Additional methods
+####################################################
+
+# Check Atanur et al., 2013 Cell  T. Aitman paper on rat sequencing) for relevant methods:
+
+#Single-Nucleotide Variants and Short Indel Detection
+#Genomic variants (SNV and short indels (1-15bp)) were detected using the Genome Analysis Toolkit (GATK version 1.0.6001) (DePristo et al., 2011,McKenna et al., 2010). Before calling variants, data were processed using various preprocessing steps. i) Clonal reads were masked independently for each library of every rat strain using Picard tools (http://sourceforge.net/projects/picard/) ii) Reads were realigned around the indels, by first identifying regions for realignment where at least one read contains an indel with a cluster of mismatching bases around it. iii) base quality scores were recalibrated using GATK, which provides empirically accurate base quality scores for each base in every read, while also correcting for error covariates like machine cycle and dinucleotide context as well as supporting platform-specific error covariates like color-space mismatches for the SOLiD platform (DePristo et al., 2011).
+#
+#Reads mapped with mapping quality greater than or equal to 10 and bases with base quality greater than or equal to 17 were used for variant calling to avoid false positives due to errors in read alignment and sequencing errors.
+#
+#After calling SNVs and indels we applied variant quality recalibration to exclude potential false positive variant calls. Given the set of known SNVs and the SNV annotations, soft filtering using the variant quality score recalibration function of GATK employs a variational Bayes Gaussian mixture model (GMM) to estimate the probability that each called variant is a true variant in the samples rather than a sequencer, alignment or data processing artifact (DePristo et al., 2011). As dbSNP125 (Sherry et al., 2001) contains only 35,186 SNVs in rat strains, the model was trained using high quality SNVs extracted from this data set. The top 30% of high quality SNVs were used as the training set for GMM.
+#
+#Structural Variant Prediction
+#Structural variants, including large deletions, insertions, inversions and translocations, were predicted using the software tool BreakDancer1.2 (Chen et al., 2009). Only reads mapped with mapping quality more than 20 were used to call structural variants. In addition large deletions were predicted using custom Perl script using mapping flags provided by BWA for paired end reads (Li and Durbin, 2009). Read pairs mapped in forward- reverse (FR) orientation and flagged as improper pairs by BWA were extracted. Clusters of at least 2 improper pairs were identified where at least one end was mapped with quality greater than or equal to 20 and deletions were predicted using a custom Perl script. Further deletions were filtered if they spanned less than 100 bp on both ends of genomic gaps. Validation of large deletions using sequence data derived for the SHR/OlaIpcv strain and the above algorithms was previously ascertained at greater than 90% (Atanur et al., 2010).
+#
+#Functional Consequence Analysis of Predicted Variants
+#Functional consequences of predicted variants (SNVs and short indels) were analyzed using a “variant effect predictor (VEP) – version 2.4” Perl script (McLaren et al., 2010), which is based on the ENSEMBL application programming interface (APIs). For functional consequences analysis the ENSEMBL 66 gene set was used.
+#Reconstruction of the Phylogenetic Tree
+#To construct the phylogenetic tree, SNVs between all possible pairs of strains were identified. Distance between any pair of strains was calculated using the following formula:
+#	
+#
+#A distance matrix was then used to construct the phylogenetic tree using the Fitch-Margoliash method with contemporary tips, version 3.69 from package Phylip (Felsenstein, 1989) with 1000 bootstraps.
+
+
+#Check CGAT modules like:
+#/ifs/devel/antoniob/cgat/CGAT/
+#BlastAlignments.py
+#Blat.py
+
+#Check CGAT modules like:
+#Fasta.py
+#FastaIterator.py
+
+
+
+#####################################################################
+# Pipeline running notes
+#####################################################################
+23/October/2013
+
+Cortex:
+Use population filter when there are more than 10 samples or so (microbial)
+For run_calls.pl check with/without --qthresh option; in Pseudomonas phase 1 samples, --qthresh 10 to 30 on one sample (S1) gives ~15,000 variants but with population filter classifies them all as errors or repeats (vs. PAO1).
+With --qthresh 40 no calls are made.
+Running 14 samples with quality threshold at 10 and population filter gives ~15,000 variants with all marked as errors or repeats (vs PAO1).
+Running 14 samples (vs. PAO1) with automatic thresholding and population filter gives...?
+Running 14 samples (MiSeq, one lane) with kmers 31, 127, 223 produces ~250 Gb and takes ~70 hours.
+Check email to Zam Iqbal regarding compilation at certain kmers (doesn't work?).
+Memory allocation for 14 samples (Phase 1 Pseudomonas):
+memory height 17 and menory width 150: not enough memory allocated
+30 and 300, 22 and 300: cannot allocate memory at k223
+20 and 150 at --qthresh 10 completes runs
+20 and 150 with automatic thresholding: not enough memory at k127
+23 and 200 with automatic thresholding: could not allocate memory
+22 and 200 with automatic thresholding: could not allocate memory at k223
+

@@ -1,0 +1,222 @@
+#########
+# Files are in:
+#/Users/antoniob/Desktop/BEST_D_03_MAR.DIR/GAT_backgrounds
+
+# Westra el al cis eQTLs for sanity checks:
+http://genenetwork.nl/bloodeqtlbrowser/
+
+# awk cut to keep only FDR < 5%:
+cat westra_2012-12-21-CisAssociationsProbeLevelFDR0.5.txt | awk '($15 < 0.05)' - > westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_all_columns.txt 
+
+# awk cut chr and position:
+cat westra_2012-12-21-CisAssociationsProbeLevelFDR0.5.txt | cut -f3,4 > westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos.txt 
+
+# awk add new column with minus 1 kb:
+cat westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos.txt | awk -v OFS="\t" 'NR==1{print $0,"SNPChrPos_minus1kb";next}{print $0,($2-1000)}' > westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus1kb.txt
+
+# awk add new column with plus 1 kb:
+cat westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus1kb.txt | awk -v OFS="\t" 'NR==1{print $0,"SNPChrPos_plus1kb";next}{print $0,($2+1000)}' > westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb.txt
+
+# gat needs bed files with chr pos as "chr1", add chr to first column:
+cat westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb.txt | awk '{print "chr" $0;}' - > westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring.txt
+
+# Keep only chr, chr start and chr end columns for gat:
+cat westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring.txt | cut -f1,3,4 > westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring_gat_bed.txt
+
+# Delete header for gat:
+sed '1d' westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring_gat_bed.txt > westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring_gat_bed_2.txt
+
+# Delete intermediate files:
+rm -f westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring_gat_bed.txt \
+	westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring_gat_bed.txt \
+	westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring.txt \
+	westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus1kb.txt \
+	westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos.txt \
+	all_treated_baseline_FDR0.05_SNP_ID_only.txt \
+	westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb.txt
+#########
+
+#########
+# Apply to cis BEST-D baseline eQTLs:
+# awk cut to keep only FDR < 5%:
+cat cut_genotype_data_all_treated_baseline.tsv_matched.tsv_MatrixEQTL_loose_p5_1MB.cis | awk '($6 < 0.05)' - > all_treated_baseline_FDR0.05_all_columns.txt
+
+# Keep only SNP column:
+cat all_treated_baseline_FDR0.05_all_columns.txt | cut -f1 > all_treated_baseline_FDR0.05_SNP_col_only.txt
+
+# File with cis eQTL results:
+all_treated_baseline_FDR0.05_all_columns.txt
+
+#TO DO: change this to a script , merge with SNP position file (eg on ifs in BEST files snp pos 142, needs updating though)
+# Downloaded chr positions from dbSNP, which lifted to dbSNP147:
+http://www.ncbi.nlm.nih.gov/projects/SNP/dbSNP.cgi?list=rslist
+
+# File is:
+cis_baseline_all_treated_SNPs_dbSNPbed_160506071520.txt
+
+# Delete first line:
+sed '1d' cis_baseline_all_treated_SNPs_dbSNPbed_160506071520.txt > cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader.txt
+
+# Keep onlu chr pos:
+cat cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader.txt | cut -f1,3 > cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos.txt 
+
+# awk add new column with minus 1 kb, note no header here:
+cat cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos.txt | awk -v OFS="\t" '{print $0,($2-1000)}' > cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos_chrminus.txt
+
+# awk add new column with plus 1 kb, note no header here:
+cat cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos_chrminus.txt | awk -v OFS="\t" '{print $0,($2+1000)}' > cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos_chrminus_plus.txt
+
+# Keep only chr, chr start and chr end columns for gat:
+cat cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos_chrminus_plus.txt | cut -f1,3,4 > cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos_chrminus_plus_gat_bed.txt
+
+# Check:
+cat cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos_chrminus_plus_gat_bed.txt | wc -l
+
+# Delete intermediate files:
+rm -f all_treated_baseline_FDR0.05_SNP_col_only.txt \
+	cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader.txt \
+	cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos.txt \
+	cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos_chrminus.txt \ 
+	cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos_chrminus_plus.txt
+#########
+
+#########
+# Run gat:
+gat-run.py \
+   --segments=cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos_chrminus_plus_gat_bed.txt \
+   --annotations=westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring_gat_bed_2.txt \
+   --workspace=mapability_36.filtered.bed.txt \
+   --ignore-segment-tracks \
+   --num-samples=10 --log=gat.log > gat_westra_v_baseline_eSNPs.txt
+#########
+
+#########
+# Apply to cis BEST-D final eQTLs:
+# awk cut to keep only FDR < 5%:
+cat cut_genotype_data_all_treated_final.tsv_matched.tsv_MatrixEQTL_loose_p5_1MB.cis | awk '($6 < 0.05)' - > all_treated_final_FDR0.05_all_columns.txt
+
+# Keep only SNP column:
+cat all_treated_final_FDR0.05_all_columns.txt | cut -f1 > all_treated_final_FDR0.05_SNP_col_only.txt
+
+# File with cis eQTL results:
+all_treated_final_FDR0.05_all_columns.txt
+
+# Downloaded chr positions from dbSNP, which lifted to dbSNP147:
+http://www.ncbi.nlm.nih.gov/projects/SNP/dbSNP.cgi?list=rslist
+
+#TO DO: change this to a script , merge with SNP position file (eg on ifs in BEST files snp pos 142, needs updating though)
+# Downloaded log and file, changed names, file is:
+cis_final_all_treated_SNPs_dbSNPbed_160506083721.txt
+
+# Delete first line:
+sed '1d' cis_final_all_treated_SNPs_dbSNPbed_160506083721.txt > cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader.txt
+
+# Keep only chr pos:
+cat cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader.txt | cut -f1,3 > cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos.txt 
+
+# awk add new column with minus 1 kb, note no header here:
+cat cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos.txt  | awk -v OFS="\t" '{print $0,($2-1000)}' > cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos_chrminus.txt
+
+# awk add new column with plus 1 kb, note no header here:
+cat cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos_chrminus.txt | awk -v OFS="\t" '{print $0,($2+1000)}' > cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos_chrminus_plus.txt
+
+# Keep only chr, chr start and chr end columns for gat:
+cat cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos_chrminus_plus.txt | cut -f1,3,4 > cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos_chrminus_plus_gat_bed.txt
+
+# Check:
+cat cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos_chrminus_plus_gat_bed.txt | wc -l
+
+# Delete intermediate files:
+rm -f all_treated_final_FDR0.05_SNP_col_only.txt \
+	cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader.txt \
+	cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos.txt \
+	cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos_chrminus.txt \
+	cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos_chrminus_plus.txt
+#########
+
+
+#########
+# Run gat:
+gat-run.py \
+   --segments=cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos_chrminus_plus_gat_bed.txt \
+   --annotations=westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring_gat_bed_2.txt \
+   --workspace=mapability_36.filtered.bed.txt \
+   --ignore-segment-tracks \
+   --num-samples=1000 --log=gat.log > gat_westra_v_final_eSNPs.txt
+#########
+
+
+#########
+# Apply to cis BEST-D VD Tx specific response eQTLs:
+# awk cut to keep only FDR < 5%:
+# already done, file is:
+cis_tx_fdr5_reQTLs_annot.txt
+
+# Keep only SNP column:
+cat cis_tx_fdr5_reQTLs_annot.txt | cut -f2 > cis_tx_fdr5_reQTLs_annot_SNP_col_only.txt
+
+# Downloaded chr positions from dbSNP, which lifted to dbSNP147:
+http://www.ncbi.nlm.nih.gov/projects/SNP/dbSNP.cgi?list=rslist
+
+# Downloaded log and file, unzipped, changed names, file is:
+cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756.txt
+
+# Delete first line:
+sed '1d' cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756.txt > cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader.txt
+
+# Keep only chr pos:
+cat cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader.txt | cut -f1,3 > cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos.txt 
+
+# awk add new column with minus 1 kb, note no header here:
+cat cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos.txt  | awk -v OFS="\t" '{print $0,($2-1000)}' > cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos_chrminus.txt
+
+# awk add new column with plus 1 kb, note no header here:
+cat cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos_chrminus.txt | awk -v OFS="\t" '{print $0,($2+1000)}' > cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos_chrminus_plus.txt
+
+# Keep only chr, chr start and chr end columns for gat:
+cat cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos_chrminus_plus.txt | cut -f1,3,4 > cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos_chrminus_plus_gat_bed.txt
+
+# Check:
+cat cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos_chrminus_plus_gat_bed.txt | wc -l
+
+# Delete intermediate files:
+rm -f cis_tx_fdr5_reQTLs_annot_SNP_col_only.txt \
+	cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader.txt \
+	cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos.txt \
+	cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos_chrminus.txt \
+	cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos_chrminus_plus.txt
+#########
+
+
+#########
+# Run gat:
+gat-run.py \
+   --segments=cis_reQTLs_all_treated_SNPs_dbSNPbed_160506092756_noheader_chrpos_chrminus_plus_gat_bed.txt \
+   --annotations=westra_2012-12-21-CisAssociationsProbeLevelFDR0.05_SNP_pos_minus_plus_1kb_chrstring_gat_bed_2.txt \
+   --workspace=mapability_36.filtered.bed.txt \
+   --ignore-segment-tracks \
+   --num-samples=1000 --log=gat.log > gat_westra_v_cis_reQTLs_eSNPs.txt
+#########
+
+
+#########
+# Run gat for cis baseline vs cis final in all treated:
+gat-run.py \
+   --segments=cis_baseline_all_treated_SNPs_dbSNPbed_160506071520_noheader_chrpos_chrminus_plus_gat_bed.txt \
+   --annotations=cis_final_all_treated_SNPs_dbSNPbed_160506083721_noheader_chrpos_chrminus_plus_gat_bed.txt \
+   --workspace=mapability_36.filtered.bed.txt \
+   --ignore-segment-tracks \
+   --num-samples=1000 --log=gat.log > gat_cisAllTxBaseline_v_cisAllTxFinal_eSNPs.txt
+#########
+
+#########
+# Test overlap of differentially expressed genes in BEST-D vs public datasets
+# Did this using Fisher's test in R package, see script gene_list_overlap.R
+
+#########
+
+#########
+# Test VDR ChIP-seq data vs various sets:
+# 
+
+#########
