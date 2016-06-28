@@ -1,1 +1,0 @@
-/ifs/projects/proj043/analysis.dir/genotypes.dir/qsub_plink_IBS.sh
