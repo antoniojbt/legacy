@@ -46,8 +46,8 @@ R_session_saved_image
 
 ########################
 library(data.table)
-source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
-source('/ifs/devel/antoniob/projects/BEST-D/functions_for_MatrixeQTL.R')
+source('moveme.R')
+source('functions_for_MatrixeQTL.R')
 ########################
 
 
