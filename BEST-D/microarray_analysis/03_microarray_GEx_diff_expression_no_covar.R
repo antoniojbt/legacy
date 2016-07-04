@@ -56,8 +56,8 @@ library(plyr)
 library(statmod)
 
 # Get functions from other scripts (eg to add annotations to topTable results):
-source('/Users/antoniob/Desktop/BEST_D_12_FEB.DIR/scripts/gene_expression_functions.R')
-#source('/ifs/devel/antoniob/projects/BEST-D/gene_expression_functions.R')
+# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/microarray_analysis/gene_expression_functions.R')
+source('/ifs/devel/antoniob/projects/BEST-D/gene_expression_functions.R')
 #############################
 
 
@@ -77,6 +77,9 @@ str(membership_file_cleaned)
 
 dim(normalised_filtered)
 normalised_filtered[1:5, 1:5]
+
+length(which(complete.cases(normalised_filtered)))
+dim(normalised_filtered)
 
 #############################
 # TO DO: Adjusted for in assoc analysis in plink: 
@@ -116,6 +119,7 @@ head(membership_file_cleaned)
 tail(design)
 tail(membership_file_cleaned)
 design
+colSums(design)
 
 #Run linear model and set contrasts:
 fit <- lmFit(normalised_filtered, design)
@@ -123,6 +127,7 @@ head(row.names(fit))
 colnames(fit)
 str(fit)
 names(fit)
+head(fit$coefficients)
 
 cont.matrix <- makeContrasts(b4000vsb2000=groupbaseline_4000-groupbaseline_2000, 
                              b4000vsbplacebo=groupbaseline_4000-groupbaseline_placebo,
