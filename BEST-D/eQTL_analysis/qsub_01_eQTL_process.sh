@@ -17,4 +17,6 @@
 #$ -o stdout_eQTL_01.file
 
 #Run the job - program must have full path:
-/ifs/apps/apps/R-3.1.3/bin/Rscript 01_eQTL_subset_files.R P140343-Results_FinalReport_clean_SNPs_autosome.A-transpose.matrixQTL.geno BEST-D_phenotype_file_final.tsv  
+/ifs/apps/apps/R-3.1.3/bin/Rscript 01_eQTL_subset_files.R \
+	P140343-Results_FinalReport_clean_SNPs_autosome_individuals.A-transpose.matrixQTL.geno \
+	BEST-D_phenotype_file_final.tsv  

@@ -72,8 +72,8 @@ R_session_saved_image
 library(data.table)
 
 # Get script with functions needed:
-source('/ifs/devel/antoniob/projects/BEST-D/functions_for_MatrixeQTL.R')
-source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
+source('/ifs/devel/antoniob/projects/cgat_projects/BEST-D/eQTL_analysis/functions_for_MatrixeQTL.R')
+source('/ifs/devel/antoniob/projects/cgat_projects/BEST-D/moveme.R')
 #############################################
 
 
