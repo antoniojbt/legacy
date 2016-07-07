@@ -13,17 +13,23 @@
 # that could be applied to 018 and Airwave.
 # Get master IDs:
 
-# Function to transpose file (usually phenotype file) and name column headers to arbitrary column:
-transpose_file <- function(infile, column_number_for_rownames){
+# Function to transpose file (usually phenotype file) and name column headers to arbitrary column.
+transpose_file <- function(infile, column_number_for_rownames) {
+  if (class(infile)[1] == 'data.frame') {
+    infile <- as.data.table(infile)
+  }
   # Get row names to use as column names for file to transpose:
-  row_names <- infile[, column_number_for_rownames]
+  row_names <- infile[[colnames(infile)[column_number_for_rownames]]] # Double brackets to return vector
+  # Get column names to use as row names:
+  col_names <- as.data.frame(colnames(infile)[-1])
   # Delete column as will turn numerics to factors when transposing:
-  infile <- infile[, -column_number_for_rownames]
+  infile <- infile[, -column_number_for_rownames, with = F]
   # Tranpose and convert to data frame:
-  infile_transposed <- as.data.frame(t(infile))
-  colnames(infile_transposed) <- row_names
+  infile_transposed <- transpose(infile)
+  setnames(infile_transposed, colnames(infile_transposed), as.character(row_names))
+  infile_transposed[, ':='(rownames=col_names[, 1])]
   return(infile_transposed)
-}
+  }
 
 
 # Function to change plink column names when output as FID_IID:
