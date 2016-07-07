@@ -29,7 +29,7 @@ rm -rf 03*QTL* 04a_eQTL_context_specific_eQTLs* 05_eQTL_analysis_with_MatrixEQTL
 rm -rf 06_eQTL_analysis_with_MatrixEQTL_multi_tissue.R 07_eQTL_analysis_with_MatrixEQTL_multi_tissue.R 
 rm -rf bash_ln_04a_eQTL_context_specific_eQTLs* bash_qsub_04a_eQTL_context_specific_eQTLs* eQTL_analysis_Peter_course_notes.R 
 rm -rf qsub_04a_eQTL_context_specific_eQTLs*
-rm -rf eQTL_notes_to_delete.R 04_eQTL_analysis_with_MatrixEQTL.R 01_eQTL_process_and_clean_legacy.R
+rm -rf eQTL_notes_to_delete.R 04_eQTL_analysis_with_MatrixEQTL_no_covar.R 01_eQTL_process_and_clean_legacy.R
 rm -rf 02_eQTL_order_and_match_vers2.R
 rm -rf 02_eQTL_order_and_match.R 
 

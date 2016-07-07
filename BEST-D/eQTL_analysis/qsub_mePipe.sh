@@ -17,4 +17,11 @@
 #$ -o stdout_eQTL_mePipe.file
 
 #Run the job - program must have full path:
-/ifs/apps/apps/R-3.1.3/bin/Rscript /ifs/devel/antoniob/projects/BEST-D/run_mePipe.R $GENO $EXPR $SNP_POS $PROBE_POS $PC_seq_to_test
+/ifs/apps/apps/R-3.1.3/bin/Rscript run_mePipe.R \
+					$GENO \
+					$EXPR \
+					$SNP_POS \
+					$PROBE_POS \
+					$threshold \
+					$cisThreshold
+				#       $PC_seq_to_test \

@@ -18,6 +18,7 @@
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
+options(echo = TRUE)
 
 output_file <- file(paste("R_session_output_order_match",Sys.Date(),".txt", sep=""), open = 'a')
 output_file
@@ -74,7 +75,6 @@ source('functions_for_MatrixeQTL.R')
 # Run with command line arguments:
 options(echo=TRUE) # to see commands in output file. TO DO: check how it works with sink() above.
 args <- commandArgs(trailingOnly = TRUE)
-print(args)
 
 # TO DO: pass to configuration file
 
@@ -84,21 +84,24 @@ print(args)
 
 geno_file <- as.character(args[1])
 #geno_file <- 'genotype_data_all_treated_baseline.tsv'
-#geno_file <- 'genotype_data_all_treated_final.tsv'
+geno_file <- 'genotype_data_all_treated_final.tsv'
 
 expr_file <- as.character(args[2])
 #expr_file <- 'GEx_baseline_4000_and_2000.tsv'
-#expr_file <- 'GEx_treated_4000_and_2000.tsv'
+expr_file <- 'GEx_treated_4000_and_2000.tsv'
 
 covar_PCs_file <- as.character(args[3])
-#covar_PCs_file <- 'principal_components_normalised_filtered_PC20.tsv'
+covar_PCs_file <- 'principal_components_normalised_filtered_PC20.tsv'
 
-probe_pos_file <- as.character(args[4])
-#probe_pos_file <- 'principal_components_normalised_filtered_PC20.tsv'
+#probe_pos_file <- as.character(args[4])
+#probe_pos_file <- 'biomart_QCd_probes_genomic_locations_annot_MatrixeQTL.txt'
 
-snp_pos_file <- as.character(args[5])
-#snp_pos_file <- 'biomart_QCd_probes_genomic_locations_annot_MatrixeQTL.txt'
+#snp_pos_file <- as.character(args[5])
+#snp_pos_file <- 'snp146Common_MatrixEQTL_snp_pos.txt'
+
 # See qsub 02 xx file for files run.
+
+print(args)
 ########################
 
 ########################
@@ -135,7 +138,9 @@ dim(expr_data)
 ########################
 # Read PCs from expression data:
 covar_PCs <- fread(covar_PCs_file, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
-covar_PCs <- data.table::transpose(covar_PCs) # Tranpose looses headers but these were in order already
+#covar_PCs <- data.table:::transpose(covar_PCs) # Tranpose looses headers but these were in order already
+class(covar_PCs)
+covar_PCs <- transpose(covar_PCs) # Tranpose looses headers but these were in order already
 covar_PCs <- as.data.frame(covar_PCs)
 names(covar_PCs) <- covar_PCs[1,]
 covar_PCs <- covar_PCs[-1,]

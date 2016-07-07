@@ -91,8 +91,20 @@ genepos = as.character(args[4])
 # snpspos = 'test_snp146Common_MatrixEQTL_snp_pos.txt'
 # genepos = 'biomart_QCd_probes_genomic_locations_annot_MatrixeQTL.txt'
 
-#PC_seq_to_test = as.character(args[5])
-PC_seq_to_test = seq(0, 175, by = 25)
+# The p-value threshold determines which gene-SNP associations are saved.
+threshold = as.numeric(args[5])
+# threshold = 1e-05 # trans
+# threshold = 0.1
+
+cisThreshold = as.numeric(args[6])
+# cisThreshold = 0.001
+# cisThreshold = 0.90
+
+# TO DO: this errored with bash/qsub when trying to pass as argument so leaving fixed:
+# PC_seq_to_test = as.character(args[5])
+# PC_seq_to_test = seq(0, 175, by = 25)
+PC_seq_to_test = seq(0, 50, by = 5)
+
 
 print(args)
 ##################
@@ -109,11 +121,6 @@ print(args)
 useModel = 'linear' # modelANOVA or modelLINEAR or modelLINEAR_CROSS
 # useModel = modelLINEAR_CROSS # Should work better for Tx specific eQTLs
 
-# The p-value threshold determines which gene-SNP associations are saved.
-threshold = 1e-05
-# threshold = 0.1
-cisThreshold = 0.001
-# cisThreshold = 0.90
 
 # cis distance definition:
 cis = 1e+06
