@@ -10,7 +10,8 @@
 ##Set working directory and file locations and names of required inputs:
 
 # Working directory:
-#setwd("/ifs/projects/proj043/analysis.dir/gene_expression_2.dir")
+# setwd("/ifs/projects/proj043/analysis.dir/gene_expression_2.dir")
+# setwd('~/Desktop/BEST_D.DIR/mac_runs_to_upload/probe_filtering_check/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
@@ -280,6 +281,7 @@ gene_list <- c('VDR',
                'NADSYN1',
                'CYP24A1')
 which(illumina_annotation$Symbol == as.character('VDBP'))
+which(illumina_annotation$Symbol == as.character('VDR'))
 
 # Function to get illumina probe ID for each:
 get_Probe_id <- function(gene) {

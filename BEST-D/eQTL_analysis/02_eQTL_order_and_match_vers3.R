@@ -74,7 +74,6 @@ source('functions_for_MatrixeQTL.R')
 # Run with command line arguments:
 options(echo=TRUE) # to see commands in output file. TO DO: check how it works with sink() above.
 args <- commandArgs(trailingOnly = TRUE)
-print(args)
 
 # TO DO: pass to configuration file
 
@@ -85,10 +84,12 @@ print(args)
 geno_file <- as.character(args[1])
 #geno_file <- 'genotype_data_all_treated_baseline.tsv'
 #geno_file <- 'genotype_data_all_treated_final.tsv'
+# geno_file <- 'chr22_Airwave_CPMG_Plasma_clean_SNPs_autosome.A-transpose.matrixQTL.geno'
 
 expr_file <- as.character(args[2])
 #expr_file <- 'GEx_baseline_4000_and_2000.tsv'
 #expr_file <- 'GEx_treated_4000_and_2000.tsv'
+# expr_file <- 'Airwave_CPMG_Plasma.txt'
 
 covar_PCs_file <- as.character(args[3])
 #covar_PCs_file <- 'principal_components_normalised_filtered_PC20.tsv'
@@ -99,6 +100,8 @@ probe_pos_file <- as.character(args[4])
 snp_pos_file <- as.character(args[5])
 #snp_pos_file <- 'biomart_QCd_probes_genomic_locations_annot_MatrixeQTL.txt'
 # See qsub 02 xx file for files run.
+
+print(args)
 ########################
 
 ########################
@@ -117,6 +120,7 @@ names(geno_data)
 geno_data <- geno_data[, moveme(names(geno_data), 'FID first')]
 head(geno_data)
 dim(geno_data)
+geno_data[1:5, 1:5]
 ########################
 
 ########################
@@ -130,12 +134,19 @@ names(expr_data)
 expr_data <- expr_data[, moveme(names(expr_data), 'FID first')]
 head(expr_data)
 dim(expr_data)
+expr_data[1:5, 1:5]
 ########################
 
 ########################
 # Read PCs from expression data:
 covar_PCs <- fread(covar_PCs_file, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
 covar_PCs <- data.table::transpose(covar_PCs) # Tranpose looses headers but these were in order already
+# TO DO: transpose() gives odd error (not in namespace...), runs OK outside of Rscript but don't know where the error is.
+# See:
+# http://stackoverflow.com/questions/23252231/r-data-table-breaks-in-exported-functions
+# http://stackoverflow.com/questions/29549690/function-on-data-table-environment-errors
+# http://stackoverflow.com/questions/15223367/wrapping-data-table-using-an-evaluated-call-in-a-package
+
 covar_PCs <- as.data.frame(covar_PCs)
 names(covar_PCs) <- covar_PCs[1,]
 covar_PCs <- covar_PCs[-1,]
