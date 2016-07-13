@@ -1,5 +1,7 @@
 #!/bin//bash
 
+set -e 
+
 # Run as eg:
 # bash 00_eQTL_genotype_process.sh plink_bfile= out_oxford_recode= traw_file= out_geno_file=
 # TO DO: move to ruffus although will need to run on Imperial as well.
@@ -37,8 +39,12 @@ out_geno_file=$4
 ##########################
 
 ##########################
+# Convert plink binary (bed) to text (ped) with:
+# plink2 --bfile $plink_bfile --recode --tab --out $plink_bfile
+
 # Genotype files need to be processed for use in Matrix eQTL. First convert plink formats to oxford format:
 # https://www.cog-genomics.org/plink2/data#recode
+# https://www.cog-genomics.org/plink2/formats#gen
 plink2 --bfile $plink_bfile --recode oxford --out $out_oxford_recode
 
 # Then transpose and convert SNP coding using plink1.9 with --recode A-transpose:

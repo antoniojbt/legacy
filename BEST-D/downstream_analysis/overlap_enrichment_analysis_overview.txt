@@ -1,0 +1,57 @@
+# Overlap analysis with Fisher's tests, files to test:
+# hits_file
+Diff_exp_BESTD_FDR10.txt \
+
+TO DO:
+eGenes reQTLs cis
+eGenes reQTLs trans
+
+ 
+# background_file
+background_probeID_BESTD_expressed.txt \
+
+
+# annotation_file
+VD_diff_exp_Heikkinen11.txt
+VD_diff_exp_Hossein-nezhad_Holick_2013_TS4.txt
+VD_diff_exp_Gerke2014.txt
+VD_exp_genes_Ramagopalan_2010.txt
+for_overlap_GO-0071305_cellular_response_to_vitamin_D.txt
+for_overlap_GO-0042809_vitamin_D_receptor_binding.txt
+for_overlap_GO-0033280_response_to_vitamin_D.txt
+eGenes_cis_tx_fdr5_reQTLs_annot_all_Tx_joint_cis.txt
+eGenes_cis_tx_fdr5_reQTLs_annot_all_Tx_joint_trans.txt
+
+#To add:
+eSNPs_cis_tx_fdr5_reQTLs_annot_all_Tx_joint_cis.txt
+eSNPs_cis_tx_fdr5_reQTLs_annot_all_Tx_joint_trans.txt
+
+
+all_treated_baseline_FDR0.05_all_columns.txt \
+all_treated_final_FDR0.05_all_columns.txt \
+
+
+####################################
+
+####################################
+# Overlap analysis and functional annotation of genetic variants
+See Gallone et. al, 2016
+
+Tools:
+- We performed enrichment analysis using overlap tests based on xxx as implemented by Genome Analysis Test (Heger et al., 201?). GAT corrects for GC content, segment length and xxx.
+Enrichment test were conducted at nucleotide-level overlap based on 10,000 randomisations. The background was restricted to ungapped hg19 contigs limited to uniquely mappable regions for 36bp reads. ENCODE mappability tracks were downloaded from UCSC.
+
+- Fisher's exact test as implemented in the R package xxx {xxx}
+
+To test whether:Co-localisation with TFs
+Binding to known regulatory regions 
+Location in relation to the genome architecture (defined by chromatin segmentation)
+Location in relation to the genome architecture (defined by genomic feature annotation) 
+Overlap with disease regions as determined by GWAS SNPs (GWAS catalog [Welter et al., 2014])
+Enrichment overlap tests and sources:
+Enrichment in common genomic features (Ensembl 72 [Flicek et al., 2014])Enrichment in ENCODE TFBS clusters (V3) uniformly processed by the ENCODE Analysis Working Group17;Enrichment in ENCODE chromatin segmentation data for LCL sample GM1287818;Enrichment in DNase clusters (V2) from UW and Duke ENCODE data uniformly processed by the ENCODE Analysis Working Group19;Enrichment in MHC intervals and extended MHC intervals;Enrichment in FANTOM5 in vivo enhancer data from Andersson et al. [2014]Enrichment in intervals obtained by extending the GWAS catalog [Welter et al., 2014] disease SNPs  150kb (as done in Ramagopalan et al. [2010]).
+
+Enrichment of RXR:VDR DR3 (Jaspar) motif intervals detected under CPo3 binding regions, including class I andclass II intervals;Enrichment in High-Occupancy Target (HOT) regions [Yip et al., 2012] (track extracted from Funseq annotation);CEU LD blocks for genome-wide significant GWAS SNPs from the GRASP catalog, V. 2 Eicher et al. [2015].
+
+
+

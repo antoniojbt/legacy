@@ -32,6 +32,7 @@ print(paste('Working directory :', getwd()))
 #load('R_session_saved_image_read_and_QC.RData', verbose=T)
 #load('R_session_saved_image_normalisation_full.RData', verbose=T)
 load('R_session_saved_image_normalisation.RData', verbose=T)
+# load('R_session_saved_image_normalisation_full_1ry_cells.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_probe_filtering', '.RData', sep='')
@@ -45,6 +46,8 @@ R_session_saved_image <- paste('R_session_saved_image_probe_filtering', '.RData'
 library(limma)
 library(illuminaHumanv4.db)
 library(plyr)
+library(ggplot2)
+library(gridExtra)
 #############################
 
 
@@ -113,9 +116,9 @@ normalised_expressed$targets
 # Also download Illumina's annotation file:
 # https://support.illumina.com/content/dam/illumina-support/documents/downloads/productfiles/humanht-12/humanht-12_v4_0_r2_15002873_b.txt.zip
 # Merge with file above and exclude all unplaced and non-autosomal probes for example.
-# TO DO: The R package illuminaHumanv4.db is known to have issues though:
+# TO DO: The R package illuminaHumanv4.db is known to have issues though, complete 'microarray_probe_filtering_sanity_check.R' script.
 
-
+# TO DO: exlcude this as not necessary at this stage:
 # Remove probes that aren't annotated with a gene symbol:
 annotated_probes <- !is.na(normalised_expressed$genes$SYMBOL)
 count(annotated_probes)
@@ -137,6 +140,8 @@ dim(normalised_expressed_annotated)
 dim(normalised_expressed)
 length(annotated_probes)
 count(annotated_probes)
+length(which(is.na(normalised_expressed_annotated$genes$SYMBOL)))
+length(which(is.na(normalised_expressed$genes$SYMBOL)))
 
 #View(normalised_expressed$genes)
 ###################
@@ -161,62 +166,17 @@ png('Average_signal_probes_by_quality.png', width = 4, height = 4, units = 'in',
 boxplot(aveSignal_probes_by_qual ~ probes_by_qual)
 dev.off()
 
-# TO DO: Confirm low quality probes match to multiple locations and should be removed:
-#?illuminaHumanv4REPEATMASK
-
-all_probes  <- unlist(mget(illumina_ids, illuminaHumanv4REPEATMASK, ifnotfound = NA))
-#View(all_probes)
-summary(all_probes)
-all_probes_2 <- !is.na(all_probes)
-#View(all_probes_2)
-summary(all_probes_2)
-
-query_bad_IDs <- names(which(probes_by_qual == "Bad" & aveSignal_probes_by_qual  > 12))
-head(query_bad_IDs)
-length(query_bad_IDs)
-
-repeat_mask_bad <- unlist(mget(query_bad_IDs, illuminaHumanv4REPEATMASK, ifnotfound = NA))
-#View(repeat_mask_bad)
-head(repeat_mask_bad)
-length(repeat_mask_bad)
-
-repeat_mask_bad_2 <- !is.na(repeat_mask_bad)
-#View(repeat_mask_bad_2)
-summary(repeat_mask_bad_2)
-head(repeat_mask_bad_2)
-length(repeat_mask_bad_2)
-
-multiple_matches_bad <- unlist(mget(query_bad_IDs, illuminaHumanv4SECONDMATCHES, ifnotfound = NA))
-head(multiple_matches_bad)
-length(multiple_matches_bad)
-
-multiple_matches_bad_2 <- !is.na(multiple_matches_bad)
-#View(repeat_mask_bad_2)
-summary(multiple_matches_bad_2)
-head(multiple_matches_bad_2)
-length(multiple_matches_bad_2)
-
-# mget("ILMN_1692145", illuminaHumanv4PROBESEQUENCE)
-
-query_perfect_IDs <- names(which(probes_by_qual == "Perfect" & aveSignal_probes_by_qual  > 12))
-head(query_perfect_IDs)
-length(query_perfect_IDs)
-
-repeat_mask_perfect <- unlist(mget(query_perfect_IDs, illuminaHumanv4REPEATMASK))
-head(repeat_mask_perfect)
-length(repeat_mask_perfect)
-
-multiple_matches_perfect <- unlist(mget(query_bad_IDs, illuminaHumanv4SECONDMATCHES))
-head(multiple_matches_perfect)
-length(multiple_matches_perfect)
-
-
 # Remove probes of low quality:
 remove_bad_probes  <- probes_by_qual == "No match" | probes_by_qual == "Bad"
+head(probes_by_qual)
+head(remove_bad_probes)
 count(remove_bad_probes)
 normalised_expressed_annotated_qual <- normalised_expressed_annotated[!remove_bad_probes, ]
 dim(normalised_expressed_annotated)
 dim(normalised_expressed_annotated_qual)
+dim(normalised_expressed_annotated)[1] - dim(normalised_expressed_annotated_qual)[1]
+head(normalised_expressed_annotated_qual)
+
 
 # Check counts match:
 count(!is.na(normalised_expressed_annotated_qual$genes$SYMBOL))
@@ -225,6 +185,7 @@ length(rownames(normalised_expressed_annotated_qual))
 
 ###################
 # Remove probes that overlap SNPs:
+# ?illuminaHumanv4OVERLAPPINGSNP
 probes_by_SNPs  <- !is.na(unlist(mget(as.character(rownames(normalised_expressed_annotated_qual)), 
                                       illuminaHumanv4OVERLAPPINGSNP, ifnotfound = NA)))
 head(probes_by_SNPs)
@@ -234,10 +195,12 @@ summary(probes_by_SNPs)
 normalised_expressed_annotated_qual_noSNPs <- normalised_expressed_annotated_qual[!probes_by_SNPs, ]
 dim(normalised_expressed_annotated_qual)
 dim(normalised_expressed_annotated_qual_noSNPs)
+dim(normalised_expressed_annotated_qual)[1] - dim(normalised_expressed_annotated_qual_noSNPs)[1]
 ###################
 
 
 ###################
+# TO DO: exlcude this as not necessary at this stage:
 # Keep only probes that have Entrez IDs:
 ## Get ENTREZ ID mappings:
 dim(normalised_expressed_annotated_qual_noSNPs)
@@ -302,7 +265,7 @@ length(which(!duplicated(probes_by_CHR$Probe_Id)))
 
 # Convert elist object to dataframe (this loses some information but retains what is
 # needed (probe expression levels, probe ID, illumina ID, annotations, etc.):
-# Informartion lost is source, detection P-values (already used, kept in $other), and $targets (
+# Information lost is source, detection P-values (already used, kept in $other), and $targets (
 # which stores the file names read originally for read.illm function):
 str(normalised$source)
 str(normalised$genes)
@@ -323,6 +286,9 @@ head(df_normalised_expressed_annotated_qual_noSNPs_noID_chr)
 dim(df_normalised_expressed_annotated_qual_noSNPs_noID_chr)
 summary(df_normalised_expressed_annotated_qual_noSNPs_noID_chr$probes_by_CHR)
 
+
+#########
+# TO DO: move this to sanity check script 'microarray_probe_filtering_sanity_check.R'
 # Check if annotations between Illumina and illuminaHumanv4.db match:
 # Illumina annotations here aret hose from the array itself (ie not the downloaded file from Illumina's webpage, that's another
 # option to check).
@@ -365,18 +331,22 @@ count(chr_comparison$probes_by_CHR)
 df_normalised_filtered <- df_normalised_expressed_annotated_qual_noSNPs_noID_chr
 remove_sex_probes  <- which(df_normalised_filtered$probes_by_CHR == 'X' | df_normalised_filtered$probes_by_CHR == 'Y' | 
                               df_normalised_filtered$probes_by_CHR == 'Un')
+head(remove_sex_probes)
 
 head(which(df_normalised_filtered$probes_by_CHR == 'X'))
 head(which(df_normalised_filtered$probes_by_CHR == 'Y'))
 head(which(df_normalised_filtered$probes_by_CHR == 'Un'))
-# TO DO: these indexes will cause errors when using other files. Convert or comment out:
+# These indexes will cause errors when using other files. Convert or comment out:
 #df_normalised_filtered[c(39, 930, 16825), c('Probe_Id', 'CHROMOSOME', 'probes_by_CHR')]
 #df_normalised_filtered[c(17484, 16809, 16825), c('Probe_Id', 'CHROMOSOME', 'probes_by_CHR')]
+#########
 
+#########
 #View(remove_sex_probes)
 head(remove_sex_probes)
 length(remove_sex_probes)
-dim(df_normalised_filtered)
+dim(df_normalised_filtered) # This object has the expression values after excluding low quality, probes 
+                            # overlapping SNPs, probes without symbol or EntrezID
 
 df_normalised_filtered <- df_normalised_filtered[-remove_sex_probes, ]
 dim(normalised)
@@ -385,12 +355,13 @@ dim(normalised_expressed_annotated)
 dim(normalised_expressed_annotated_qual)
 dim(normalised_expressed_annotated_qual_noSNPs)
 dim(normalised_expressed_annotated_qual_noSNPs_noID)
-dim(df_normalised_filtered)
+dim(df_normalised_filtered) # After removing probes from sex and unannotated chromosomes
 
 which(df_normalised_filtered$probes_by_CHR == 'X')
 which(df_normalised_filtered$probes_by_CHR == 'Y')
 which(df_normalised_filtered$probes_by_CHR == 'Un')
 #df_normalised_filtered[c(39, 930, 16825), c('Probe_Id', 'CHROMOSOME', 'probes_by_CHR')]
+#########
 ###################
 
 
@@ -485,6 +456,7 @@ count(normalised_filtered_annotated$Status)
 
 
 #############################
+# TO DO: move this file to a different script, separate probe filtering from exploring annotation.
 
 ## Visual inspection of normalised and filtered dataset: 
 # TO DO: I changed the normalised_filtered object from an Elist to a dataframe, downstream will now error.
@@ -519,6 +491,7 @@ pca_normalised_filtered <- prcomp(t(normalised_filtered), center=TRUE, scale=TRU
 pc <- data.frame(round(pca_normalised_filtered$x, 2))
 pc$sample_id <- rownames(pc) 
 source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
+# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/moveme.R')
 pc <- pc[, moveme(names(pc), 'sample_id first')]
 names(pc)[1:10]
 class(pc)
@@ -550,6 +523,7 @@ dev.off()
 # sum(pca_normalised_filtered$sdev[1:10]^2)/length(normalised_filtered[1,])
 
 
+# TO DO: this is project specific:
 # Run PCA analysis by groups of interest: TO DO: Cross files and IDs first
 head(membership_file_cleaned)
 tail(membership_file_cleaned)
@@ -706,6 +680,8 @@ dev.off()
 # Save files required for other packages/programmes:
 head(normalised_filtered) # expression values only
 head(normalised_filtered_annotated) # expression values plus annotations
+dim(normalised_filtered)
+dim(normalised_filtered_annotated)
 #head(membership_file_cleaned)
 
 write.table(normalised_filtered_annotated, 'normalised_filtered_annotated.tab', sep='\t', 
