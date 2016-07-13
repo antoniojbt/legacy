@@ -1,7 +1,7 @@
 ####################
 # XGR Downstream analysis
 # Hai's package
-# 28 April 2016
+# 19 May 2016
 ####################
 
 ####################
@@ -13,6 +13,7 @@
 ####################
 
 ####################
+options(echo = TRUE)
 ##Set working directory and file locations and names of required inputs:
 
 # Working directory:
@@ -49,12 +50,9 @@ R_session_saved_image
 ####################
 # Libraries:
 library(XGR)
-library(RCircos)
-library(data.table)
-library(ggplot2)
 
 # Get additional functions needed:
-source('/Users/antoniob/Desktop/BEST_D_03_MAR.DIR/scripts/gene_expression_functions.R')
+source('gene_expression_functions.R')
 # source('/ifs/devel/antoniob/projects/BEST-D/gene_expression_functions.R')
 ####################
 
@@ -64,15 +62,14 @@ args <- commandArgs(trailingOnly = TRUE)
 
 # Gene or SNP files:
 hits_file <- as.character(args[1])
-# hits_file <- 'cis_reQTLs_SNPs.txt'
-# hits_file <- 'cis_reQTLs_genes.txt'
-# hits_file <- 'diff_exp_genes_FDR10.txt'
+# hits_file <- 'eGenes_cis_tx_fdr5_reQTLs_annot_all_Tx_joint_cis.txt'
 # hits_file <- 'Diff_exp_BESTD_FDR10.txt'
+
 background_file <- as.character(args[2])
-# background_file <- 'background_genes.txt'
+# background_file <- 'background_genes_BESTD_expressed.txt'
 
 # To test enrichment against a particular set
-annotation_file <- as.character(args[3])
+# annotation_file <- as.character(args[3])
 # annotation_file <- 'VD_exp_genes_Ramagopalan_2010.txt'
 
 # Ontology term to test against:
@@ -82,19 +79,20 @@ annotation_file <- as.character(args[3])
 ####################
 # Read data:
 # hits_data <- fread(hits_file, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
-hits_data <- read.csv(hits_file, sep = '\t', header = FALSE, stringsAsFactors = FALSE)
+hits_data <- read.csv(hits_file, sep = '\t', header = FALSE, stringsAsFactors = FALSE, strip.white = TRUE)
 hits_data <- as.vector(hits_data$V1)
 class(hits_data)
 str(hits_data)
 hits_data
 
-background_data <- read.csv(background_file, sep = '\t', header = FALSE, stringsAsFactors = FALSE)
+background_data <- read.csv(background_file, sep = '\t', header = FALSE, stringsAsFactors = FALSE, strip.white = TRUE)
 background_data <- as.vector(background_data$V1)
 str(background_data)
 
-annotation_data <- read.csv(annotation_file, sep = '\t', header = FALSE, stringsAsFactors = FALSE)
-str(annotation_data)
-head(annotation_data)
+# TO DO/clean up
+# annotation_data <- read.csv(annotation_file, sep = '\t', header = FALSE, stringsAsFactors = FALSE)
+# str(annotation_data)
+# head(annotation_data)
 ####################
 
 ####################
@@ -142,26 +140,27 @@ dev.off()
 ####################
 
 ####################
-# TO DO: run SNPs as separate script
-# Test SNPs:
-ontology_term <- 'EF'
-enrichment_result <- xEnricherSNPs(data = hits_data, ontology = ontology_term)
-# view enrichment results for the top significant terms
-xEnrichViewer(enrichment_result)
-# save enrichment results to file:
-save_enrichment <- xEnrichViewer(enrichment_result, top_num=length(enrichment_result$adjp), sortBy="adjp", details=TRUE)
-output_enrichment <- data.frame(term=rownames(save_enrichment), save_enrichment)
-utils::write.table(output_enrichment, file=sprintf("%s_%s_enrichments.txt", hits_file, ontology_term), sep="\t", row.names=FALSE)
+# # TO DO: run SNPs as separate script
+# # Test SNPs:
+# ontology_term <- 'EF'
+# enrichment_result <- xEnricherSNPs(data = hits_data, ontology = ontology_term)
+# # view enrichment results for the top significant terms
+# xEnrichViewer(enrichment_result)
+# # save enrichment results to file:
+# save_enrichment <- xEnrichViewer(enrichment_result, top_num=length(enrichment_result$adjp), sortBy="adjp", details=TRUE)
+# output_enrichment <- data.frame(term=rownames(save_enrichment), save_enrichment)
+# utils::write.table(output_enrichment, file=sprintf("%s_%s_enrichments.txt", hits_file, ontology_term), sep="\t", row.names=FALSE)
 ####################
 
 ####################
-# Test overlap between gene lists using XGR:
-# xEnricherYours requires dataframes as files, simply provide file names:
-enrichment_result <- xEnricherYours(data.file = hits_file, annotation.file = annotation_file, background.file = background_file)
-xEnrichViewer(enrichment_result)
-save_enrichment <- xEnrichViewer(enrichment_result, top_num=length(enrichment_result$adjp), sortBy="adjp", details=TRUE)
-output_enrichment <- data.frame(term=rownames(save_enrichment), save_enrichment)
-utils::write.table(output_enrichment, file=sprintf("%s_%s_overlap.txt", hits_file, background_file), sep="\t", row.names=FALSE)
+# TO DO/clean up
+# # Test overlap between gene lists using XGR:
+# # xEnricherYours requires dataframes as files, simply provide file names:
+# enrichment_result <- xEnricherYours(data.file = hits_file, annotation.file = annotation_file, background.file = background_file)
+# xEnrichViewer(enrichment_result)
+# save_enrichment <- xEnrichViewer(enrichment_result, top_num=length(enrichment_result$adjp), sortBy="adjp", details=TRUE)
+# output_enrichment <- data.frame(term=rownames(save_enrichment), save_enrichment)
+# utils::write.table(output_enrichment, file=sprintf("%s_%s_overlap.txt", hits_file, background_file), sep="\t", row.names=FALSE)
 ####################
 
 ####################
@@ -180,8 +179,8 @@ utils::write.table(output_enrichment, file=sprintf("%s_%s_overlap.txt", hits_fil
 
 ####################
 # Visualise results:
-xCircos()
-xVisNet()
+# xCircos()
+# xVisNet()
 
 ####################
 
@@ -204,7 +203,7 @@ xVisNet()
 #rm(list=ls(arrayQualityMetrics_raw_cleaned, arrayQualityMetrics_preprocessed))
 
 # To save R workspace with all objects to use at a later time:
-save.image(file=R_session_saved_image, compress='gzip')
+# save.image(file=R_session_saved_image, compress='gzip')
 
 #objects_to_save <- (c('normalised_expressed', 'normalised_filtered', 'membership_file_cleaned', 'FAILED_QC_unique'))
 #save(list=objects_to_save, file=R_session_saved_image, compress='gzip')
