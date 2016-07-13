@@ -46,6 +46,7 @@ R_session_saved_image
 # Libraries:
 library(data.table)
 library(gvlma)
+library(biglm)
 source('functions_for_MatrixeQTL.R')
 source('moveme.R')
 ####################
@@ -109,9 +110,10 @@ class(gex_2_t)
 gex_2_t[1:5, 1:5, with = F]
 gex_2_t[1:5, c((ncol(gex_2_t)-5):ncol(gex_2_t)), with = F]
 
-length(which(colnames(gex_1) %in% colnames(pheno_IDs))) # First column is probe IDs
-length(which(colnames(gex_2) %in% colnames(pheno_IDs))) # First column is probe IDs
-
+# length(which(colnames(gex_1) %in% colnames(pheno_data))) # First column is probe IDs
+# length(which(colnames(gex_2) %in% colnames(pheno_data))) # First column is probe IDs
+length(which(colnames(gex_1) %in% pheno_data[['V1']])) # First column is probe IDs
+length(which(colnames(gex_2) %in% pheno_data[['V1']])) # First column is probe IDs
 
 # Merge files with pheno data to add pt IDs
 # Rename columns to match each other:
@@ -314,20 +316,91 @@ gex_1_matched_lm[1:5, 1:5]
 gex_corrected <- gex_1_matched_lm[, 'probe'] - rowSums(coef(lm_gex_1_matched)[c(-1)] * gex_1_matched_lm[, 2:ncol(gex_1_matched_lm)])
 # gex_corrected_2 <- gex_2_matched_lm[, 'probe'] - rowSums(coef(lm_gex_2_matched)[c(-1)] * gex_2_matched_lm[, 2:ncol(gex_2_matched_lm)])
 gex_corrected
+####################
 
-# TO DO: Do the same for 16,700 probes and get ratios afterwards
-gex_corrected_2 / gex_corrected
- 
+####################
+# Do the same for 16,700 probes and get ratios
+# Linear regression corrected for PCs:
+
+# Function to run linear regression on each probe:
+get_lm <- function(DT, PC_DT, col_name) {
+  # Create dataframe with data (expression value plus PCs)
+  DT2 <- data.frame(cbind(DT[, as.character(col_name), with = F], PC_DT))
+  # Linear regression corrected for PCs:
+  col_names <- names(DT2)
+  pass_formula <- as.formula(sprintf('%s ~ %s', col_name, paste(col_names[!col_names %in% col_name], collapse = " + ")))
+  biglm_fit <- biglm(formula = pass_formula, data = DT2)
+  # summary(biglm_fit)
+  # Get coefficients from lm:
+  # biglm_fit$qr$thetab # These are the coefficients
+  # Correct expression value:
+  DT2_corrected <- DT2[, col_name] - rowSums(biglm_fit$qr$thetab[c(-1)] * DT2[, 2:ncol(DT2)])
+  # DT2_corrected
+  return(DT2_corrected)
+}
+
+# Run regressions for file gex 1:
+# Get all probe names:
+cols <- names(gex_1_matched)
+head(cols)
+tail(cols)
+# Create dummy data.table:
+DT_corrected <- data.table(c(1:nrow(gex_1_matched)), c('dummy'))
+DT_corrected
+
+for(i in cols) {
+  corrected <- get_lm(gex_1_matched, pc_gex_1_matched_to_adjust, i)
+  DT_corrected[, paste0(i) := corrected]
+}
+DT_corrected[1:5, 1:5, with = F]
+dim(DT_corrected)
+DT_corrected_1 <- DT_corrected
+
+# TO DO: Should use lapply, eg:
+# DT_corrected <- gex_1_matched[, paste0(i) := lapply(.SD, get_lm, args, args),]
+# http://stackoverflow.com/questions/25443658/r-add-new-columns-to-a-data-table-containing-many-variables
+
+# Delete dummy columns:
+DT_corrected_1[, c('V1', 'V2') := NULL]
+DT_corrected_1[1:5, 1:5, with = F]
+dim(DT_corrected_1)
+
+# Repeat for gex_2 file:
+# Get all probe names:
+cols <- names(gex_2_matched)
+head(cols)
+tail(cols)
+# Create dummy data.table:
+DT_corrected <- data.table(c(1:nrow(gex_2_matched)), c('dummy'))
+DT_corrected
+
+for(i in cols) {
+  corrected <- get_lm(gex_2_matched, pc_gex_2_matched_to_adjust, i)
+  DT_corrected[, paste0(i) := corrected]
+}
+DT_corrected[1:5, 1:5, with = F]
+dim(DT_corrected)
+DT_corrected_2 <- DT_corrected
+
+# Delete dummy columns:
+DT_corrected_2[, c('V1', 'V2') := NULL]
+DT_corrected_2[1:5, 1:5, with = F]
+dim(DT_corrected_2)
+
+  
+# TO DO: Test assumptions (summary?):
+# gvmodel <- gvlma(biglm_gex_1_matched)
+# summary(gvmodel)
 ####################
 
 ####################
 # Get ratio of file2 over file1:
-gex_FC <- gex_2_matched / gex_1_matched
+gex_FC <- DT_corrected_2 / DT_corrected_1
 dim(gex_FC)
 class(gex_FC)
 gex_FC[1:5, 1:5, with = F]
 
-gex_FC[, list = mean(gex_FC)]
+range(as.list(gex_FC[, .(all_means = lapply(.SD, mean))]))
 
 ####################
 
