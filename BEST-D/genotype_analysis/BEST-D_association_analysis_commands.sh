@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -u 
+
 #########################
 #Genotype association analysis pipeline
 #########################
@@ -20,10 +23,10 @@
 #Plink: http://pngu.mgh.harvard.edu/~purcell/plink/ibdibs.shtml
 #Haploview: http://www.broadinstitute.org/haploview/haploview
 #SNPSpD, calculates the effective number of independent SNPs among a collection of SNPs in LD with each other: http://genepi.qimr.edu.au/general/daleN/SNPSpD/
-#Plotting scripts and others currently in: /ifs/devel/antoniob/projects/BEST-D/
+#Plotting scripts and others currently in: /ifs/devel/antoniob/projects/cgat_projects/BEST-D/genotype_analysis/
 
 #Requirements (generated with Plink or other tool):
-#Standard FAM, PED and MAP or binary files after QC analyses (markers QC and individuals QC, see /ifs/devel/antoniob/projects/BEST-D/ files).
+#Standard FAM, PED and MAP or binary files after QC analyses (markers QC and individuals QC, see /ifs/devel/antoniob/projects/cgat_projects/BEST-D/genotype_analysis/ files).
 #Alternate phenotype and covariate files if available
 
 
@@ -70,16 +73,16 @@ ln -s /ifs/projects/proj043/analysis.dir/BEST-D_alternate_phenotypes_kit_ID_twic
 ln -s /ifs/projects/proj043/analysis.dir/covariates_list_adjustment.txt .
 
 # File with SNPs of interest:
-ln -s /ifs/projects/proj043/analysis.dir/VD_SNPs_GWAS_list.txt .
+#ln -s /ifs/projects/proj043/analysis.dir/VD_SNPs_GWAS_list.txt .
 
 # Scripts needed for processing after association analysis:
-ln -s /ifs/devel/antoniob/projects/BEST-D/BEST-D_association_analysis_commands.sh .
-ln -s /ifs/devel/antoniob/projects/BEST-D/qsub_BEST-D_association_analysis_commands.sh .
-ln -s /ifs/devel/antoniob/projects/BEST-D/plot-p-values_* .
-ln -s /ifs/devel/antoniob/projects/BEST-D/extract_SNPs_assoc_test.R .
-ln -s /ifs/devel/antoniob/projects/BEST-D/plink_output_processing.R .
-ln -s /ifs/devel/antoniob/projects/BEST-D/plot-qqplot.R .
-ln -s /ifs/devel/antoniob/projects/BEST-D/plot-manhattan* .
+#ln -s /ifs/devel/antoniob/projects/cgat_projects/BEST-D/genotype_analysis/BEST-D_association_analysis_commands.sh .
+#ln -s /ifs/devel/antoniob/projects/cgat_projects/BEST-D/genotype_analysis/qsub_BEST-D_association_analysis_commands.sh .
+ln -s /ifs/devel/antoniob/projects/cgat_projects/BEST-D/genotype_analysis/plot-p-values_* .
+ln -s /ifs/devel/antoniob/projects/cgat_projects/BEST-D/genotype_analysis/extract_SNPs_assoc_test.R .
+ln -s /ifs/devel/antoniob/projects/cgat_projects/BEST-D/genotype_analysis/plink_output_processing.R .
+ln -s /ifs/devel/antoniob/projects/cgat_projects/BEST-D/genotype_analysis/plot-qqplot.R .
+ln -s /ifs/devel/antoniob/projects/cgat_projects/BEST-D/genotype_analysis/plot-manhattan* .
 
 #########################
 
@@ -186,13 +189,15 @@ ln -s /ifs/devel/antoniob/projects/BEST-D/plot-manhattan* .
 	--linear sex hide-covar --adjust --ci 0.95 --missing-phenotype -99999 \
 	--covar final_phenotype_data.tab \
 	--covar-name incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-	--out QCd_genotypes_vitd0_all_covar_linear
+	--out QCd_genotypes_vitd0_all_covar_linear \
+	--perm 
 
 # vitd0 with --assoc and qt-means but only sex as covariate:
 /ifs/apps/bio/plink-1.9329/plink2 --noweb --bfile P140343-Results_FinalReport_clean_SNPs_autosome_individuals \
 	--pheno final_phenotype_data.tab --pheno-name vitd0 \
 	--assoc qt-means --adjust --ci 0.95 --missing-phenotype -99999 \
-	--out QCd_genotypes_vitd0_all_covar_assoc
+	--out QCd_genotypes_vitd0_all_covar_assoc \
+        --perm
 
 #vitd0 with genotypic to test for other than additive effects::
 /ifs/apps/bio/plink-1.9329/plink2 --noweb --bfile P140343-Results_FinalReport_clean_SNPs_autosome_individuals \
@@ -200,7 +205,8 @@ ln -s /ifs/devel/antoniob/projects/BEST-D/plot-manhattan* .
 	--linear sex genotypic hide-covar --adjust --ci 0.95 --missing-phenotype -99999 \
 	--covar final_phenotype_data.tab \
 	--covar-name incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-	--out QCd_genotypes_vitd0_genotypic_all_covar
+	--out QCd_genotypes_vitd0_genotypic_all_covar \
+        --perm
 
 #To specify a genotypic, dominant or recessive model in place of a multiplicative model, include the model option --genotypic, --dominant or --recessive, 
 #respectively. 
@@ -224,7 +230,8 @@ ln -s /ifs/devel/antoniob/projects/BEST-D/plot-manhattan* .
 	--linear sex hide-covar --adjust --ci 0.95 --missing-phenotype -99999 \
 	--covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-	--out QCd_genotypes_vitd6_all_covar_vitd0
+	--out QCd_genotypes_vitd6_all_covar_vitd0 \
+        --perm
 
 #vitd12
 /ifs/apps/bio/plink-1.9329/plink2 --noweb --bfile P140343-Results_FinalReport_clean_SNPs_autosome_individuals \
@@ -232,7 +239,8 @@ ln -s /ifs/devel/antoniob/projects/BEST-D/plot-manhattan* .
 	--linear sex hide-covar --adjust --ci 0.95 --missing-phenotype -99999 \
 	--covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-	--out QCd_genotypes_vitd12_all_covar_vitd0
+	--out QCd_genotypes_vitd12_all_covar_vitd0 \
+        --perm
 
 # vitd12 without correcting for baseline vitd (vitd0):
 /ifs/apps/bio/plink-1.9329/plink2 --noweb --bfile P140343-Results_FinalReport_clean_SNPs_autosome_individuals \
@@ -240,7 +248,8 @@ ln -s /ifs/devel/antoniob/projects/BEST-D/plot-manhattan* .
         --linear sex hide-covar --adjust --ci 0.95 --missing-phenotype -99999 \
         --covar final_phenotype_data.tab \
 	--covar-name incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd12_all_covar_novitd0
+        --out QCd_genotypes_vitd12_all_covar_novitd0 \
+        --perm
 
 
 ## Test with multiple covariates and interactions:
@@ -257,8 +266,8 @@ ln -s /ifs/devel/antoniob/projects/BEST-D/plot-manhattan* .
         --assoc qt-means --gxe 56 --adjust --missing-phenotype -99999 \
         --covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd12_gxe_placebovsTx
-
+        --out QCd_genotypes_vitd12_gxe_placebovsTx \
+        --perm
 
 # Linear regression test for vitd12 using only subgroups:
 # All individuals:
@@ -267,11 +276,12 @@ ln -s /ifs/devel/antoniob/projects/BEST-D/plot-manhattan* .
         --linear sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
         --covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd12_all_samples_all_covar_vitd0
+        --out QCd_genotypes_vitd12_all_samples_all_covar_vitd0 \
+        --perm
 # Get VD SNPs:
 # TO DO: keep header for easier processing afterwards. Could also add column with source of SNP/test (ie filename?).
-grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear | sort -gk 12 \
-        > vitd12_all_samples_all_covar_vitd0.assoc.linear.results_SNPs_of_interest.txt
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd12_all_samples_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
 
 # Treated only:
@@ -280,10 +290,11 @@ grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_all_samples_all_covar_vitd0.
 	--linear sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
 	--covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-	--out QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0
+	--out QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0 \
+        --perm
 # Get VD SNPs:
-grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear | sort -gk 12 \
-	> vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.results_SNPs_of_interest.txt
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+	> vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
 # 4000 only:
 /ifs/apps/bio/plink-1.9329/plink2 --noweb --bfile P140343-Results_FinalReport_clean_SNPs_autosome_individuals \
@@ -291,10 +302,11 @@ grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_2000_4000_only_all_covar_vit
         --linear sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
         --covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd12_4000_only_all_covar_vitd0
+        --out QCd_genotypes_vitd12_4000_only_all_covar_vitd0 \
+        --perm
 # Get VD SNPs:
-grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_4000_only_all_covar_vitd0.assoc.linear | sort -gk 12 \
-        > vitd12_4000_only_all_covar_vitd0.assoc.linear.results_SNPs_of_interest.txt
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_4000_only_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd12_4000_only_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
 
 # 2000 only:
@@ -303,10 +315,11 @@ grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_4000_only_all_covar_vitd0.as
         --linear sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
         --covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd12_2000_only_all_covar_vitd0
+        --out QCd_genotypes_vitd12_2000_only_all_covar_vitd0 \
+        --perm
 # Get VD SNPs:
-grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear | sort -gk 12 \
-        > vitd12_2000_only_all_covar_vitd0.assoc.linear.results_SNPs_of_interest.txt
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd12_2000_only_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
 ## Run the same for vitd6:
 # All individuals:
@@ -315,10 +328,11 @@ grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_2000_only_all_covar_vitd0.as
         --linear sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
         --covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd6_all_samples_all_covar_vitd0
+        --out QCd_genotypes_vitd6_all_samples_all_covar_vitd0 \
+        --perm
 # Get VD SNPs:
-grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_all_samples_all_covar_vitd0.assoc.linear | sort -gk 12 \
-        > vitd6_all_samples_all_covar_vitd0.assoc.linear.results_SNPs_of_interest.txt
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_all_samples_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd6_all_samples_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
 
 # Treated only:
@@ -327,10 +341,11 @@ grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_all_samples_all_covar_vitd0.a
         --linear sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
         --covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd6_2000_4000_only_all_covar_vitd0
+        --out QCd_genotypes_vitd6_2000_4000_only_all_covar_vitd0 \
+        --perm
 # Get VD SNPs:
-grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_2000_4000_only_all_covar_vitd0.assoc.linear | sort -gk 12 \
-        > vitd6_2000_4000_only_all_covar_vitd0.assoc.linear.results_SNPs_of_interest.txt
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_2000_4000_only_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd6_2000_4000_only_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
 # 4000 only:
 /ifs/apps/bio/plink-1.9329/plink2 --noweb --bfile P140343-Results_FinalReport_clean_SNPs_autosome_individuals \
@@ -338,10 +353,11 @@ grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_2000_4000_only_all_covar_vitd
         --linear sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
         --covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd6_4000_only_all_covar_vitd0
+        --out QCd_genotypes_vitd6_4000_only_all_covar_vitd0 \
+        --perm
 # Get VD SNPs:
-grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear | sort -gk 12 \
-        > vitd6_4000_only_all_covar_vitd0.assoc.linear.results_SNPs_of_interest.txt
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd6_4000_only_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
 
 # 2000 only:
@@ -350,10 +366,11 @@ grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_4000_only_all_covar_vitd0.ass
         --linear sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
         --covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd6_2000_only_all_covar_vitd0
+        --out QCd_genotypes_vitd6_2000_only_all_covar_vitd0 \
+        --perm
 # Get VD SNPs:
-grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear | sort -gk 12 \
-        > vitd6_2000_only_all_covar_vitd0.assoc.linear.results_SNPs_of_interest.txt
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd6_2000_only_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
 
 #vitd12 with interaction term all individuals:
@@ -362,9 +379,10 @@ grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_2000_only_all_covar_vitd0.ass
         --linear interaction sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
 	--covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd12_all_interaction_all_covar_vitd0
-grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_all_interaction_all_covar_vitd0.assoc.linear | sort -gk 12 \
-        > vitd12_all_interaction_all_covar_vitd0.assoc.linear.results_SNPs_of_interest.txt
+        --out QCd_genotypes_vitd12_all_interaction_all_covar_vitd0 \
+        --perm
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_all_interaction_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd12_all_interaction_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
 # vitd12 with interaction term treated vs placebo:
 /ifs/apps/bio/plink-1.9329/plink2 --noweb --bfile P140343-Results_FinalReport_clean_SNPs_autosome_individuals \
@@ -372,9 +390,10 @@ grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_all_interaction_all_covar_vi
         --linear interaction sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
         --covar final_phenotype_data.tab \
 	--covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, bmi0, calendar_age_ra, season_randomisation_2 \
-        --out QCd_genotypes_vitd12_2000_4000_only_interaction_all_covar_vitd0
-grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_2000_4000_only_interaction_all_covar_vitd0.assoc.linear | sort -gk 12 \
-        > vitd12_2000_4000_only_interaction_all_covar_vitd0.assoc.linear.results_SNPs_of_interest.txt
+        --out QCd_genotypes_vitd12_2000_4000_only_interaction_all_covar_vitd0 \
+        --perm
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_2000_4000_only_interaction_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd12_2000_4000_only_interaction_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
 ############
 
@@ -435,18 +454,18 @@ cat *.log | grep -i warning
 #Data visualisation
 #Quantile-quantile plot:
 # Run this for all results. Modify scripts (move to Ruffus!):
-/ifs/apps/apps/R-3.2.3/bin/Rscript plot-qqplot.R QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear
-/ifs/apps/apps/R-3.2.3/bin/Rscript plot-qqplot.R QCd_genotypes_vitd0_all_covar_linear.assoc.linear
+/ifs/apps/apps/R-3.2.3/bin/Rscript plot-qqplot.R QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear.perm
+/ifs/apps/apps/R-3.2.3/bin/Rscript plot-qqplot.R QCd_genotypes_vitd0_all_covar_linear.assoc.linear.perm
 
 #Manhattan plot:
-#Haploview -nogui -plink QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear \
+#Haploview -nogui -plink QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear.perm \
 #	-map P140343-Results_FinalReport_clean_SNPs_autosome_individuals.bim \
 #	-out QCd_genotypes_vitd12_all_samples_all_covar_vitd0
 
 # Run genome-wide plots and regions/SNPs of interest (with all SNPs tested for the region):
-/ifs/apps/apps/R-3.2.3/bin/Rscript plot-manhattan.R QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear
-/ifs/apps/apps/R-3.2.3/bin/Rscript plot-manhattan_SNPs_of_interest.R QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear VD_SNPs_GWAS_list.txt
-/ifs/apps/apps/R-3.2.3/bin/Rscript plot-manhattan_region_of_interest.R QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear VD_SNPs_GWAS_list.txt 4
+/ifs/apps/apps/R-3.2.3/bin/Rscript plot-manhattan.R QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear.perm
+/ifs/apps/apps/R-3.2.3/bin/Rscript plot-manhattan_SNPs_of_interest.R QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear.perm VD_SNPs_GWAS_list.txt
+/ifs/apps/apps/R-3.2.3/bin/Rscript plot-manhattan_region_of_interest.R QCd_genotypes_vitd12_all_samples_all_covar_vitd0.assoc.linear.perm VD_SNPs_GWAS_list.txt 4
 
 
 # Run as a candidate gene/region analysis:
@@ -485,86 +504,86 @@ cat *.log | grep -i warning
 # Convert spaces to tabs, clean up plink output to make it easier to pass on:
 #To perform the simplest reverse conversion (multiple spaces to one tab), you can use
 #  cat [input filename] | tr -s ' ' '\t' > [output filename]
-cat QCd_genotypes_vitd12_4000_only_all_covar_vitd0.assoc.linear | tr -s ' ' '\t' \
-	> QCd_genotypes_vitd12_4000_only_all_covar_vitd0.assoc.linear.tsv
+cat QCd_genotypes_vitd12_4000_only_all_covar_vitd0.assoc.linear.perm | tr -s ' ' '\t' \
+	> QCd_genotypes_vitd12_4000_only_all_covar_vitd0.assoc.linear.perm.tsv
 
-cat QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear | tr -s ' ' '\t' \
-        > QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear.tsv
+cat QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear.perm | tr -s ' ' '\t' \
+        > QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear.perm.tsv
 
-cat QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear | tr -s ' ' '\t' \
-        > QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear.tsv
+cat QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear.perm | tr -s ' ' '\t' \
+        > QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear.perm.tsv
 
-cat QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear | tr -s ' ' '\t' \
-        > QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.tsv
+cat QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear.perm | tr -s ' ' '\t' \
+        > QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.perm.tsv
 
 
 # This leaves a tab in the first column (as an empty column) though:
 # To strip leading and trailing tabs and spaces, try:
 #  cat [in] | sed 's/^[[:space:]]*//g' | sed 's/[[:space:]]*$//g' > [out]
-#cat QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.tsv | sed 's/^[[:space:]]*//g' | \
-#	sed 's/[[:space:]]*$//g' > QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.tsv
+#cat QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.perm.tsv | sed 's/^[[:space:]]*//g' | \
+#	sed 's/[[:space:]]*$//g' > QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.perm.tsv
 # TO DO: didn't work, deletes content. Left with empty first column for now as doesn't affect.
 
 #########
 # TO DO: clean up and automate, pass top hits from each association result to locusZoom:
 
 # Plot with locusZoom:
-#cat QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.tsv | cut -f3,13 | locuszoom --metal - \
+#cat QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.perm.tsv | cut -f3,13 | locuszoom --metal - \
 #	--markercol SNP --pvalcol P --refsnp rs2282679 --flank 500kb \
 #	--pop EUR --build hg19 --source 1000G_March2012 \
 #	--gwas-cat whole-cat_significant-only --build hg19 \
-#	--prefix QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear
+#	--prefix QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.perm
 
 # Run with a batch file to plot many SNPs/regions with --hitspec VD_SNPs_GWAS_LD_locusZoom_batch.txt
 # Errors with I/O operation, send bug report...
 
-#cat QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.tsv | cut -f3,13 | locuszoom --metal - \
+#cat QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.perm.tsv | cut -f3,13 | locuszoom --metal - \
 #        --markercol SNP --pvalcol P --hitspec VD_SNPs_GWAS_LD_locusZoom_batch.txt \
 #        --pop EUR --build hg19 --source 1000G_March2012 \
 #        --gwas-cat whole-cat_significant-only --build hg19 \
-#        --prefix QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear
+#        --prefix QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.perm
 
 
 # Run manually for top SNPs:
 # vitd6 and vitd12 at 2000 only adjusting for covariates:
-cat QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
+cat QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear.perm.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
         --markercol SNP --pvalcol P --refsnp rs222047 --flank 500kb \
         --pop EUR --build hg19 --source 1000G_March2012 \
         --gwas-cat whole-cat_significant-only --build hg19 \
-        --prefix QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear
+        --prefix QCd_genotypes_vitd12_2000_only_all_covar_vitd0.assoc.linear.perm
 
-cat QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
+cat QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.perm.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
         --markercol SNP --pvalcol P --refsnp rs222047 --flank 500kb \
         --pop EUR --build hg19 --source 1000G_March2012 \
         --gwas-cat whole-cat_significant-only --build hg19 \
-        --prefix QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear
+        --prefix QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.perm
 
 # vitd12 2000 only p-value ~0.08, vitd6 2000 only significant:
-cat QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
+cat QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.perm.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
         --markercol SNP --pvalcol P --refsnp rs7041 --flank 500kb \
         --pop EUR --build hg19 --source 1000G_March2012 \
         --gwas-cat whole-cat_significant-only --build hg19 \
-        --prefix QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear
+        --prefix QCd_genotypes_vitd12_2000_4000_only_all_covar_vitd0.assoc.linear.perm
 
 # vitd12 2000 only p-value ~0.08, vitd6 2000 only significant:
-cat QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
+cat QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.perm.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
         --markercol SNP --pvalcol P --refsnp rs4588 --flank 500kb \
         --pop EUR --build hg19 --source 1000G_March2012 \
         --gwas-cat whole-cat_significant-only --build hg19 \
-        --prefix QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear
+        --prefix QCd_genotypes_vitd6_2000_only_all_covar_vitd0.assoc.linear.perm
 
 # vitd6 4000 only, significant:
-cat QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
+cat QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear.perm.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
         --markercol SNP --pvalcol P --refsnp rs2282621 --flank 500kb \
         --pop EUR --build hg19 --source 1000G_March2012 \
         --gwas-cat whole-cat_significant-only --build hg19 \
-        --prefix QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear
+        --prefix QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear.perm
 
-cat QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
+cat QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear.perm.tsv | cut -f3,13 | /ifs/apps/bio/locusZoom/locuszoom --metal - \
         --markercol SNP --pvalcol P --refsnp rs11023350 --flank 500kb \
         --pop EUR --build hg19 --source 1000G_March2012 \
         --gwas-cat whole-cat_significant-only --build hg19 \
-        --prefix QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear
+        --prefix QCd_genotypes_vitd6_4000_only_all_covar_vitd0.assoc.linear.perm
 
 
 # TO DO: Add a file with markers to highlight: --denote-markers-file VD_SNPs_GWAS_list.txt 
