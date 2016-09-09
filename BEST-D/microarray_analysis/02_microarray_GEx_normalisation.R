@@ -407,6 +407,7 @@ dev.off()
 # TO DO: Turn into parameter set at the beginning of the script .
 # Change object names for downstream analysis:
 normalised = normalize_VSN
+# normalised = run_neqc
 
 # Explore contents of the ExpressionSet created (as this is the output from normaliseIllumina):
 normalised

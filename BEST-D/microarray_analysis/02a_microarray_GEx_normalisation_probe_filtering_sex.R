@@ -29,10 +29,11 @@ print(paste('Working directory :', getwd()))
 
 # Read results from 01_microarrayxxx file (saved as RData object):
 # Load a previous R session, data and objects:
-#load('R_session_saved_image_read_and_QC.RData', verbose=T)
-#load('R_session_saved_image_normalisation_full.RData', verbose=T)
 load('R_session_saved_image_normalisation.RData', verbose=T)
 # load('R_session_saved_image_normalisation_full_1ry_cells.RData', verbose=T)
+# load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_normalisation_full.RData')
+# load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_probe_filtering.RData')
+# load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_read_and_QC.RData')
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_probe_filtering', '.RData', sep='')
@@ -504,8 +505,8 @@ dim(normalised_filtered)
 str(pca_normalised_filtered)
 head(pc)
 # pc[1:5, 1:5]
-summary(pca_normalised_filtered)
-
+sum_pca <- summary(pca_normalised_filtered)
+sum_pca$importance[, 1:10]
 
 # Plot PCA results:
 plot_PCA_normalised_filtered <- ('plot_PCA_normalised_filtered.png')
@@ -519,11 +520,34 @@ biplot(pca_normalised_filtered, main='Normalised expression values')
 par(mfrow=c(1,1))
 dev.off()
 
-# Check how much of the variance in gene expression values is explained by the first x PCs:
-# sum(pca_normalised_filtered$sdev[1:10]^2)/length(normalised_filtered[1,])
-
-
+############
 # TO DO: this is project specific:
+
+############
+# Plot PCA for non-normalised expression values:
+# Plot PCA of normalised samples:
+pca_raw <- prcomp(t(read_files_cleaned_QC$E), center=TRUE, scale=TRUE)
+pc_raw <- data.frame(round(pca_raw$x, 2))
+pc_raw$sample_id <- rownames(pc_raw) 
+pc_raw <- pc_raw[, moveme(names(pc_raw), 'sample_id first')]
+names(pc_raw)[1:10]
+class(pc_raw)
+dim(pc_raw)
+dim(read_files_cleaned_QC$E)
+str(pca_raw)
+head(pc_raw)
+sum_pca_raw <- summary(pca_raw)
+sum_pca_raw$importance[, 1:10]
+
+plot_PCA_raw <- ('plot_PCA_raw.png')
+png(plot_PCA_raw, width = 13, height = 13, units = 'in', res = 300)
+ggplot(data=pc_raw, aes(x=PC1, y=PC2)) + theme_bw() + geom_point(alpha = 0.7)
+dev.off()
+#############
+
+############
+# TO DO: clean up
+# PCA for normalised values:
 # Run PCA analysis by groups of interest: TO DO: Cross files and IDs first
 head(membership_file_cleaned)
 tail(membership_file_cleaned)
@@ -541,6 +565,20 @@ dim(pc_data)
 head(arrange(pc_data, PC1), 10)
 head(arrange(pca_by_groups, PC1), 10)
 
+time_points <- factor(membership_file_cleaned$visit_type, levels = c('Randomisation', 'FinalVisit'), 
+                      labels = c('Randomisation', 'Final Visit'))
+treatments <- factor(membership_file_cleaned$treatment, levels = c("untreated", "treated_2000", "treated_4000"), 
+                      labels = c("Untreated", "2000 IU", "4000 IU"))
+
+plot_PCA_normalised_filtered_by_groups_1 <- ('plot_PCA_normalised_filtered_by_groups_1a.png')
+png(plot_PCA_normalised_filtered_by_groups_1, width = 13, height = 13, units = 'in', res = 300)
+p2 <- ggplot(data=pca_by_groups, aes(x=PC1, y=PC2, colour=time_points)) + 
+  theme_bw() + geom_point(alpha = 0.7) + theme(legend.position="bottom", legend.title = element_blank())
+p3 <- ggplot(data=pca_by_groups, aes(x=PC1, y=PC2, colour=treatments)) + 
+  theme_bw() + geom_point(alpha = 0.7) + theme(legend.position="bottom", legend.title = element_blank())
+grid.arrange(p2, p3, nrow = 1)
+dev.off()
+
 plot_PCA_normalised_filtered_by_groups_1 <- ('plot_PCA_normalised_filtered_by_groups_1.png')
 png(plot_PCA_normalised_filtered_by_groups_1, width = 13, height = 13, units = 'in', res = 300)
 p1 <- qplot(x=PC1, y=PC2, data=pca_by_groups, colour=factor(membership_file_cleaned$arm)) + theme(legend.position="bottom")
@@ -548,6 +586,7 @@ p2 <- qplot(x=PC1, y=PC2, data=pca_by_groups, colour=factor(membership_file_clea
 p3 <- qplot(x=PC1, y=PC2, data=pca_by_groups, colour=factor(membership_file_cleaned$treatment)) + theme(legend.position="bottom")
 p4 <- qplot(x=PC2, y=PC3, data=pca_by_groups, colour=factor(membership_file_cleaned$treatment)) + theme(legend.position="bottom")
 grid.arrange(p1, p2, p3, p4, ncol=2)
+# grid.arrange(p2, p3, ncol=1)
 dev.off()
 
 plot_PCA_normalised_filtered_by_groups_2 <- ('plot_PCA_normalised_filtered_by_groups_2.png')

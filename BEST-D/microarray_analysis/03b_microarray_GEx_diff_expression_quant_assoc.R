@@ -33,7 +33,7 @@ print(paste('Working directory :', getwd()))
 # Re-load a previous R session, data and objects:
 #load('R_session_saved_image_pheno_file_check.RData', verbose=T)
 load('R_session_saved_image_diff_expression.RData', verbose=T) # Has subsetted objects for array data.
-
+# load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_diff_expression_3.RData', verbose=T)
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_diff_expression_3', '.RData', sep='')
 
