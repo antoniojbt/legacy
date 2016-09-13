@@ -34,6 +34,7 @@ print(paste('Working directory :', getwd()))
 #load('R_session_saved_image_probe_filtering.RData', verbose=T)
 load('R_session_saved_image_pheno_file_check.RData', verbose=T)
 #load('R_session_saved_image_diff_expression_3.RData', verbose=T)
+# load('R_session_saved_image_diff_expression.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_diff_expression', '.RData', sep='')
@@ -49,6 +50,7 @@ R_session_saved_image <- paste('R_session_saved_image_diff_expression', '.RData'
 
 library(limma)
 library(ggplot2)
+library(gridExtra)
 library(ellipse)
 library(Hmisc)
 library(splines)
@@ -373,6 +375,29 @@ range(topTable_fit2_UI4000minusplacebo$FC)
 png('sigma_vs_A_plot_lm_factorial_design.png', width = 12, height = 12, units = 'in', res = 300)
 plotSA(fit2_groups_before_v_after_time)
 dev.off()
+
+# p-value histograms:
+# TO DO: plot two normalisation methods
+hist(topTable_fit2_UI4000minusplacebo$P.Value, breaks=2e2, xlab='p-value')
+
+png('pval_diff_in_diff_GEx.png')
+# topTable_fit2_UI4000minus2000
+# topTable_fit2_UI4000minus2000minusplacebo
+# topTable_fit2_UI2000minus4000minusplacebo
+hist1 <- ggplot(topTable_fit2_UI4000minusplacebo, aes(x = P.Value)) + 
+  geom_histogram() +
+  labs(title = 'Differential gene expression: 4000 IU') +
+  theme_gray()
+
+hist2 <- ggplot(topTable_fit2_UI2000minusplacebo, aes(x = P.Value)) + 
+  geom_histogram() +
+  labs(title = 'Differential gene expression: 2000 IU') +
+  theme_gray()
+
+grid.arrange(hist1, hist2, nrow = 1)
+dev.off()
+
+
 
 # Basic volcano plot
 png('volcano_plots_factorial_design.png', width = 12, height = 12, units = 'in', res = 300)

@@ -50,7 +50,7 @@ R_session_saved_image_full <- paste('R_session_saved_image', '.RData', sep='')
 #biocLite('SNPRelate')
 #biocLite("GeneticTools")
 
-library(SNPRelate)
+# library(SNPRelate)
 library(ggplot2)
 #library(GeneticTools)
 library(plyr)
@@ -65,16 +65,19 @@ library(plyr)
 #############################
 # Read in data with SNP of interest:
 # Extract SNPs with plink using:
-# plink --noweb --bfile P140343-Results_FinalReport_clean-individuals_and_SNPs \
-# --snp rs2282679 --recodeAD --out rs2282679_plink_results
+# plink2 --bfile P140343-Results_FinalReport_clean_SNPs_autosome_individuals --snp rs7041 --recode AD --out rs7041_plink_results
+# A1 is usually the minor allele, and the one which is counted. So:
+# column 7 is the allelic dosage in the '.raw' file. 
+
 
 'rs1993116_plink_results.raw'
 'rs2060793_plink_results.raw'
 'rs2282679_plink_results.raw'
 'rs3829251_plink_results.raw'
+'rs7041_plink_results.raw'
 
-file_snp <- 'rs1993116_plink_results.raw'
-SNP <- 'rs1993116'
+file_snp <- 'rs7041_plink_results.raw'
+SNP <- 'rs7041'
 
 SNP_of_interest <- read.table(file_snp, header=T, sep=' ')
 head(SNP_of_interest)
@@ -82,10 +85,13 @@ head(SNP_of_interest$FID)
 head(SNP_of_interest[7])
 
 # Recode SNPs:
-SNP_of_interest$genotype[SNP_of_interest$rs2282679_G==0 & SNP_of_interest$rs2282679_HET==0] <- 'GG'
-SNP_of_interest$genotype[SNP_of_interest$rs2282679_G==1 & SNP_of_interest$rs2282679_HET==1] <- 'GT'
-SNP_of_interest$genotype[SNP_of_interest$rs2282679_G==2 & SNP_of_interest$rs2282679_HET==0] <- 'TT'
-SNP_of_interest$genotype[SNP_of_interest$rs2282679_G==NA & SNP_of_interest$rs2282679_HET==NA] <- 'NA'
+# 0 = homozygous major
+# 1 = heterozygous
+# 2 = homozygous minor
+SNP_of_interest$genotype[SNP_of_interest[, 7] == 0 & SNP_of_interest[, 8] == 0] <- 'CC'
+SNP_of_interest$genotype[SNP_of_interest[, 7] == 1 & SNP_of_interest[, 8] == 1] <- 'AC'
+SNP_of_interest$genotype[SNP_of_interest[, 7] == 2 & SNP_of_interest[, 8] == 0] <- 'AA'
+SNP_of_interest$genotype[SNP_of_interest[, 7] == NA & SNP_of_interest[, 8] == NA] <- 'NA'
 
 head(SNP_of_interest)
 summary(SNP_of_interest)
@@ -93,8 +99,9 @@ count(SNP_of_interest$genotype)
 #View(SNP_of_interest)
 
 # Read in phenotype data. Replace -99999 (NA's for plink) to NaN for R:
-pheno_data <- read.table('BEST-D_alternate_phenotypes_kit_ID_twice_recoded.txt', 
-                              header=T, sep=' ', na.strings = '-99999')
+# '/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/BEST-D_alternate_phenotypes_kit_ID_twice_recoded_Txsubgroups_new_variables.txt', 
+pheno_data <- read.table('final_phenotype_file.txt', 
+                         header = TRUE, na.strings = '-99999', sep = '\t')
 head(pheno_data)
 head(pheno_data$FID)
 #View(pheno_data)
@@ -117,46 +124,42 @@ boxplot(vitd0~genotype, merged_data, main="Levels by genotype",
 dev.off()
 
 png('boxplot_by_genotype_VD6.png', width = 4, height = 4, units = 'in', res = 300)
-boxplot_genotype <- ggplot(aes(y = vitd6, x = genotype),
-                           data = merged_data) + geom_boxplot(
-                           ) + geom_jitter(shape=16, position=position_jitter(0.2)
-                           ) + scale_color_brewer(
-                             palette="Dark2")
-boxplot_genotype
+ggplot(aes(y = vitd6, x = genotype), data = merged_data) + 
+  geom_boxplot() + 
+  geom_jitter(shape=16, position=position_jitter(0.2)) + 
+  scale_color_brewer(palette="Dark2")
 dev.off()
 
 png(paste(SNP, '_boxplot_by_genotype_VD12.png', sep=''), width = 4, height = 4, units = 'in', res = 300)
-boxplot_genotype <- ggplot(aes(y = vitd12, x = genotype),
-                           data = merged_data) + geom_boxplot(
-                             ) + geom_jitter(shape=16, position=position_jitter(0.2)
-                                             ) + scale_color_brewer(
-                                                palette="Dark2")
-boxplot_genotype
+ggplot(aes(y = vitd12, x = genotype), data = merged_data) + 
+  geom_boxplot() + 
+  geom_jitter(shape=16, position=position_jitter(0.2)) + 
+  scale_color_brewer(palette="Dark2")
 dev.off()
 
-png('boxplot_by_genotype_arm.png', width = 6, height = 6, units = 'in', res = 300)
-Group <- factor(merged_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"))
-Genotype <- factor(merged_data$genotype, levels=c("TT", "GT", "GG"))
-boxplot_genotype_arm <- ggplot(aes(y=vitd12, x=Genotype, fill=Group),
-                           data = merged_data) + labs (main=SNP, y='25OHD plasma levels (nmol/L)') + geom_boxplot(
-                           ) + scale_color_brewer(palette="Dark2")
-boxplot_genotype_arm
+png(paste(SNP, '_boxplot_by_genotype_arm_12mo.png', sep=''), width = 6, height = 6, units = 'in', res = 300)
+group <- factor(merged_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), labels = c("Placebo", "2000 IU", "4000 IU"))
+genotype_order <- factor(merged_data$genotype, levels = c("CC", "AC", "AA"))
+ggplot(aes(y = vitd12, x = genotype_order, fill = group), data = merged_data) + 
+  labs(x = paste(SNP, '(GC)'), y = '25(OH)D levels (nmol/L) at 12 months') + 
+  geom_boxplot(position = position_dodge(1)) + 
+  # geom_point(position = position_jitter(width = 0.2)) +
+  scale_color_brewer(palette = "Dark2") +
+  theme_gray() +
+  theme(legend.title=element_blank())
 dev.off()
 
-
-png(paste(SNP, '_boxplot_by_genotype_arm.png', sep=''), width = 6, height = 6, units = 'in', res = 300)
-Group <- factor(merged_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"))
-#Genotype <- factor(merged_data$genotype, levels=c("TT", "GT", "GG"))
-Genotype <- factor(merged_data[7]), levels=c("0", "1", "2"))
-boxplot_genotype_arm <- ggplot(aes_string(y=vitd12, x=Genotype, fill=Group),
-                               data = merged_data) + labs (y='25OHD plasma levels (nmol/L)') + geom_boxplot(
-                               ) + scale_color_brewer(palette="Dark2")
-boxplot_genotype_arm
+png(paste(SNP, '_boxplot_by_genotype_arm_6mo.png', sep=''), width = 6, height = 6, units = 'in', res = 300)
+group <- factor(merged_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), labels = c("Placebo", "2000 IU", "4000 IU"))
+genotype_order <- factor(merged_data$genotype, levels = c("CC", "AC", "AA"))
+ggplot(aes(y = vitd6, x = genotype_order, fill = group), data = merged_data) + 
+  labs(x = paste(SNP, '(GC)'), y = '25(OH)D levels (nmol/L) at 6 months') + 
+  geom_boxplot(position = position_dodge(1)) + 
+  # geom_point(position = position_jitter(width = 0.2)) +
+  scale_color_brewer(palette = "Dark2") +
+  theme_gray() +
+  theme(legend.title=element_blank())
 dev.off()
-
-#geom_jitter(shape=16, position=position_jitter(0.2))
-#geom_dotplot(binaxis='y', stackdir='down', dotsize=0.3)
-
 #############################
 # The end:
 # Remove objects that are not necessary to save:
