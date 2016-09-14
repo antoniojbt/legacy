@@ -58,10 +58,10 @@ library(convert)
 library(vsn)
 library(reshape2)
 library(grid)
+library(ggplot2)
 library(gridExtra)
 library(plyr)
 library(dendextend)
-library(gplots)
 library(doParallel)
 
 #############################
@@ -372,7 +372,19 @@ meanSdPlot(normalize_VSN$E, main='Non-background corrected, normalised expressio
 par(mfrow=c(1,1))
 dev.off()
 
+# Plot using vsn package SD vs row means and modify with ggplot2:
+msd <- meanSdPlot(normalize_VSN$E)
+dev.off()
+msd_plot <- msd$gg + scale_fill_gradient(low = "yellow", high = "darkred") + 
+  labs(y = 'Standard deviation', x = 'Rank') +
+  theme(text = element_text(size = 12), legend.position="none")
+ggsave('SD_vs_means_normalised_GEx.png', msd_plot)
 
+msd_neqc <- meanSdPlot(run_neqc$E)
+dev.off()
+msd_neqc$gg + scale_fill_gradient(low = "yellow", high = "darkred") + scale_y_continuous(limits = c(0, 7))
+
+## Try this out with not log-transformed data, vsn2-transformed data, the lymphom
 # Mean-difference plots, using limma's plotMA:
 # Also check mdplot
 
@@ -398,11 +410,14 @@ plotDensity(between_arrays$E, logMode=F, addLegend=F,
             main='Density distribution of normalised expression values - scale')
 plotDensity(between_arrays_loess$E, logMode=F, addLegend=F, 
             main='Density distribution of normalised expression values - cyclic loess')
-plotDensity(normalize_VSN$E, logMode=F, addLegend=F, 
+plotDensity(normalize_VSN$E, logMode = F, addLegend = F,
             main='Density distribution of non-background corrected, normalised expression values - VSN')
 par(mfrow=c(1,1))
 dev.off()
 
+png('density_plot_normalised_VSN.png')
+plotDensity(normalize_VSN$E, logMode = F, addLegend = F, main = '') 
+dev.off()
 
 # TO DO: Turn into parameter set at the beginning of the script .
 # Change object names for downstream analysis:
@@ -480,44 +495,7 @@ plotCDF(background_corrected$E, reverse=FALSE, logMode=TRUE, addLegend=FALSE, ma
 plotCDF(normalised$E, reverse=FALSE, logMode=TRUE, addLegend=FALSE, main='Cumulative distribution of normalised expression values')
 par(mfrow=c(1,1))
 dev.off()
-
 #############################
-# TO DO : skip this as not really needed, acts like a sanity check.
-## Call arrayQualityMetrics
-# Transform EListRaw class to ExpressionSet class (as more general and accepted by more downstream methods):
-
-# This extracts expression values (with probes as rownames) and sample names (column headers) and returns as a matrix:
-normalised_as_matrix <- as.matrix(normalised, header=TRUE, sep="\t", row.names=1, as.is=TRUE)
-class(normalised_as_matrix)
-dim(normalised_as_matrix)
-head(normalised_as_matrix)[1:5,1:5]
-head(colnames(normalised_as_matrix))
-head(rownames(normalised_as_matrix))
-
-
-# Remove duplicated probes from expression matrix (these seem to be the negative control probes):
-duplicated_probes <- which(duplicated(rownames(normalised_as_matrix)))
-duplicated_probes
-length(duplicated_probes)
-
-# If probes have duplicated names but for some reason need to be kept: rownames(as_matrix) = make.names(rownames(as_matrix), unique=TRUE)
-
-# Output clean expression matrix:
-normalised_as_matrix_dedup <- normalised_as_matrix[-duplicated_probes,]
-head(normalised_as_matrix_dedup)
-dim(normalised_as_matrix_dedup)
-
-# Convert expression matrix to expression set:
-normalised_minimal_eset <- ExpressionSet(assayData=normalised_as_matrix_dedup)
-class(normalised_minimal_eset)
-dim(normalised_minimal_eset)
-
-# TO DO: Check this section as it's not carried forward and arrayQualityMetrics is not called either...
-# Call arrayQualityMetrics after processing data and normalisation:
-#arrayQualityMetrics_normalised <- arrayQualityMetrics(expressionset=normalised_minimal_eset, 
-#                                                      outdir=paste('arrayQualityMetrics_normalised.dir'), 
-#                                                      force=TRUE)
-
 
 #############################
 # Save files required for other packages/programmes:
