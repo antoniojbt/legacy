@@ -64,6 +64,8 @@ library(gridExtra)
 
 normalised
 dim(normalised)
+head(normalised$E)
+dim(normalised$E)
 class(normalised)
 summary(normalised)
 range(normalised$E)
@@ -91,7 +93,7 @@ length(which(expressed_2 == TRUE))
 
 
 #Extract data and create an ExpressionSet (eset, or EList object) at the same time (necessary for linear modelling steps):
-normalised_expressed <- normalised[expressed,]
+normalised_expressed <- normalised[expressed, ]
 #normalised_expressed <- normalised[-expressed,] # I think Array Express data 'Detection' column is the inverse of the p-value
 
 #Explore contents of file:
@@ -132,7 +134,7 @@ head(un_annotated_probes)
 tail(un_annotated_probes)
 
 # Remove un-annotated probes:
-normalised_expressed_annotated <- normalised_expressed[annotated_probes,]
+normalised_expressed_annotated <- normalised_expressed[annotated_probes, ]
 #normalised_expressed_annotated <- normalised_expressed # for array data without annotation at this point (eg GAinS)
 
 #Explore contents of file and sanity checks:
@@ -176,7 +178,7 @@ normalised_expressed_annotated_qual <- normalised_expressed_annotated[!remove_ba
 dim(normalised_expressed_annotated)
 dim(normalised_expressed_annotated_qual)
 dim(normalised_expressed_annotated)[1] - dim(normalised_expressed_annotated_qual)[1]
-head(normalised_expressed_annotated_qual)
+head(normalised_expressed_annotated_qual$E)
 
 
 # Check counts match:
@@ -348,6 +350,7 @@ head(remove_sex_probes)
 length(remove_sex_probes)
 dim(df_normalised_filtered) # This object has the expression values after excluding low quality, probes 
                             # overlapping SNPs, probes without symbol or EntrezID
+colnames(df_normalised_filtered)
 
 df_normalised_filtered <- df_normalised_filtered[-remove_sex_probes, ]
 dim(normalised)
@@ -357,6 +360,7 @@ dim(normalised_expressed_annotated_qual)
 dim(normalised_expressed_annotated_qual_noSNPs)
 dim(normalised_expressed_annotated_qual_noSNPs_noID)
 dim(df_normalised_filtered) # After removing probes from sex and unannotated chromosomes
+colnames(df_normalised_filtered)
 
 which(df_normalised_filtered$probes_by_CHR == 'X')
 which(df_normalised_filtered$probes_by_CHR == 'Y')
@@ -430,13 +434,15 @@ head(df_normalised_filtered)
 normalised_filtered_annotated <- df_normalised_filtered
 
 # Keep only expression data for plotting. First 8 columns are annotation, last column is 'probes_by_CHR:
-df_normalised_filtered[1:5, 8:12]
-normalised_filtered <- df_normalised_filtered[, c(9:(ncol(df_normalised_filtered)-1))]
+colnames(df_normalised_filtered)
+df_normalised_filtered[1:5, 7:12]
+normalised_filtered <- df_normalised_filtered[, c(8:(ncol(df_normalised_filtered)-1))]
 head(normalised_filtered)
 
 dim(normalised_filtered_annotated)
 class(normalised_filtered_annotated)
 head(normalised_filtered_annotated$SYMBOL)
+colnames(normalised_filtered_annotated)
 #View(normalised_filtered_annotated)
 
 dim(normalised_filtered)
@@ -551,6 +557,11 @@ dev.off()
 # Run PCA analysis by groups of interest: TO DO: Cross files and IDs first
 head(membership_file_cleaned)
 tail(membership_file_cleaned)
+dim(membership_file_cleaned)
+head(normalised_filtered)
+dim(normalised_filtered)
+dim(normalised_filtered_annotated)
+
 pc_data <- data.frame(pca_normalised_filtered$x[,1:13])
 str(pc_data)
 head(pc_data)

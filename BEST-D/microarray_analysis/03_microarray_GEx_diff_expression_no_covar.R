@@ -34,6 +34,7 @@ print(paste('Working directory :', getwd()))
 #load('R_session_saved_image_probe_filtering.RData', verbose=T)
 load('R_session_saved_image_pheno_file_check.RData', verbose=T)
 #load('R_session_saved_image_diff_expression_3.RData', verbose=T)
+# load('R_session_saved_image_diff_expression.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_diff_expression', '.RData', sep='')
@@ -49,10 +50,12 @@ R_session_saved_image <- paste('R_session_saved_image_diff_expression', '.RData'
 
 library(limma)
 library(ggplot2)
+library(gridExtra)
+library(illuminaHumanv4.db)
+library(plyr)
 library(ellipse)
 library(Hmisc)
 library(splines)
-library(plyr)
 library(statmod)
 
 # Get functions from other scripts (eg to add annotations to topTable results):
@@ -374,6 +377,29 @@ png('sigma_vs_A_plot_lm_factorial_design.png', width = 12, height = 12, units = 
 plotSA(fit2_groups_before_v_after_time)
 dev.off()
 
+# p-value histograms:
+# TO DO: plot two normalisation methods
+
+# topTable_fit2_UI4000minus2000
+# topTable_fit2_UI4000minus2000minusplacebo
+# topTable_fit2_UI2000minus4000minusplacebo
+
+hist1 <- ggplot(topTable_fit2_UI4000minusplacebo, aes(x = P.Value)) + 
+  geom_histogram() +
+  labs(title = 'Differential gene expression: 4000 IU') +
+  theme(text = element_text(size=12)) +
+  theme_gray()
+
+hist2 <- ggplot(topTable_fit2_UI2000minusplacebo, aes(x = P.Value)) + 
+  geom_histogram() +
+  labs(title = 'Differential gene expression: 2000 IU') +
+  theme(text = element_text(size=12)) +
+  theme_gray()
+
+ggsave(filename = 'pval_diff_in_diff_GEx.png', grid.arrange(hist1, hist2, ncol = 1))
+
+
+
 # Basic volcano plot
 png('volcano_plots_factorial_design.png', width = 12, height = 12, units = 'in', res = 300)
 par(mfrow=c(3,2))
@@ -423,6 +449,23 @@ colnames(fit2_groups_before_v_after_time$coefficients)
 genas(fit2_groups_before_v_after_time, coef=c(1, 2))
 genas(fit2_groups_before_v_after_time, coef=c(4, 5))
 
+# Add annotations to results:
+topTable_fit2_UI4000minusplacebo <- get_gene_symbols(topTable_fit2_UI4000minusplacebo)
+topTable_fit2_UI2000minusplacebo <- get_gene_symbols(topTable_fit2_UI2000minusplacebo)
+# topTable_fit2_UI4000minus2000
+# topTable_fit2_UI4000minus2000minusplacebo
+# topTable_fit2_UI2000minus4000minusplacebo
+head(topTable_fit2_UI4000minusplacebo)
+tail(topTable_fit2_UI4000minusplacebo)
+head(topTable_fit2_UI2000minusplacebo)
+
+
+# Write results to disk:
+write.table(x=topTable_fit2_UI4000minusplacebo, sep='\t', quote = FALSE, col.names = NA, row.names = TRUE,
+            file='topTable_fit2_UI4000minusplacebo.txt')
+
+write.table(x=topTable_fit2_UI2000minusplacebo, sep='\t', quote = FALSE, col.names = NA, row.names = TRUE,
+            file='topTable_fit2_UI2000minusplacebo.txt')
 
 # Interpretation: Accounting for time (ie placebo before/after) shows no significant probes in treated samples. Genas function
 # for correlation between comparisons does not make sense though. It does for the group comparisons above (final treated vs baseline).
@@ -744,6 +787,23 @@ dev.off()
 # Get fold changes:
 topTable_pairing_joint_treated$FC <- 2^topTable_pairing_joint_treated$logFC
 topTable_pairing_joint_placebo$FC <- 2^topTable_pairing_joint_placebo$logFC
+
+# Plot p-values in histogram:
+dev.off()
+hist1 <- ggplot(topTable_pairing_joint_treated, aes(x = P.Value)) + 
+  geom_histogram() +
+  labs(title = 'Differential gene expression: paired 2000 UI + 4000 UI') +
+  theme(text = element_text(size=12)) +
+  theme_gray()
+
+hist2 <- ggplot(topTable_pairing_joint_placebo, aes(x = P.Value)) + 
+  geom_histogram() +
+  labs(title = 'Differential gene expression: paired placebo') +
+  theme(text = element_text(size=12)) +
+  theme_gray()
+
+ggsave(filename = 'pval_joint_paired_GEx.png', grid.arrange(hist1, hist2, ncol = 1))
+
 
 # Volcano plots with fold changes:
 png('volcano_plots_joint_tx_pairs_FC_21_apr.png', width = 12, height = 12, units = 'in', res = 300)
