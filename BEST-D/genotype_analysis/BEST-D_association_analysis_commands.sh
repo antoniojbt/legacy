@@ -395,6 +395,30 @@ grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_all_interaction_all_covar_vi
 grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_2000_4000_only_interaction_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
         > vitd12_2000_4000_only_interaction_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
 
+
+
+# Run assoc test for placebo group before and after (as above for groups 2000 UI and 4000 UI):
+/ifs/apps/bio/plink-1.9329/plink2 --noweb --bfile P140343-Results_FinalReport_clean_SNPs_autosome_individuals \
+        --pheno final_phenotype_data.tab --pheno-name vitd6_placebo_only \
+        --linear sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
+        --covar final_phenotype_data.tab \
+        --covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, b
+        --out QCd_genotypes_vitd6_placebo_only_all_covar_vitd0 \
+        --perm
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd6_placebo_only_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd6_placebo_only_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
+
+
+/ifs/apps/bio/plink-1.9329/plink2 --noweb --bfile P140343-Results_FinalReport_clean_SNPs_autosome_individuals \
+        --pheno final_phenotype_data.tab --pheno-name vitd12_placebo_only \
+        --linear sex hide-covar --ci 0.95 --adjust --missing-phenotype -99999 \
+        --covar final_phenotype_data.tab \
+        --covar-name vitd0, incident_fracture, incident_resp_infection, diabetes, heart_disease, copd_asthma, basemed_vitamind, currsmoker, b
+        --out QCd_genotypes_vitd12_placebo_only_all_covar_vitd0 \
+        --perm
+grep -wf VD_SNPs_GWAS_list.txt QCd_genotypes_vitd12_placebo_only_all_covar_vitd0.assoc.linear.perm | sort -gk 12 \
+        > vitd12_placebo_only_all_covar_vitd0.assoc.linear.perm.results_SNPs_of_interest.txt
+
 ############
 
 #Test without SNPs (i.e. linear regression without the genotypes):
