@@ -116,7 +116,7 @@ Sys.time()
 print(paste('Working directory :', getwd()))
 
 # Load previous session if needed:
-#load(file='R_session_saved_image_normalisation_full.RData', verbose=TRUE)
+# load(file='R_session_saved_image_read_and_QC_full.RData', verbose=TRUE)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_read_and_QC', '.RData', sep='')
@@ -251,11 +251,27 @@ read_files <- read.ilmn.targets(targets=targets_file, probeid="PROBE_ID",
 
 #Save sample names to cross with phenotype IDs:
 membership_file <- read.csv(membership_input_file, header=TRUE, row.names=1, sep='\t')
-
+# Remove 'misload' sample for counts:
+membership_file_574 <- 
 dim(membership_file)
 head(membership_file)
 tail(membership_file)
 summary(membership_file)
+
+# Remove 'misload' sample for counts:
+which(grepl('misload', rownames(membership_file)))
+membership_file_574 <- membership_file[-575, ]
+dim(membership_file_574)
+tail(membership_file_574)
+
+count(membership_file_574$arm)
+count(membership_file_574$visit_type)
+count(membership_file_574$arm == 0 & membership_file_574$visit_type == 'Randomisation') # Baseline 4000IU
+count(membership_file_574$arm == 1 & membership_file_574$visit_type == 'Randomisation') # Baseline 2000IU
+count(membership_file_574$arm == 2 & membership_file_574$visit_type == 'Randomisation') # Baseline placebo
+count(membership_file_574$arm == 0 & membership_file_574$visit_type == 'FinalVisit') # 12 months 4000IU
+count(membership_file_574$arm == 1 & membership_file_574$visit_type == 'FinalVisit') # 12 months 2000IU
+count(membership_file_574$arm == 2 & membership_file_574$visit_type == 'FinalVisit') # 12 months placebo
 
 # TO DO: change this to eg grouping1, or remove, keep separate as not needed here.
 # Add columns needed for PCA and other plots and groupings:

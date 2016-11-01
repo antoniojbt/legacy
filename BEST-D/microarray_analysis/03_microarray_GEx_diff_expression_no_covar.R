@@ -11,7 +11,7 @@
 
 # Working directory:
 # setwd("/ifs/projects/proj043/analysis.dir/gene_expression_3.dir")
-# setwd('/Users/antoniob/Desktop/BEST_D_12_FEB.DIR/results_1/')
+# setwd('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
@@ -75,8 +75,30 @@ identical(row.names(membership_file_cleaned), colnames(normalised_filtered))
 length(which(row.names(membership_file_cleaned) %in% colnames(normalised_filtered)))
 
 head(membership_file_cleaned)
+length(membership_file_cleaned$pt_id)
 tail(membership_file_cleaned)
 str(membership_file_cleaned)
+
+# Number of unique individuals:
+head(membership_file_cleaned$pt_id)
+# View(membership_file_cleaned)
+length(unique(membership_file_cleaned$pt_id)) # unique removes duplicated elements, total individuals
+length(which(!duplicated(membership_file_cleaned$pt_id))) # Number of individuals with at least 1 sample
+length(which(duplicated(membership_file_cleaned$pt_id))) # Number of individuals with 2 samples
+length(which(grepl('100173', membership_file_cleaned[, 'pt_id'])))
+# Sanity:
+duplicated_df <- as.data.frame(count(membership_file_cleaned$pt_id))
+head(duplicated_df)
+length(which(duplicated_df$freq == 2))
+length(which(duplicated_df$freq == 1))
+dim(duplicated_df)
+
+# Counts per group:
+head(membership_file_cleaned)
+count(membership_file_cleaned$group_membership)
+count(membership_file_cleaned$arm)
+count(membership_file_cleaned$visit_type)
+
 
 dim(normalised_filtered)
 normalised_filtered[1:5, 1:5]
