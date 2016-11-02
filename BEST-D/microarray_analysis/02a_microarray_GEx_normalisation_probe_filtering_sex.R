@@ -10,6 +10,7 @@
 
 # Working directory:
 #setwd("/ifs/projects/proj043/analysis.dir/gene_expression_2.dir")
+# setwd('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
@@ -49,6 +50,8 @@ library(illuminaHumanv4.db)
 library(plyr)
 library(ggplot2)
 library(gridExtra)
+library(grid)
+library(cowplot)
 #############################
 
 
@@ -513,6 +516,27 @@ head(pc)
 # pc[1:5, 1:5]
 sum_pca <- summary(pca_normalised_filtered)
 sum_pca$importance[, 1:10]
+sum_pca
+sum_pca_df <- as.data.frame(sum_pca$importance)
+sum_pca_df <- t(sum_pca_df)
+sum_pca_df <- as.data.frame(sum_pca_df)
+# View(sum_pca_df)
+sum_pca_df$percent_var <- round(100 * (sum_pca_df$`Proportion of Variance`), 3)
+sum_pca_df$PC <- factor(row.names(sum_pca_df), levels = row.names(sum_pca_df),
+                        labels = row.names(sum_pca_df))
+head(sum_pca_df)
+tail(sum_pca_df)
+names(sum_pca_df)
+str(sum_pca_df)
+
+plot_PCA_normalised_filtered_prop_var <- ('plot_PCA_normalised_filtered_prop_var.png')
+png(plot_PCA_normalised_filtered_prop_var, width = 12, height = 12, units = 'in', res = 300)
+ggplot(sum_pca_df[1:100, ], aes(y = percent_var, x = PC)) + 
+  geom_bar(stat = 'identity') +
+  theme_classic() +
+  labs(x = 'Principal component', y = 'Proportion of variance (%)') +
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+dev.off()
 
 # Plot PCA results:
 plot_PCA_normalised_filtered <- ('plot_PCA_normalised_filtered.png')
@@ -581,12 +605,16 @@ time_points <- factor(membership_file_cleaned$visit_type, levels = c('Randomisat
 treatments <- factor(membership_file_cleaned$treatment, levels = c("untreated", "treated_2000", "treated_4000"), 
                       labels = c("Untreated", "2000 IU", "4000 IU"))
 
-plot_PCA_normalised_filtered_by_groups_1 <- ('plot_PCA_normalised_filtered_by_groups_1a.png')
-png(plot_PCA_normalised_filtered_by_groups_1, width = 13, height = 13, units = 'in', res = 300)
-p2 <- ggplot(data=pca_by_groups, aes(x=PC1, y=PC2, colour=time_points)) + 
-  theme_bw() + geom_point(alpha = 0.7) + theme(legend.position="bottom", legend.title = element_blank())
-p3 <- ggplot(data=pca_by_groups, aes(x=PC1, y=PC2, colour=treatments)) + 
-  theme_bw() + geom_point(alpha = 0.7) + theme(legend.position="bottom", legend.title = element_blank())
+plot_PCA_normalised_filtered_by_groups_1a <- ('plot_PCA_normalised_filtered_by_groups_1a.png')
+png(plot_PCA_normalised_filtered_by_groups_1a, width = 13, height = 13, units = 'in', res = 300)
+p2 <- ggplot(data=pca_by_groups, aes(x=PC1, y=PC2, colour=time_points, shape=time_points)) + 
+  theme_bw() + geom_point(alpha = 0.8) + scale_shape_manual(values=c(19,4)) +
+  scale_colour_manual(values = c("red","blue")) + 
+  theme(legend.position="bottom", legend.title = element_blank())
+p3 <- ggplot(data=pca_by_groups, aes(x=PC1, y=PC2, colour=treatments, shape=treatments)) + 
+  theme_bw() + geom_point(alpha = 0.8) + scale_shape_manual(values=c(19,4,17)) + 
+  scale_colour_manual(values = c("purple","darkgreen", "black")) +
+  theme(legend.position="bottom", legend.title = element_blank())
 grid.arrange(p2, p3, nrow = 1)
 dev.off()
 
@@ -616,6 +644,144 @@ p10 <- qplot(x=PC8, y=PC9, data=pca_by_groups, colour=factor(membership_file_cle
 p11 <- qplot(x=PC9, y=PC10, data=pca_by_groups, colour=factor(membership_file_cleaned$treatment)) + theme(legend.position="bottom")
 p12 <- qplot(x=PC10, y=PC11, data=pca_by_groups, colour=factor(membership_file_cleaned$treatment)) + theme(legend.position="bottom")
 grid.arrange(p9, p10, p11, p12, ncol=2)
+dev.off()
+
+# Plot PCA by treatment group individually at baseline and 12 months:
+head(pca_by_groups)
+tail(pca_by_groups)
+dim(pca_by_groups)
+dim(pc_data)
+# View(pc_data)
+# View(pca_by_groups)
+#pc_data['120000222',]
+head(arrange(pc_data, PC1), 10)
+head(arrange(pca_by_groups, PC1), 10)
+
+# Add group membership (eg baseline and 12 months for 4000IU only):
+count(pca_by_groups$arm)
+count(pca_by_groups$visit_type)
+pca_by_groups$arm_treatment <- ifelse(pca_by_groups$arm == 0 & 
+                                        pca_by_groups$visit_type == 'Randomisation', 'baseline_4000IU',
+                                      ifelse(pca_by_groups$arm == 0 & 
+                                               pca_by_groups$visit_type == 'FinalVisit', '12months_4000IU',
+                                      ifelse(pca_by_groups$arm == 1 & 
+                                               pca_by_groups$visit_type == 'Randomisation', 'baseline_2000IU',
+                                      ifelse(pca_by_groups$arm == 1 & 
+                                               pca_by_groups$visit_type == 'FinalVisit', '12months_2000IU',
+                                      ifelse(pca_by_groups$arm == 2 & 
+                                               pca_by_groups$visit_type == 'Randomisation', 'baseline_placebo',
+                                      ifelse(pca_by_groups$arm == 2 & 
+                                               pca_by_groups$visit_type == 'FinalVisit', '12months_placebo', 'NA'
+                                      ))))))
+count(pca_by_groups$arm_treatment)
+head(pca_by_groups)
+# Setup labels and plotting for each allocation group:
+plot_PCA_normalised_filtered_by_allocation <- ('plot_PCA_normalised_filtered_by_allocation.png')
+png(plot_PCA_normalised_filtered_by_allocation, width = 13, height = 13, units = 'in', res = 300)
+
+allocation_group_placebo <- factor(pca_by_groups$arm_treatment, levels = c('baseline_placebo', '12months_placebo'),
+                           labels = c('baseline_placebo', '12months_placebo'))
+p1 <- ggplot(data=pca_by_groups, aes(x=PC1, y=PC2, colour=allocation_group_placebo, shape=allocation_group_placebo)) + 
+  theme_bw() + geom_point(alpha = 0.8) + scale_shape_manual(values=c(19,4)) +
+  scale_colour_manual(values = c("red","blue")) + 
+  theme(legend.position="bottom", legend.title = element_blank())
+
+allocation_group_2000 <- factor(pca_by_groups$arm_treatment, levels = c('baseline_2000IU', '12months_2000IU'),
+                           labels = c('baseline_2000IU', '12months_2000IU'))
+p2 <- ggplot(data=pca_by_groups, aes(x=PC1, y=PC2, colour=allocation_group_2000, shape=allocation_group_2000)) + 
+  theme_bw() + geom_point(alpha = 0.8) + scale_shape_manual(values=c(19,4)) +
+  scale_colour_manual(values = c("red","blue")) + 
+  theme(legend.position="bottom", legend.title = element_blank())
+
+allocation_group_4000 <- factor(pca_by_groups$arm_treatment, levels = c('baseline_4000IU', '12months_4000IU'),
+                           labels = c('baseline_4000IU', '12months_4000IU'))
+p3 <- ggplot(data=pca_by_groups, aes(x=PC1, y=PC2, colour=allocation_group_4000, shape=allocation_group_4000)) + 
+  theme_bw() + geom_point(alpha = 0.8) + scale_shape_manual(values=c(19,4)) +
+  scale_colour_manual(values = c("red","blue")) + 
+  theme(legend.position="bottom", legend.title = element_blank())
+
+grid.arrange(p1, p2, p3, nrow = 1)
+dev.off()
+
+
+# Plot all allocations groups in one figure:
+plot_PCA_normalised_filtered_by_allocation_PCs <- ('plot_PCA_normalised_filtered_by_allocation_PCs.png')
+png(plot_PCA_normalised_filtered_by_allocation_PCs, width = 13, height = 13, units = 'in', res = 300)
+allocation_group <- factor(pca_by_groups$arm_treatment, levels = c('baseline_placebo', '12months_placebo',
+                                                                   'baseline_2000IU', '12months_2000IU',
+                                                                   'baseline_4000IU', '12months_4000IU'),
+                                   labels = c('baseline_placebo', '12months_placebo',
+                                              'baseline_2000IU', '12months_2000IU',
+                                              'baseline_4000IU', '12months_4000IU'))
+p1 <- ggplot(data=pca_by_groups, aes(x=PC1, y=PC2, colour=allocation_group, shape=allocation_group)) + 
+  theme_bw() + geom_point(alpha = 0.8) + 
+  scale_colour_manual(values = c("red", "blue", "purple", "darkgreen","black", "orange")) +
+  theme(legend.position="bottom", legend.title = element_blank())
+p2 <- ggplot(data=pca_by_groups, aes(x=PC2, y=PC3, colour=allocation_group, shape=allocation_group)) + 
+  theme_bw() + geom_point(alpha = 0.8) + 
+  scale_colour_manual(values = c("red", "blue", "purple", "darkgreen","black", "orange")) +
+  theme(legend.position="bottom", legend.title = element_blank())
+p3 <- ggplot(data=pca_by_groups, aes(x=PC3, y=PC4, colour=allocation_group, shape=allocation_group)) + 
+  theme_bw() + geom_point(alpha = 0.8) + 
+  scale_colour_manual(values = c("red", "blue", "purple", "darkgreen","black", "orange")) +
+  theme(legend.position="bottom", legend.title = element_blank())
+p4 <- ggplot(data=pca_by_groups, aes(x=PC4, y=PC5, colour=allocation_group, shape=allocation_group)) + 
+  theme_bw() + geom_point(alpha = 0.8) + 
+  scale_colour_manual(values = c("red", "blue", "purple", "darkgreen","black", "orange")) +
+  theme(legend.position="bottom", legend.title = element_blank())
+
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+dev.off()
+
+
+# Plot MORE PCs from allocations groups in one figure:
+plot_PCA_normalised_filtered_by_allocation_PCs_2 <- ('plot_PCA_normalised_filtered_by_allocation_PCs_2.png')
+png(plot_PCA_normalised_filtered_by_allocation_PCs_2, width = 13, height = 13, units = 'in', res = 300)
+allocation_group <- factor(pca_by_groups$arm_treatment, levels = c('baseline_placebo', '12months_placebo',
+                                                                   'baseline_2000IU', '12months_2000IU',
+                                                                   'baseline_4000IU', '12months_4000IU'),
+                           labels = c('baseline_placebo', '12months_placebo',
+                                      'baseline_2000IU', '12months_2000IU',
+                                      'baseline_4000IU', '12months_4000IU'))
+p1 <- ggplot(data=pca_by_groups, aes(x=PC5, y=PC6, colour=allocation_group, shape=allocation_group)) + 
+  theme_bw() + geom_point(alpha = 0.8) + 
+  scale_colour_manual(values = c("red", "blue", "purple", "darkgreen","black", "orange")) +
+  theme(legend.position="bottom", legend.title = element_blank())
+p2 <- ggplot(data=pca_by_groups, aes(x=PC6, y=PC7, colour=allocation_group, shape=allocation_group)) + 
+  theme_bw() + geom_point(alpha = 0.8) + 
+  scale_colour_manual(values = c("red", "blue", "purple", "darkgreen","black", "orange")) +
+  theme(legend.position="bottom", legend.title = element_blank())
+p3 <- ggplot(data=pca_by_groups, aes(x=PC7, y=PC8, colour=allocation_group, shape=allocation_group)) + 
+  theme_bw() + geom_point(alpha = 0.8) + 
+  scale_colour_manual(values = c("red", "blue", "purple", "darkgreen","black", "orange")) +
+  theme(legend.position="bottom", legend.title = element_blank())
+p4 <- ggplot(data=pca_by_groups, aes(x=PC8, y=PC9, colour=allocation_group, shape=allocation_group)) + 
+  theme_bw() + geom_point(alpha = 0.8) + 
+  scale_colour_manual(values = c("red", "blue", "purple", "darkgreen","black", "orange")) +
+  theme(legend.position="bottom", legend.title = element_blank())
+
+grid.arrange(p1, p2, p3, p4, nrow = 2)
+dev.off()
+
+# Plot many PCs:
+source('/ifs/devel/antoniob/projects/BEST-D/microarray_analysis/gene_expression_functions.R')
+# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/microarray_analysis/gene_expression_functions.R')
+
+# Plot first 10 PCs:
+png(plot_PCA_normalised_filtered_allocation_PCs_10, width = 13, height = 13, units = 'in', res = 300)
+grid_list <- list()
+nums <- seq(3, 12)
+for(i in nums) {
+  # plot_PCs(i)
+  p1 <- loop_ggplot_PCs(pca_by_groups, i, i+1, allocation_group)
+  # Get one of the legends:
+  legend <- get_legend(p1)
+  # Remove the legend:
+  p1 <- p1 + theme(legend.position="none")
+  grid_list[[i]] <- p1
+}
+# Arrange ggplot2 graphs with a specific width
+grid.arrange(multiplot(plotlist = grid_list[3:12], cols = 3), legend)
 dev.off()
 
 

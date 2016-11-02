@@ -76,7 +76,105 @@ run_XGR_xEnricherGenes <- function(hits_data, background_data, ontology_term, hi
 ##############
 
 
+##############
+# Functions for plotting PCs:
+
+# Loop plot for allocation group:
+loop_ggplot_PCs <- function(data_file, PCa, PCb, grouping_var) {
+  PCa <- sprintf('PC%s', PCa)
+  PCb <- sprintf('PC%s', PCb)
+  plot_num <- sprintf('%s', PCa)
+  plot_num <- ggplot(data=data_file, aes(x=data_file[, c(PCa)], y=data_file[, c(PCb)], colour=grouping_var, shape=grouping_var)) + 
+    theme_bw() + geom_point(alpha = 0.8) + 
+    scale_colour_manual(values = c("red", "blue", "purple", "darkgreen","black", "orange")) +
+    theme(legend.position="bottom", legend.title = element_blank()) +
+    labs(x = PCa, y = PCb)
+  # file_name <- sprintf('plot_PCA_normalised_filtered_by_allocation_%s_%s.png', PCa, PCb)
+  # ggsave(filename = file_name)
+  return(plot_num)
+}
+# PC1 <- loop_ggplot_PCs(pca_by_groups, 1, 2, allocation_group)
+# PC1
+
+# Function to loop through:
+plot_PCs <- function(i) {
+  file_name <- sprintf('p%s', i)
+  print(file_name)
+  grid_list[[i]] <- file_name
+  file_name <- loop_ggplot_PCs(pca_by_groups, i, i+1, allocation_group)
+  return(file_name)
+}
+
+##############
+
+##############
+# Extract the legend as an external object for use with library(gridExtra)
+# http://www.sthda.com/english/wiki/ggplot2-easy-way-to-mix-multiple-graphs-on-the-same-page-r-software-and-data-visualization#cowplot-publication-ready-plots
+
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+##############
 
 
+##############
+# Multiple plots in one page:
+# http://rstudio-pubs-static.s3.amazonaws.com/2852_379274d7c5734f979e106dcf019ec46c.html
+# http://www.sthda.com/english/wiki/ggplot2-easy-way-to-mix-multiple-graphs-on-the-same-page-r-software-and-data-visualization#cowplot-publication-ready-plots
+# http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/
+# http://www.sthda.com/english/wiki/ggplot2-easy-way-to-mix-multiple-graphs-on-the-same-page-r-software-and-data-visualization
+
+# multiplot function
+# http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/ 
+# This is the definition of multiplot. It can take any number of plot objects as arguments, or if it can take a list of plot objects passed to plotlist.
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+##############
 
 
