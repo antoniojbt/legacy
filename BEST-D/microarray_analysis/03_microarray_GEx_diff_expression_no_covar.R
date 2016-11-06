@@ -61,6 +61,8 @@ library(statmod)
 # Get functions from other scripts (eg to add annotations to topTable results):
 # source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/microarray_analysis/gene_expression_functions.R')
 source('/ifs/devel/antoniob/projects/BEST-D/gene_expression_functions.R')
+source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
+# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/moveme.R')
 #############################
 
 
@@ -373,8 +375,11 @@ fit2_groups_before_v_after_time <- contrasts.fit(fit_groups_before_v_after, cont
 fit2_groups_before_v_after_time <- eBayes(fit2_groups_before_v_after_time)
 fit2_groups_before_v_after_time$contrasts
 
-
 #Get results and plot:
+topTable(fit2_groups_before_v_after_time, adjust="BH", coef = 'UI4000minusplacebo', number = 10, sort.by = 'P')
+topTable(fit2_groups_before_v_after_time, adjust="BY", coef = 'UI4000minusplacebo', number = 10, sort.by = 'P')
+topTable(fit2_groups_before_v_after_time, adjust="holm", coef = 'UI4000minusplacebo', number = 10, sort.by = 'P')
+
 topTable_fit2_groups_before_v_after_time <- topTable(fit2_groups_before_v_after_time, adjust="BH", number = Inf) # This provides ANOVA F tests on the groups
 topTable_fit2_UI4000minusplacebo <- topTable(fit2_groups_before_v_after_time, adjust="BH", coef = 'UI4000minusplacebo', number = Inf) # This provides p-values on the two comparison only
 topTable(fit2_groups_before_v_after_time, adjust="BH", coef = 'UI4000minusplacebo', sort.by = 'logFC', number = Inf)
@@ -1028,57 +1033,6 @@ write.table(array_baseline_4000_and_2000, 'GEx_baseline_4000_and_2000.tsv', sep=
             quote=F, na='NA', col.names=NA, row.names=TRUE)
 #############################
 
-#############################
-# Read and merge all comparisons into one table:
-getwd()
-length(dir())
-dir()
-dir()[1]
-# Set-up first df for merging:
-file_name <- dir()[1]
-initialise_df <- read.csv(file_name, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
-names(initialise_df)
-all_GEx_comparisons <- as.data.frame(initialise_df[, 1])
-names(all_GEx_comparisons)[1] <- 'X'
-all_GEx_comparisons <- data.frame(all_GEx_comparisons, logFC = "logFC", AveExpr = "AveExpr", 
-                                  t = "t", P.Value = "P.Value", adj.P.Val = "adj.P.Val", B = "B")
-dim(all_GEx_comparisons)
-class(all_GEx_comparisons)
-head(all_GEx_comparisons)
-head(initialise_df)
-# all_GEx_comparisons <- merge(all_GEx_comparisons, initialise_df, by = 'X')
-# head(all_GEx_comparisons)
-
-for (i in dir()) {
-  # print(i)
-  df_in <- read.csv(i, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
-  i <- strsplit(i, '[.]')
-  i <- as.character(i[[1]][1])
-  i <- substr(i, 10, nchar(i))
-  i <- paste0('.', i)
-  # print(i)
-  all_GEx_comparisons <- merge(all_GEx_comparisons, df_in, by ='X', suffixes = c('', i))
-}
-names(all_GEx_comparisons)
-head(all_GEx_comparisons)
-
-# Delete dummy columns:
-all_GEx_comparisons <- all_GEx_comparisons[, -c(2:7)]
-
-# Columns to expect plus 1 (ID column):
-length(dir()) * 6
-dim(all_GEx_comparisons)
-head(all_GEx_comparisons)
-# View(all_GEx_comparisons)
-
-# TO DO:
-# Add gene symbols and FC to each column
-all_GEx_comparisons <- get_gene_symbols()
-
-# Write to disk:
-write.table(all_GEx_comparisons, 'all_GEx_comparisons.tsv', sep='\t', 
-            quote=F, na='NA', col.names=NA, row.names=TRUE)
-#############################
 
 #############################
 #The end:
