@@ -251,8 +251,7 @@ read_files <- read.ilmn.targets(targets=targets_file, probeid="PROBE_ID",
 
 #Save sample names to cross with phenotype IDs:
 membership_file <- read.csv(membership_input_file, header=TRUE, row.names=1, sep='\t')
-# Remove 'misload' sample for counts:
-membership_file_574 <- 
+
 dim(membership_file)
 head(membership_file)
 tail(membership_file)
@@ -272,6 +271,14 @@ count(membership_file_574$arm == 2 & membership_file_574$visit_type == 'Randomis
 count(membership_file_574$arm == 0 & membership_file_574$visit_type == 'FinalVisit') # 12 months 4000IU
 count(membership_file_574$arm == 1 & membership_file_574$visit_type == 'FinalVisit') # 12 months 2000IU
 count(membership_file_574$arm == 2 & membership_file_574$visit_type == 'FinalVisit') # 12 months placebo
+
+# Sanity, count samples:
+duplicated_df <- as.data.frame(count(membership_file_574$pt_id))
+head(duplicated_df)
+length(which(duplicated_df$freq == 2))
+length(which(duplicated_df$freq == 1))
+count(duplicated_df$freq)
+dim(duplicated_df)
 
 # TO DO: change this to eg grouping1, or remove, keep separate as not needed here.
 # Add columns needed for PCA and other plots and groupings:

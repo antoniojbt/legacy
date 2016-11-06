@@ -91,9 +91,11 @@ duplicated_df <- as.data.frame(count(membership_file_cleaned$pt_id))
 head(duplicated_df)
 length(which(duplicated_df$freq == 2))
 length(which(duplicated_df$freq == 1))
+count(duplicated_df$freq)
 dim(duplicated_df)
 
 # Counts per group:
+dim(membership_file_cleaned)
 head(membership_file_cleaned)
 count(membership_file_cleaned$group_membership)
 count(membership_file_cleaned$arm)
@@ -179,6 +181,10 @@ results
 vennDiagram(results)
 
 # Interpretation: baseline samples do not differ from each other, as expected.
+# Write results to disk:
+write_topTable('b4000vsbplacebo', fit2)
+write_topTable('b2000vsbplacebo', fit2)
+write_topTable('b4000vsb2000', fit2)
 
 ###############
 ## Compare only final samples:
@@ -216,7 +222,10 @@ vennDiagram(results_final)
 
 # Interpretation: final samples (after treatment, eg final_2000 vs final_placebo) do not differ from each other,
 # there are no significant differences, not as expected.
-
+# Write to disk:
+write_topTable('f4000vsfplacebo', fit2_final)
+write_topTable('f2000vsfplacebo', fit2_final)
+write_topTable('f4000vsf2000', fit2_final)
 ###############
 ## Compare before vs after as groups:
 # Define the questions of interest:
@@ -333,6 +342,10 @@ high_v_low_group_corr <- genas(fit2_groups_before_v_after, coef=c(2, 3))
 high_v_low_group_corr
 
 # Interpretation: before vs after comparison by groups (not individuals) do not show differences.
+# Write to disk:
+write_topTable('f4000vsb4000', fit2_groups_before_v_after)
+write_topTable('f2000vsb2000', fit2_groups_before_v_after)
+write_topTable('fplacebovsbplacebo', fit2_groups_before_v_after)
 
 ############### 
 ## Use the same design as above and adjust for group comparisons with before/after but for time (ie placebo) (factorial design):
@@ -491,6 +504,12 @@ write.table(x=topTable_fit2_UI2000minusplacebo, sep='\t', quote = FALSE, col.nam
 
 # Interpretation: Accounting for time (ie placebo before/after) shows no significant probes in treated samples. Genas function
 # for correlation between comparisons does not make sense though. It does for the group comparisons above (final treated vs baseline).
+# Write to disk:
+write_topTable('UI4000minusplacebo', fit2_groups_before_v_after_time)
+write_topTable('UI2000minusplacebo', fit2_groups_before_v_after_time)
+write_topTable('UI4000minus2000', fit2_groups_before_v_after_time)
+write_topTable('UI4000minus2000minusplacebo', fit2_groups_before_v_after_time)
+write_topTable('UI2000minus4000minusplacebo', fit2_groups_before_v_after_time)
 
 ########################
 
@@ -521,8 +540,11 @@ fit_by_treatment_2
 head(fit_by_treatment_2$coefficients)
 
 topTable(fit_by_treatment_2, adjust = 'BH')
-
 # Interpretation: Broad treated vs untreated shows no differences, so straight up stimulated vs basal is negative.
+# Write to disk:
+write.table(topTable(fit_by_treatment_2, adjust="BH", number = Inf), sep='\t', quote = FALSE, 
+            col.names = NA, row.names = TRUE, 
+            file=paste0('topTable_', 'all_treated_vs_all_untreated', '.txt'))  
 ##############
 
 
@@ -694,6 +716,11 @@ write.table(x=topTable_pairing_placebo, sep='\t', quote = FALSE,
             file='full_topTable_pairing_placebo.txt')
 
 # Interpretation: There are very few significant differences for paired tests (before vs after) for each condition (placebo, 2000, 4000).
+# Write to disk:
+write_topTable("treatmenttreated_4000", fit_all_pairs_2)
+write_topTable("treatmenttreated_2000", fit_all_pairs_2)
+write_topTable("treatmenttreated_placebo", fit_all_pairs_2)
+
 
 ########################
 # TO DO: extract the FC values for each probe/sample for eQTL analysis.
@@ -862,7 +889,9 @@ write.table(x=topTable_pairing_joint_placebo, sep='\t', quote = FALSE, col.names
 
 # TO DO: A ?barcodeplot (limma) can also be used to visualise DE genes.
 # To provide statistical significance to correlations use roast()
-
+# Write to disk:
+write_topTable("treatment_jointtreated_2000+4000", fit_all_treated_2)
+write_topTable("treatment_jointtreated_placebo", fit_all_treated_2)
 #########################
 
 
@@ -999,6 +1028,57 @@ write.table(array_baseline_4000_and_2000, 'GEx_baseline_4000_and_2000.tsv', sep=
             quote=F, na='NA', col.names=NA, row.names=TRUE)
 #############################
 
+#############################
+# Read and merge all comparisons into one table:
+getwd()
+length(dir())
+dir()
+dir()[1]
+# Set-up first df for merging:
+file_name <- dir()[1]
+initialise_df <- read.csv(file_name, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
+names(initialise_df)
+all_GEx_comparisons <- as.data.frame(initialise_df[, 1])
+names(all_GEx_comparisons)[1] <- 'X'
+all_GEx_comparisons <- data.frame(all_GEx_comparisons, logFC = "logFC", AveExpr = "AveExpr", 
+                                  t = "t", P.Value = "P.Value", adj.P.Val = "adj.P.Val", B = "B")
+dim(all_GEx_comparisons)
+class(all_GEx_comparisons)
+head(all_GEx_comparisons)
+head(initialise_df)
+# all_GEx_comparisons <- merge(all_GEx_comparisons, initialise_df, by = 'X')
+# head(all_GEx_comparisons)
+
+for (i in dir()) {
+  # print(i)
+  df_in <- read.csv(i, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
+  i <- strsplit(i, '[.]')
+  i <- as.character(i[[1]][1])
+  i <- substr(i, 10, nchar(i))
+  i <- paste0('.', i)
+  # print(i)
+  all_GEx_comparisons <- merge(all_GEx_comparisons, df_in, by ='X', suffixes = c('', i))
+}
+names(all_GEx_comparisons)
+head(all_GEx_comparisons)
+
+# Delete dummy columns:
+all_GEx_comparisons <- all_GEx_comparisons[, -c(2:7)]
+
+# Columns to expect plus 1 (ID column):
+length(dir()) * 6
+dim(all_GEx_comparisons)
+head(all_GEx_comparisons)
+# View(all_GEx_comparisons)
+
+# TO DO:
+# Add gene symbols and FC to each column
+all_GEx_comparisons <- get_gene_symbols()
+
+# Write to disk:
+write.table(all_GEx_comparisons, 'all_GEx_comparisons.tsv', sep='\t', 
+            quote=F, na='NA', col.names=NA, row.names=TRUE)
+#############################
 
 #############################
 #The end:

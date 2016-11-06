@@ -177,4 +177,16 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 }
 ##############
 
+##############
+# Write to disk limma's toptable:
+write_topTable <- function(coef_var, fit_var) {
+  write.table(topTable(fit_var, adjust="BH", coef = coef_var, number = Inf), sep='\t', quote = FALSE, 
+              col.names = NA, row.names = TRUE, 
+              file=paste0('topTable_', coef_var, '.txt'))  
+}
+##############
+
+##############
+
+##############
 
