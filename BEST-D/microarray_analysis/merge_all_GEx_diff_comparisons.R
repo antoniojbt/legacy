@@ -12,7 +12,7 @@
 
 # Working directory:
 # setwd("/ifs/projects/proj043/analysis.dir/gene_expression_3.dir")
-# setwd('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/')
+# setwd('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/tables_and_plots_for_draft/final_draft_BEST-D/tables/all_GEx_tables/individual_tables_all_GEx_comparisons/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
@@ -32,14 +32,10 @@ print(paste('Working directory :', getwd()))
 
 # Load results from 02_microarrayxxx file, saved as RData object:
 # Re-load a previous R session, data and objects:
-#load('R_session_saved_image_probe_filtering.RData', verbose=T)
-load('R_session_saved_image_pheno_file_check.RData', verbose=T)
-#load('R_session_saved_image_diff_expression_3.RData', verbose=T)
-# load('R_session_saved_image_diff_expression.RData', verbose=T)
+# load('R_session_saved_image_pheno_file_check.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_diff_expression_merge_tables', '.RData', sep='')
-
 #############################
 
 
@@ -61,11 +57,12 @@ source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
 #############################
 # Read and merge all comparisons into one table:
 getwd()
-length(dir())
-dir()
-dir()[1]
+pattern <- 'topTable'
+length(dir(pattern = pattern))
+dir(pattern = pattern)
+dir(pattern = pattern)[1]
 # Set-up first df for merging:
-file_name <- dir()[1]
+file_name <- dir(pattern = 'topTable')[1]
 initialise_df <- read.csv(file_name, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
 names(initialise_df)
 all_GEx_comparisons <- as.data.frame(initialise_df[, 1])
@@ -79,7 +76,7 @@ head(initialise_df)
 # all_GEx_comparisons <- merge(all_GEx_comparisons, initialise_df, by = 'X')
 # head(all_GEx_comparisons)
 
-for (i in dir()) {
+for (i in dir(pattern = pattern)) {
   # print(i)
   df_in <- read.csv(i, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
   i <- strsplit(i, '[.]')
@@ -96,13 +93,12 @@ head(all_GEx_comparisons)
 all_GEx_comparisons <- all_GEx_comparisons[, -c(2:7)]
 
 # Columns to expect plus 1 (ID column):
-length(dir()) * 6
+length(dir(pattern = pattern)) * 6
 dim(all_GEx_comparisons)
 head(all_GEx_comparisons)
 # View(all_GEx_comparisons)
 
 # Add gene symbols and FC to each column
-all_GEx_comparisons <- get_gene_symbols()
 names(all_GEx_comparisons)[1] <- 'probe_ID'
 # Get probe IDs from topTable results:
 illumina_ids  <-  as.character(all_GEx_comparisons[, 'probe_ID'])
@@ -143,6 +139,7 @@ write.table(all_GEx_comparisons, 'all_GEx_comparisons.tsv', sep='\t',
 
 # To save R workspace with all objects to use at a later time:
 save.image(file=R_session_saved_image, compress='gzip')
+sessionInfo()
 
 q()
 
