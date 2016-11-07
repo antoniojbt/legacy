@@ -75,6 +75,7 @@ dim(membership_file_cleaned)
 str(membership_file_cleaned)
 head(membership_file_cleaned)
 tail(membership_file_cleaned)
+head(normalised_filtered)
 dim(normalised_filtered)
 str(normalised_filtered)
 dim(normalised_filtered_annotated)
@@ -98,7 +99,6 @@ str(phenotype_data)
 class(phenotype_data)
 names(phenotype_data)
 
-# TO DO:
 # Subset phenotype data so that it only contains data from those which have GEx array data:
 head(membership_file_cleaned)
 count(membership_file_cleaned$group_membership)
@@ -123,17 +123,22 @@ head(baseline_4000_and_2000)
 pheno_baseline_keep <- which(as.character(phenotype_data$kit_id_randomisation) %in% row.names(baseline_4000_and_2000))
 length(pheno_baseline_keep)
 dim(phenotype_data)
-# summary(phenotype_data[, c('kit_id_randomisation', 'kit_id_finalVisit')])
+
 phenotype_data_array_baseline <- phenotype_data[pheno_baseline_keep, ]
 phenotype_data_array_baseline <- phenotype_data_array_baseline[order(phenotype_data_array_baseline$kit_id_randomisation), ]
 dim(phenotype_data_array_baseline)
 head(phenotype_data_array_baseline$kit_id_randomisation)
-summary(phenotype_data_array_baseline$kit_id_randomisation)
+
+# Subset gene expression normalised data to keep only those with baseline data:
+dim(baseline_4000_and_2000)
+length(which(colnames(normalised_filtered) %in% rownames(baseline_4000_and_2000)))
+GEx_data_baseline_4000_and_2000 <- normalised_filtered[, which(colnames(normalised_filtered) %in% rownames(baseline_4000_and_2000))]
+dim(GEx_data_baseline_4000_and_2000)
+identical(colnames(GEx_data_baseline_4000_and_2000), rownames(baseline_4000_and_2000))
 
 # Process phenotype file for correlations, vitd0:
-phenotype_data_array_baseline$kit_id_randomisation
-summary(phenotype_data_array_baseline[, c('kit_id_randomisation', 'vitd0', 'albumin0', 'creatinine0')])
-vitd0 <- phenotype_data_array_baseline[, c('kit_id_randomisation', 'vitd0', 'albumin0', 'creatinine0')]
+summary(phenotype_data_array_baseline[, c('kit_id_randomisation', 'vitd0', 'vitd12')])
+vitd0 <- phenotype_data_array_baseline[, c('kit_id_randomisation', 'vitd0', 'vitd12')]
 dim(vitd0)
 
 # Order and transpose it so that it matches array data order by kit id:
@@ -146,14 +151,13 @@ head(vitd0_t)
 
 # Check match with array data from baseline samples:
 dim(vitd0)
-dim(array_baseline_4000_and_2000)
-head(colnames(array_baseline_4000_and_2000))
+dim(phenotype_data_array_baseline)
 length(which(as.character(phenotype_data_array_baseline$kit_id_randomisation) %in% row.names(vitd0)))
-length(which(colnames(array_baseline_4000_and_2000) %in% row.names(vitd0)))
-identical(row.names(vitd0), colnames(array_baseline_4000_and_2000))
+length(which(rownames(baseline_4000_and_2000) %in% row.names(vitd0)))
+length(which(colnames(GEx_data_baseline_4000_and_2000) %in% row.names(vitd0)))
+identical(row.names(vitd0), rownames(baseline_4000_and_2000))
+identical(row.names(vitd0), colnames(GEx_data_baseline_4000_and_2000))
 #############################
-
-
 
 
 #########################
@@ -172,10 +176,10 @@ head(group_vitd0_less_50)
 design_vitd0_less_50 <- model.matrix(~group_vitd0_less_50)
 head(design_vitd0_less_50)
 dim(design_vitd0_less_50)
-dim(array_baseline_4000_and_2000)
+dim(GEx_data_baseline_4000_and_2000)
 
 #Run linear model:
-fit_def_vitd0 <- lmFit(array_baseline_4000_and_2000, design_vitd0_less_50)
+fit_def_vitd0 <- lmFit(GEx_data_baseline_4000_and_2000, design_vitd0_less_50)
 fit_def_vitd0_2 <- eBayes(fit_def_vitd0)
 
 #Get results and plot:
@@ -188,7 +192,10 @@ vennDiagram(results_vitd0_def_50)
 
 # Interpretation: No significant differences vitd0 < 50 vs > 50 in GEx at baseline.
 # Write to disk:
-# write_topTable("treatment_jointtreated_2000+4000", fit_all_treated_2)
+write.table(topTable(fit_def_vitd0_2, adjust="BH", number = Inf), sep='\t', quote = FALSE, 
+            col.names = NA, row.names = TRUE, 
+            file=paste0('topTable_', 'baseline_4000_and_2000_', 'VDdef50', '.txt'))
+
 ###############
 
 #########################
@@ -204,11 +211,11 @@ summary(as.factor(phenotype_data_array_baseline$vitd0_less_25))
 to_remove <- which(is.na(phenotype_data_array_baseline$vitd0_less_25))
 to_remove <- phenotype_data_array_baseline[to_remove, 'kit_id_randomisation']
 head(to_remove)
-array_baseline_4000_and_2000_vitd0_less_25 <- array_baseline_4000_and_2000[, -which(colnames(array_baseline_4000_and_2000) %in% to_remove)]
-dim(array_baseline_4000_and_2000_vitd0_less_25)
+GEx_data_baseline_4000_and_2000_vitd0_less_25 <- GEx_data_baseline_4000_and_2000[, -which(colnames(GEx_data_baseline_4000_and_2000) %in% to_remove)]
+dim(GEx_data_baseline_4000_and_2000_vitd0_less_25)
 
 # Check match between rows and columns for phenotype and array file:
-identical(colnames(array_baseline_4000_and_2000_vitd0_less_25), 
+identical(colnames(GEx_data_baseline_4000_and_2000_vitd0_less_25), 
           as.character(phenotype_data_array_baseline$kit_id_randomisation[
             which(!is.na(phenotype_data_array_baseline$vitd0_less_25))]))
 
@@ -221,11 +228,11 @@ head(group_vitd0_less_25)
 design_vitd0_less_25 <- model.matrix(~group_vitd0_less_25)
 head(design_vitd0_less_25)
 dim(design_vitd0_less_25)
-dim(array_baseline_4000_and_2000_vitd0_less_25)
+dim(GEx_data_baseline_4000_and_2000_vitd0_less_25)
 
 
 #Run linear model:
-fit_def_vitd0_25 <- lmFit(array_baseline_4000_and_2000_vitd0_less_25, design_vitd0_less_25)
+fit_def_vitd0_25 <- lmFit(GEx_data_baseline_4000_and_2000_vitd0_less_25, design_vitd0_less_25)
 fit_def_vitd0_25_2 <- eBayes(fit_def_vitd0_25)
 
 #Get results and plot:
@@ -238,11 +245,14 @@ vennDiagram(results_vitd0_def_25)
 
 # Interpretation: No significant differences vitd0 < 25 vs > 75 in GEx at baseline.
 # Write to disk:
-# write_topTable("treatment_jointtreated_2000+4000", fit_all_treated_2)
+write.table(topTable(fit_def_vitd0_2, adjust="BH", number = Inf), sep='\t', quote = FALSE, 
+            col.names = NA, row.names = TRUE, 
+            file=paste0('topTable_', 'baseline_4000_and_2000_', 'VDdef25', '.txt'))
 ###############
 
 ########################
 # Compare joint 2000+4000 vs baseline and placebo with pairing for those with baseline values < 50 nmol/L.
+# TO DO:errors?
 
 # Get subsets:
 summary(phenotype_data_array_baseline$vitd0_less_50 == 1)
