@@ -73,7 +73,6 @@ args <- commandArgs(trailingOnly = TRUE)
 ## Load libraries:
 packages <-c('MatrixEQTL', 'data.table')
 lapply(packages, require, character.only = TRUE)
-sessionInfo()
 #############################################
 
 
@@ -260,6 +259,17 @@ cat(file = 'df_anova.txt', tissue, "\t", me$param$dfFull, '\n', append = TRUE)
 # In case of cis/trans eQTL analysis described below, two output files are produced, one with cis-eQTLs, another only with trans. 
 # Every record contains a SNP name, a transcript name, estimate of the effect size, t- or F-statistic, p-value, and FDR.
 
+# # TO DO: clean up / test:
+# # Inspect results:
+# head(me$all$eqtls)
+# plot(me)
+# qqnorm(me$all$eqtls[, 4])
+# head(results$cis$eqtls)
+# nrow($cis$eqtls)
+# head($cis$ntests)
+# head($trans$eqtls)
+# nrow($trans$eqtls)
+# head($trans$ntests)
 
 #############################################
 ## Basic counting:
@@ -334,6 +344,10 @@ cat(file = 'df_anova.txt', tissue, "\t", me$param$dfFull, '\n', append = TRUE)
 #############################
 # The end:
 # Remove objects that are not necessary to save:
+# ls()
+# object_sizes <- sapply(ls(), function(x) object.size(get(x)))
+# as.matrix(rev(sort(object_sizes))[1:10])
+
 
 #rm(list=ls(arrayQualityMetrics_raw_cleaned, arrayQualityMetrics_preprocessed))
 
@@ -342,7 +356,7 @@ cat(file = 'df_anova.txt', tissue, "\t", me$param$dfFull, '\n', append = TRUE)
 
 #objects_to_save <- (c('normalised_expressed', 'normalised_filtered', 'membership_file_cleaned', 'FAILED_QC_unique'))
 #save(list=objects_to_save, file=R_session_saved_image, compress='gzip')
-
+sessionInfo()
 q()
 
 # Next: run the script for xxx.
