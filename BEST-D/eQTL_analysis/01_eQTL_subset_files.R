@@ -38,12 +38,12 @@
 
 # Working directory:
 # setwd('/ifs/projects/proj043/analysis.dir/eqtl_analysis.dir')
-# setwd('/Users/antoniob/Desktop/eQTL_27_Aug/')
+# setwd('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/gex_FC_tests/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
 
-output_file <- file(paste("R_session_output_",Sys.Date(),".txt", sep=""))
+output_file <- file(paste("R_session_output_", Sys.Date(), ".txt", sep=""))
 output_file
 sink(output_file, append=TRUE, split=TRUE, type = c("output", "message"))
 
@@ -61,19 +61,20 @@ getwd()
 # Re-load a previous R session, data and objects:
 
 # Filename to save current R session, data and objects at the end:
-R_session_saved_image <- paste('R_session_saved_image_processed_files','.RData', sep='')
+R_session_saved_image <- paste('R_session_saved_image_eQTL_subset_files','.RData', sep='')
 R_session_saved_image
 #############################################
 
 
 #############################################
 ## Load packages:
-# TO DO: delete unnecessary packages:
 library(data.table)
 
 # Get script with functions needed:
-source('/ifs/devel/antoniob/projects/cgat_projects/BEST-D/eQTL_analysis/functions_for_MatrixeQTL.R')
-source('/ifs/devel/antoniob/projects/cgat_projects/BEST-D/moveme.R')
+source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
+# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/moveme.R')
+source('/ifs/devel/antoniob/projects/BEST-D/BEST-D/eQTL_analysis/functions_for_MatrixeQTL.R')
+# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/eQTL_analysis/functions_for_MatrixeQTL.R')
 #############################################
 
 
@@ -89,9 +90,9 @@ print(args)
 #  Set variables:
 # TO DO: pass to configuration file
 genotype_file <- as.character(args[1]) 
-# genotype_file <- 'P140343-Results_FinalReport_clean_SNPs_autosome.A-transpose.matrixQTL.geno' 
+# genotype_file <- '~/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/P140343-Results_FinalReport_clean_SNPs_autosome.A-transpose.matrixQTL.geno'
 phenotype_file <- as.character(args[2])
-# phenotype_file <- 'BEST-D_phenotype_file_final.tsv'
+# phenotype_file <- '~/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/BEST-D_phenotype_file_final.tsv'
 #############################################
 
 #############################################

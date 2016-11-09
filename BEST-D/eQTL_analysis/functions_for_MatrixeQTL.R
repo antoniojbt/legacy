@@ -25,7 +25,7 @@ transpose_file <- function(infile, column_number_for_rownames) {
   # Delete column as will turn numerics to factors when transposing:
   infile <- infile[, -column_number_for_rownames, with = F]
   # Tranpose and convert to data frame:
-  infile_transposed <- transpose(infile)
+  infile_transposed <- transpose(infile) # data.table transpose() turns factors into character
   setnames(infile_transposed, colnames(infile_transposed), as.character(row_names))
   infile_transposed[, ':='(rownames=col_names[, 1])]
   return(infile_transposed)

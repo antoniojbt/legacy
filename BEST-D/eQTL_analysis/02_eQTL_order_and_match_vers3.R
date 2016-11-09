@@ -14,13 +14,13 @@
 
 # Working directory:
 # setwd('/ifs/projects/proj043/analysis.dir/eqtl_analysis_5.dir/')
-# setwd('Desktop/BEST_D_03_MAR.DIR/eqtl_files.dir/')
+# setwd('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/gex_FC_tests/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
 options(echo = TRUE)
 
-output_file <- file(paste("R_session_output_order_match",Sys.Date(),".txt", sep=""), open = 'a')
+output_file <- file(paste("R_session_output_order_match_eQTL",Sys.Date(),".txt", sep=""), open = 'a')
 output_file
 sink(output_file, append=TRUE, split=TRUE, type = c("output", "message"))
 
@@ -40,15 +40,20 @@ getwd()
 
 # Filename to save current R session, data and objects at the end:
 # R_session_saved_image <- paste('R_session_saved_image_order_and_match_2','.RData', sep='')
-R_session_saved_image <- paste('R_session_saved_image_order_and_match','.RData', sep='')
+R_session_saved_image <- paste('R_session_saved_image_order_and_match_eQTL','.RData', sep='')
 R_session_saved_image
 #############################################
 
 
 ########################
+## Load packages:
 library(data.table)
-source('moveme.R')
-source('functions_for_MatrixeQTL.R')
+
+# Get script with functions needed:
+source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
+# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/moveme.R')
+source('/ifs/devel/antoniob/projects/BEST-D/BEST-D/eQTL_analysis/functions_for_MatrixeQTL.R')
+# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/eQTL_analysis/functions_for_MatrixeQTL.R')
 ########################
 
 
@@ -78,34 +83,28 @@ args <- commandArgs(trailingOnly = TRUE)
 
 # TO DO: pass to configuration file
 
-# geno_file <- 'genotype_data_all_treated_baseline.tsv'
-# expr_file <- 'GEx_baseline_4000_and_2000.tsv'
-# covar_PCs_file <- 'principal_components_normalised_filtered_PC20.tsv'
-
 geno_file <- as.character(args[1])
-#geno_file <- 'genotype_data_all_treated_baseline.tsv'
-#geno_file <- 'genotype_data_all_treated_final.tsv'
-# geno_file <- 'chr22_Airwave_CPMG_Plasma_clean_SNPs_autosome.A-transpose.matrixQTL.geno'
+# geno_file <- 'genotype_data_all_treated_baseline.tsv'
+# geno_file <- 'genotype_data_all_treated_final.tsv'
+
 
 expr_file <- as.character(args[2])
-#expr_file <- 'GEx_baseline_4000_and_2000.tsv'
-#expr_file <- 'GEx_treated_4000_and_2000.tsv'
+# expr_file <- 'GEx_baseline_4000_and_2000.tsv'
+# expr_file <- 'GEx_treated_4000_and_2000.tsv'
 # expr_file <- 'Airwave_CPMG_Plasma.txt'
+# expr_file <- 'gex_FC_GEx_treated_4000_and_2000.tsv_over_GEx_baseline_4000_and_2000.tsv'
 
 covar_PCs_file <- as.character(args[3])
-#covar_PCs_file <- 'principal_components_normalised_filtered_PC20.tsv'
+# covar_PCs_file <- 'principal_components_normalised_filtered_PC20.tsv'
+# covar_PCs_file <- ''
 
 probe_pos_file <- as.character(args[4])
-#probe_pos_file <- 'principal_components_normalised_filtered_PC20.tsv'
-
-probe_pos_file <- as.character(args[4])
-#probe_pos_file <- 'biomart_QCd_probes_genomic_locations_annot_MatrixeQTL.txt'
+# probe_pos_file <- 'biomart_QCd_probes_genomic_locations_annot_MatrixeQTL.txt'
 
 snp_pos_file <- as.character(args[5])
-#snp_pos_file <- 'snp146Common_MatrixEQTL_snp_pos.txt'
+# snp_pos_file <- 'snp146Common_MatrixEQTL_snp_pos.txt'
 
 # See qsub 02 xx file for files run.
-
 print(args)
 ########################
 
@@ -120,6 +119,7 @@ geno_data[1:5, 1:5, with = F]
 # setcolorder(geno_data, c("SNP", master_IDs_read))
 geno_data <- as.data.frame(geno_data[, order(colnames(geno_data)), with = F])
 class(geno_data)
+# Change 'SNP' column to FID after reordering:
 colnames(geno_data)[ncol(geno_data)] <- 'FID'
 names(geno_data)
 geno_data <- geno_data[, moveme(names(geno_data), 'FID first')]
@@ -130,10 +130,12 @@ geno_data[1:5, 1:5]
 
 ########################
 # Read expr baseline and order:
-expr_data <- fread(expr_file, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+# Should samples as columns and probe IDs as first column
+expr_data <- fread(expr_file, sep = '\t', header = TRUE, stringsAsFactors = FALSE)#, drop = c(1))
 expr_data[1:5, 1:5, with = F]
 expr_data <- as.data.frame(expr_data[, order(colnames(expr_data)), with = F])
 class(expr_data)
+# Change 'SNP' or 'rownames' column to FID after reordering:
 colnames(expr_data)[ncol(expr_data)] <- 'FID'
 names(expr_data)
 expr_data <- expr_data[, moveme(names(expr_data), 'FID first')]
@@ -243,5 +245,12 @@ system(as.character(cmd_cut))
 ########################
 
 ########################
+# Print session info:
+sessionInfo()
+
+# To save R workspace with all objects to use at a later time:
+save.image(file=R_session_saved_image, compress='gzip')
+
 q()
-########################
+# Next: run the script 04_eQTL_xxx or runMepipe xxx.
+#############################################

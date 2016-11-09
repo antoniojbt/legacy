@@ -35,7 +35,7 @@ getwd()
 ##TO DO extract parameters:
 
 # Re-load a previous R session, data and objects:
-# load('R_session_saved_image_XGR.RData', verbose=T)
+# load('R_session_saved_image_gex_FC_ratios.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_gex_FC_ratios','.RData', sep='')
@@ -45,10 +45,16 @@ R_session_saved_image
 ####################
 # Libraries:
 library(data.table)
+library(ggplot2)
+library(gridExtra)
 library(gvlma)
 library(biglm)
-source('functions_for_MatrixeQTL.R')
-source('moveme.R')
+
+# Get script with functions needed:
+source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
+# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/moveme.R')
+source('/ifs/devel/antoniob/projects/BEST-D/BEST-D/eQTL_analysis/functions_for_MatrixeQTL.R')
+# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/eQTL_analysis/functions_for_MatrixeQTL.R')
 ####################
 
 ####################
@@ -57,13 +63,13 @@ args <- commandArgs(trailingOnly = TRUE)
 
 # Gene expression files:
 gex_file1 <- as.character(args[1])
-gex_file1 <- 'GEx_baseline_4000_and_2000.tsv'
+# gex_file1 <- 'GEx_baseline_4000_and_2000.tsv'
 
 gex_file2 <- as.character(args[2])
-gex_file2 <- 'GEx_treated_4000_and_2000.tsv'
+# gex_file2 <- 'GEx_treated_4000_and_2000.tsv'
 
 pheno_file <- as.character(args[3])
-pheno_file <- 'membership_file_cleaned_all.tab'
+# pheno_file <- 'membership_file_cleaned_all.tab'
 
 print(args)
 ####################
@@ -183,35 +189,52 @@ dim(gex_2_matched)
 gex_2_matched[1:5, 1:5, with = F]
 gex_2_matched[1:5, c((ncol(gex_2_matched)-5):ncol(gex_2_matched)), with = F]
 
-# Check all columns and order match:
+# Check all columns and order match, pt_ids will as they are unique but kit_ids won't as these
+# specify baseline and 12 months in BEST-D:
 # TO DO: stop if false:
 identical(colnames(gex_1_matched), colnames(gex_2_matched))
+identical(gex_1_matched[['pt_id']], gex_2_matched[['pt_id']])
+identical(gex_1_matched[['kit_id']], gex_2_matched[['kit_id']]) # Will be false
 
-# Keep only gene expression values:
-gex_1_matched <- gex_1_matched[, -c((ncol(gex_1_matched) - (ncol(pheno_data) - 1)):ncol(gex_1_matched)), with = F]
+## Keep only gene expression values
+# kit_ids are the sample IDs, these are kept as they were set as keys for data.table
+# Keep sample IDs pt_ids as sanity though
+# Delete the last rows that were added from the IDs and pheno file:
+gex_1_matched[, c((ncol(gex_1_matched) - (ncol(pheno_data) - 3)):ncol(gex_1_matched)), with = F]
+gex_1_matched <- gex_1_matched[, -c((ncol(gex_1_matched) - (ncol(pheno_data) - 3)):ncol(gex_1_matched)), with = F]
 gex_1_matched[1:5, 1:5, with = F]
 gex_1_matched[1:5, c((ncol(gex_1_matched) - 5):ncol(gex_1_matched)), with = F]
+colnames(gex_1_matched)[1:5]
+colnames(gex_1_matched)[ncol(gex_1_matched)]
 
-gex_2_matched <- gex_2_matched[, -c((ncol(gex_2_matched) - (ncol(pheno_data) - 1)):ncol(gex_2_matched)), with = F]
+gex_2_matched <- gex_2_matched[, -c((ncol(gex_2_matched) - (ncol(pheno_data) - 3)):ncol(gex_2_matched)), with = F]
 gex_2_matched[1:5, 1:5, with = F]
 gex_2_matched[1:5, c((ncol(gex_2_matched) - 5):ncol(gex_2_matched)), with = F]
+colnames(gex_2_matched)[1:5]
+colnames(gex_2_matched)[ncol(gex_2_matched)]
 
 dim(gex_1_matched)
 dim(gex_2_matched)
 dim(gex_1)
 dim(gex_2)
 
+gex_1_matched[1:5, c((ncol(gex_1_matched) - 5):ncol(gex_1_matched)), with = F]
+gex_2_matched[1:5, c((ncol(gex_2_matched) - 5):ncol(gex_2_matched)), with = F]
+
 # Check all columns and order match:
 # TO DO: stop if false:
 identical(colnames(gex_1_matched), colnames(gex_2_matched))
+identical(gex_1_matched[['pt_id']], gex_2_matched[['pt_id']])
 ####################
 
 ####################
 # Get PCs (from max MatrixeQTL loop) for each file:
 # Plot PCA of normalised samples:
 # Compute the PCs, first transpose the expression values and ignore the first column, then run the PCs:
-pca_gex_1_matched <- prcomp(gex_1_matched, center=TRUE, scale=TRUE)
-pca_gex_2_matched <- prcomp(gex_2_matched, center=TRUE, scale=TRUE)
+gex_1_matched[, c('pt_id', 'kit_id'), with = F]
+gex_2_matched[, c('pt_id', 'kit_id'), with = F]
+pca_gex_1_matched <- prcomp(gex_1_matched[, -c('pt_id', 'kit_id'), with = F], center=TRUE, scale=TRUE)
+pca_gex_2_matched <- prcomp(gex_2_matched[, -c('pt_id', 'kit_id'), with = F], center=TRUE, scale=TRUE)
 
 # Obtain values for all PCs output:
 pc_gex_1_matched <- data.frame(round(pca_gex_1_matched$x, 2))
@@ -225,7 +248,9 @@ dim(pc_gex_2_matched)
 # pc_gex_2_matched <- pc_gex_2_matched[, moveme(names(pc_gex_2_matched), 'sample_id first')]
 
 names(pc_gex_1_matched)[1:10]
+names(pc_gex_1_matched)[ncol(pc_gex_1_matched)]
 names(pc_gex_2_matched)[1:10]
+names(pc_gex_2_matched)[ncol(pc_gex_2_matched)]
 class(pc_gex_1_matched)
 class(pc_gex_2_matched)
 
@@ -240,22 +265,69 @@ str(pca_gex_1_matched)
 pc_gex_1_matched[1:5, 1:5]
 pc_gex_2_matched[1:5, 1:5]
 
-summary(pca_gex_1_matched)
-summary(pca_gex_2_matched)
+sum_pc_gex_1_matched <- summary(pca_gex_1_matched)
+sum_pc_gex_2_matched <- summary(pca_gex_2_matched)
 
+sum_pc_gex_1_matched$importance[, 1:10]
+sum_pc_gex_2_matched$importance[, 1:10]
+sum_pc_gex_1_matched_df <- as.data.frame(sum_pc_gex_1_matched$importance)
+sum_pc_gex_2_matched_df <- as.data.frame(sum_pc_gex_2_matched$importance)
+
+sum_pc_gex_1_matched_df <- t(sum_pc_gex_1_matched_df)
+sum_pc_gex_2_matched_df <- t(sum_pc_gex_2_matched_df)
+
+sum_pc_gex_1_matched_df <- as.data.frame(sum_pc_gex_1_matched_df)
+sum_pc_gex_2_matched_df <- as.data.frame(sum_pc_gex_2_matched_df)
+
+sum_pc_gex_1_matched_df$percent_var <- round(100 * (sum_pc_gex_1_matched_df$`Proportion of Variance`), 3)
+sum_pc_gex_2_matched_df$percent_var <- round(100 * (sum_pc_gex_2_matched_df$`Proportion of Variance`), 3)
+
+sum_pc_gex_1_matched_df$PC <- factor(row.names(sum_pc_gex_1_matched_df), levels = row.names(sum_pc_gex_1_matched_df),
+                        labels = row.names(sum_pc_gex_1_matched_df))
+sum_pc_gex_2_matched_df$PC <- factor(row.names(sum_pc_gex_2_matched_df), levels = row.names(sum_pc_gex_2_matched_df),
+                        labels = row.names(sum_pc_gex_2_matched_df))
+
+head(sum_pc_gex_1_matched_df)
+tail(sum_pc_gex_1_matched_df)
+sum_pc_gex_1_matched_df[1:20, ]
+names(sum_pc_gex_1_matched_df)
+str(sum_pc_gex_1_matched_df)
+
+head(sum_pc_gex_2_matched_df)
+tail(sum_pc_gex_2_matched_df)
+sum_pc_gex_2_matched_df[1:20, ]
+names(sum_pc_gex_2_matched_df)
+str(sum_pc_gex_2_matched_df)
+####################
+
+####################
 # Plot PCA results:
-plot_PCA <- ('plot_PCA_gex1_v_gex2.png')
-png(plot_PCA, width = 12, height = 12, units = 'in', res = 300)
-par(mfrow=c(2,2))
-# Histogram of first x PCs:
-plot(pca_gex_1_matched, main = sprintf('Normalised expression values - %s', gex_file1))
-plot(pca_gex_2_matched, main = sprintf('Normalised expression values - %s', gex_file2))
+png('plot_PCA_gex1_v_gex2.png', width = 12, height = 12, units = 'in', res = 300)
+# Plot proportion of variance of first x PCs:
+p1 <- ggplot(sum_pc_gex_1_matched_df, aes(y = percent_var, x = PC)) + 
+  geom_bar(stat = 'identity') +
+  theme_classic() +
+  labs(x = 'Principal component', y = 'Proportion of variance (%)') +
+  ggtitle(gex_file1) +
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+p2 <- ggplot(sum_pc_gex_2_matched_df, aes(y = percent_var, x = PC)) + 
+  geom_bar(stat = 'identity') +
+  theme_classic() +
+  labs(x = 'Principal component', y = 'Proportion of variance (%)') +
+  ggtitle(gex_file2) +
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
 # Scatterplot of PC1 and PC2:
-biplot(pca_gex_1_matched, main = sprintf('PC1 v PC2 - %s', gex_file1))
-biplot(pca_gex_2_matched, main = sprintf('PC1 v PC2 - %s', gex_file2))
-par(mfrow=c(1,1))
+p3 <- ggplot(data=pc_gex_1_matched, aes(x=PC1, y=PC2)) + 
+  theme_bw() + geom_point(alpha = 0.8) +
+  ggtitle(gex_file1)
+p4 <- ggplot(data=pc_gex_2_matched, aes(x=PC1, y=PC2)) + 
+  theme_bw() + geom_point(alpha = 0.8) +
+  ggtitle(gex_file2)
+grid.arrange(p1, p2, p3, p4, ncol = 2)
 dev.off()
+####################
 
+####################
 # Regress out PCs from gene expression values for each file
 # MatrixeQTL loop PCs to regress:
 # 25 baseline?
@@ -280,7 +352,9 @@ dim(gex_2_matched)
 
 class(pc_gex_1_matched)
 class(gex_1_matched)
+####################
 
+####################
 # Create dataframe with data (expression value plus PCs)
 gex_1_matched_lm <- data.frame(cbind(gex_1_matched[, 1, with = F], pc_gex_1_matched_to_adjust))
 # gex_2_matched_lm <- data.frame(cbind(gex_2_matched[, 1, with = F], pc_gex_2_matched_to_adjust))
@@ -338,14 +412,24 @@ get_lm <- function(DT, PC_DT, col_name) {
   # DT2_corrected
   return(DT2_corrected)
 }
+####################
 
+####################
 # Run regressions for file gex 1:
-# Get all probe names:
-cols <- names(gex_1_matched)
+# Get all probe names minus sample ID column:
+colnames(gex_1_matched)[c(ncol(gex_1_matched))]
+dim(gex_1_matched)
+gex_1_matched[, c('pt_id', 'kit_id'), with = F]
+gex_2_matched[, c('pt_id', 'kit_id'), with = F]
+
+cols <- colnames(gex_1_matched)[1:c(ncol(gex_1_matched)-2)]
+length(cols) # Should be two less than the file
+dim(gex_1_matched)
 head(cols)
 tail(cols)
-# Create dummy data.table:
-DT_corrected <- data.table(c(1:nrow(gex_1_matched)), c('dummy'))
+# Create data.table with sample IDs:
+# DT_corrected <- data.table(c(1:nrow(gex_1_matched)), c('dummy')) # Dummy table
+DT_corrected <- gex_1_matched[, c('pt_id', 'kit_id'), with = F]
 DT_corrected
 
 for(i in cols) {
@@ -355,23 +439,34 @@ for(i in cols) {
 DT_corrected[1:5, 1:5, with = F]
 dim(DT_corrected)
 DT_corrected_1 <- DT_corrected
+DT_corrected_1[1:5, 1:5, with = F]
 
 # TO DO: Should use lapply, eg:
 # DT_corrected <- gex_1_matched[, paste0(i) := lapply(.SD, get_lm, args, args),]
 # http://stackoverflow.com/questions/25443658/r-add-new-columns-to-a-data-table-containing-many-variables
 
-# Delete dummy columns:
-DT_corrected_1[, c('V1', 'V2') := NULL]
-DT_corrected_1[1:5, 1:5, with = F]
-dim(DT_corrected_1)
+# # Delete dummy columns:
+# DT_corrected_1[, c('V1', 'V2') := NULL]
+# DT_corrected_1[1:5, 1:5, with = F]
+# DT_corrected_1[, ncol(DT_corrected_1), with = F]
+# dim(DT_corrected_1)
+####################
 
+####################
 # Repeat for gex_2 file:
-# Get all probe names:
-cols <- names(gex_2_matched)
+# Get all probe names minus sample ID column:
+colnames(gex_2_matched)[c(ncol(gex_2_matched))]
+dim(gex_2_matched)
+gex_2_matched[, c('pt_id', 'kit_id'), with = F]
+
+cols <- colnames(gex_2_matched)[1:c(ncol(gex_2_matched)-2)]
+length(cols) # Should be one less than the file
+dim(gex_2_matched)
 head(cols)
 tail(cols)
-# Create dummy data.table:
-DT_corrected <- data.table(c(1:nrow(gex_2_matched)), c('dummy'))
+
+# Create data.table with sample IDs:
+DT_corrected <- gex_2_matched[, c('pt_id', 'kit_id'), with = F]
 DT_corrected
 
 for(i in cols) {
@@ -381,48 +476,87 @@ for(i in cols) {
 DT_corrected[1:5, 1:5, with = F]
 dim(DT_corrected)
 DT_corrected_2 <- DT_corrected
-
-# Delete dummy columns:
-DT_corrected_2[, c('V1', 'V2') := NULL]
 DT_corrected_2[1:5, 1:5, with = F]
-dim(DT_corrected_2)
 
-  
+# # Delete dummy columns:
+# DT_corrected_2[, c('V1', 'V2') := NULL]
+# DT_corrected_2[1:5, 1:5, with = F]
+# dim(DT_corrected_2)
+
 # TO DO: Test assumptions (summary?):
 # gvmodel <- gvlma(biglm_gex_1_matched)
 # summary(gvmodel)
 ####################
 
 ####################
-# Get ratio of file2 over file1:
-gex_FC <- DT_corrected_2 / DT_corrected_1
+# Get ratio of file2 over file1
+# Check columns and rownames match:
+DT_corrected_1[1:5, 1:5, with = F]
+DT_corrected_2[1:5, 1:5, with = F]
+identical(colnames(DT_corrected_1), colnames(DT_corrected_2))
+identical(DT_corrected_1[['pt_id']], DT_corrected_2[['pt_id']])
+
+# Keep IDs, pt_id plus baseline kit_id:
+sample_IDs <- DT_corrected_1[, c('pt_id', 'kit_id'), with = F]
+sample_IDs
+
+# Get ratios:
+gex_FC <- DT_corrected_2[, -c('pt_id', 'kit_id'), with = F] / DT_corrected_1[, -c('pt_id', 'kit_id'), with = F]
+gex_FC <- cbind(sample_IDs, gex_FC)
 dim(gex_FC)
 class(gex_FC)
 gex_FC[1:5, 1:5, with = F]
 
-range(as.list(gex_FC[, .(all_means = lapply(.SD, mean))]))
+# TO DO: check these ratios are OK:
+# range(as.list(gex_FC[, -c('pt_id', 'kit_id'), .(all_means = lapply(.SD, mean)), with = F]))
+####################
+
 
 ####################
+# Prepare for MatrixeQTL, samples as columns, values as rows.
+# gex_FC <- fread('gex_FC_GEx_treated_4000_and_2000.tsv_over_GEx_baseline_4000_and_2000.tsv', sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+gex_FC[1:5, 1:5, with = F]
+str(gex_FC)
+gex_FC_t <- transpose_file(gex_FC, 2) # data.table transpose() turns factors into character
+str(gex_FC_t)
+class(gex_FC_t)
+gex_FC_t <- as.data.frame(gex_FC_t, stringsAsFactors = FALSE)
+gex_FC_t <- gex_FC_t[, moveme(names(gex_FC_t), 'rownames first')]
+# Delete first row with pt_id:
+gex_FC_t <- gex_FC_t[-1, ]
+head(gex_FC_t)[1:5]
+str(gex_FC_t)
+
+# Convert all columns to numeric:
+for(i in c(2:ncol(gex_FC_t))) {
+  gex_FC_t[, i] <- as.numeric(as.character(gex_FC_t[, i]))
+  }
+str(gex_FC_t)
+head(gex_FC_t)[1:5]
+
+range(colMeans(gex_FC_t[, -1]))
+####################
+
 
 ####################
 # Write to disk:
 gex_file1
 gex_file2
 
-write.table(gex_FC, sprintf('gex_FC_%s_over_%s', gex_file2, gex_file1), sep='\t', quote = FALSE, col.names = NA)
+write.table(gex_FC_t, sprintf('gex_FC_%s_over_%s', gex_file2, gex_file1), sep='\t', quote = FALSE, col.names = NA)
 ####################
 
 ####################
 # The end:
 # Remove objects that are not necessary to save:
-
 #rm(list=ls(arrayQualityMetrics_raw_cleaned, arrayQualityMetrics_preprocessed))
 
 # To save R workspace with all objects to use at a later time:
-# save.image(file=R_session_saved_image, compress='gzip')
+save.image(file=R_session_saved_image, compress='gzip')
 
 #objects_to_save <- (c('normalised_expressed', 'normalised_filtered', 'membership_file_cleaned', 'FAILED_QC_unique'))
-#save(list=objects_to_save, file=R_session_saved_image, compress='gzip')
+# save(list=objects_to_save, file=R_session_saved_image, compress='gzip')
+
 sessionInfo()
 q()
 

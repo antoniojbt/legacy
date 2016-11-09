@@ -13,6 +13,7 @@
 # Working directory:
 # setwd("/ifs/projects/proj043/analysis.dir/gene_expression_3.dir")
 # setwd('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/tables_and_plots_for_draft/final_draft_BEST-D/tables/all_GEx_tables/individual_tables_all_GEx_comparisons/')
+# setwd('/Users/antoniob/Desktop/Downloads_to_delete/mePipe_runs_2.dir/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
@@ -58,22 +59,23 @@ source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
 # Read and merge all comparisons into one table:
 getwd()
 pattern <- 'topTable'
+# pattern <- '(2000)+.*tsv$'
 length(dir(pattern = pattern))
 dir(pattern = pattern)
 dir(pattern = pattern)[1]
 # Set-up first df for merging:
-file_name <- dir(pattern = 'topTable')[1]
+file_name <- dir(pattern = pattern)[1]
 initialise_df <- read.csv(file_name, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
 names(initialise_df)
 all_GEx_comparisons <- as.data.frame(initialise_df[, 1])
-names(all_GEx_comparisons)[1] <- 'X'
+# names(all_GEx_comparisons)[1] <- 'X'
 all_GEx_comparisons <- data.frame(all_GEx_comparisons, logFC = "logFC", AveExpr = "AveExpr", 
                                   t = "t", P.Value = "P.Value", adj.P.Val = "adj.P.Val", B = "B")
 dim(all_GEx_comparisons)
 class(all_GEx_comparisons)
 head(all_GEx_comparisons)
 head(initialise_df)
-# all_GEx_comparisons <- merge(all_GEx_comparisons, initialise_df, by = 'X')
+all_GEx_comparisons <- merge(all_GEx_comparisons, initialise_df, by = 'X')
 # head(all_GEx_comparisons)
 
 for (i in dir(pattern = pattern)) {
