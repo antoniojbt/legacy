@@ -728,7 +728,6 @@ write_topTable("treatmenttreated_placebo", fit_all_pairs_2)
 
 
 ########################
-# TO DO: extract the FC values for each probe/sample for eQTL analysis.
 # Compare joint 2000+4000 vs baseline and placebo with pairing.
 # Define factors to constrast from annotation file:
 #Pairing:
