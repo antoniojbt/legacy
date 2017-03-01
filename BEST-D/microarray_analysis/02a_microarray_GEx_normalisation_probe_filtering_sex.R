@@ -38,7 +38,7 @@ load('R_session_saved_image_normalisation.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_probe_filtering', '.RData', sep='')
-
+R_session_saved_image <- paste('R_session_saved_image_probe_filtering_full', '.RData', sep='')
 #############################
 
 
@@ -498,7 +498,8 @@ write.csv(normalised_filtered, 'normalised_filtered_expression_values.csv', quot
 
 # To save R workspace with all objects to use at a later time:
 #save.image(file=R_session_saved_image_full, compress='gzip')
-objects_to_save <- (c('normalised', 'normalised_filtered_annotated', 'normalised_filtered', 'membership_file_cleaned', 'FAILED_QC_unique'))
+objects_to_save <- (c('normalised', 'normalised_filtered_annotated', 'normalised_filtered', 
+                      'membership_file_cleaned', 'FAILED_QC_unique'))
 save(list=objects_to_save, file=R_session_saved_image, compress='gzip')
 
 # Print session information:
