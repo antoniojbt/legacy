@@ -170,7 +170,7 @@ summary(pheno_file)
 illumina_info <- fread(illumina_file, sep = '\t', 
                        header = TRUE, stringsAsFactors = FALSE,
                        skip = 8, nrows = 47323) # The first rows are metadata, the last rows 
-                                                # are additional control probe info
+# are additional control probe info
 head(illumina_info)
 tail(illumina_info)[, 1:10]
 dim(illumina_info)
@@ -204,12 +204,76 @@ get_transcript(illumina_info, 'ILMN_Gene', 'Probe_Id', 'Transcript', 'IFNG')
 # Get all genes of interest and put them into a dataframe:
 transcript_info <- data.frame()
 for (i in genes)
-  {
+{
   print(i)
   transcript <- get_transcript(illumina_info, 'ILMN_Gene', 'Probe_Id', 'Transcript', i)
   transcript_info <- rbind(transcript_info, transcript)
 }
 transcript_info
+
+# Check if cytokine transcripts made it to the final expression file:
+transcript_info
+head(expr_file)[1:5, 1:10]
+class(transcript_info)
+class(expr_file)
+
+which(transcript_info$Probe_Id %in% expr_file$Probe_Id)
+which(expr_file$Probe_Id %in% transcript_info$Probe_Id)
+as.character(transcript_info$Probe_Id) %in% as.character(expr_file$Probe_Id)
+
+for (i in transcript_info$Probe_Id)
+{
+  print(i)
+  print(as.character(i) %in% as.character(expr_file$Probe_Id))
+}
+
+# There is only one cytokine transcript which passed QC.
+# Check raw, non-QC expression file (before probe filtering, these is individuals QC):
+# Load saved RData analysis from QC stage:
+load('../data.dir/R_session_saved_image_read_and_QC_full.RData', verbose=T)
+head(raw_cleaned_as_matrix)[1:5, 1:5]
+rownames(raw_cleaned_as_matrix)
+which(transcript_info$Probe_Id %in% rownames(raw_cleaned_as_matrix))
+# All transcripts were initially present.
+
+
+# Check why these transcripts were excluded:
+# Load RData file from pre probe-filtering stage:
+# load('../data.dir/R_session_saved_image_normalisation_full.RData', verbose=T)
+tail(normalised$E)[, (ncol(normalised)-10):ncol(normalised)]
+tail(rownames(normalised$E))
+
+normalised <- fread('../data.dir/normalised.csv', sep = ',', header = TRUE, stringsAsFactors = FALSE)
+dim(normalised)
+head(normalised)[1:5, 1:5]
+tail(normalised)[1:5, (ncol(normalised)-10):ncol(normalised)]
+normalised[, 'V1']
+which(transcript_info$Probe_Id %in% rownames(normalised$E))
+# All transcripts were present pre-filtering.
+
+# Check probe filtering script steps in:
+# '02a_microarray_GEx_normalisation_probe_filtering_sex.R'
+# load('../data.dir/R_session_saved_image_probe_filtering.RData', verbose=T)
+which(transcript_info$Probe_Id %in% rownames(normalised_expressed$E))
+which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated$E))
+which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual$E))
+transcript_info[1, ] # Lost due to low quality illuminaHumanv4.db 'Bad' or 'No match'
+which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual_noSNPs$E))
+transcript_info[-2, ] # Lost all but IL10 due to probes matching a SNP
+
+
+# Subset expression file to leave only transcripts corresponding to cytokines:
+setkey(transcript_info, 'Probe_Id')
+setkey(expr_file, 'Probe_Id')
+
+expr_cyto_transcripts <- expr_file[transcript_info]
+dim(expr_cyto_transcripts)
+head(expr_cyto_transcripts)[, 1:10]
+class(expr_cyto_transcripts)
+
+# Patients IDs are kit ID, each as column, transpose to merge:
+expr_file 
+
 #############################################
 
 
@@ -231,7 +295,6 @@ dim(pheno_file)
 dim(all_data)
 head(all_data)[, 1:10]
 head(all_data)[, (ncol(all_data) - 10):ncol(all_data)]
-
 summary(all_data[, (ncol(all_data) - 10):ncol(all_data)])
 
 # Join expr:

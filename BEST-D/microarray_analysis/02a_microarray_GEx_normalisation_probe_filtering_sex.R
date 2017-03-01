@@ -52,6 +52,7 @@ library(ggplot2)
 library(gridExtra)
 library(grid)
 library(cowplot)
+library(data.table)
 #############################
 
 
@@ -480,6 +481,8 @@ write.table(normalised_filtered, 'normalised_filtered_expression_values.tab', se
 #write.table(membership_file_cleaned, 'membership_file_cleaned_all.tab', sep='\t', quote=FALSE, na='NA', 
 #            col.names=NA, row.names=TRUE)
 
+# fwrite(data.table(normalised$E, keep.rownames = TRUE), 'normalised.csv', na='NA')
+write.csv(normalised$E, 'normalised.csv', quote=FALSE, na='NA')
 write.csv(normalised_filtered, 'normalised_filtered_annotated.csv', quote=FALSE, na='NA')
 write.csv(normalised_filtered, 'normalised_filtered_expression_values.csv', quote=FALSE, na='NA')
 ###############################
@@ -495,7 +498,7 @@ write.csv(normalised_filtered, 'normalised_filtered_expression_values.csv', quot
 
 # To save R workspace with all objects to use at a later time:
 #save.image(file=R_session_saved_image_full, compress='gzip')
-objects_to_save <- (c('normalised_filtered_annotated', 'normalised_filtered', 'membership_file_cleaned', 'FAILED_QC_unique'))
+objects_to_save <- (c('normalised', 'normalised_filtered_annotated', 'normalised_filtered', 'membership_file_cleaned', 'FAILED_QC_unique'))
 save(list=objects_to_save, file=R_session_saved_image, compress='gzip')
 
 # Print session information:
