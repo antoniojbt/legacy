@@ -114,16 +114,24 @@ cyto_file <- as.character(args[1])
 # See script 
 # /cgat_projects/BEST-D/genotype_analysis/plink_output_processing.R
 geno_file <- as.character(args[2])
+# e.g. 'rs1993116_plink_results.raw'
 # geno_file <- ''
 
 # TO DO: genes need extracting and processing (see geno file as example)
 # See /Users/antoniob/Documents/github.dir/AntonioJBT/Airwave/eQTL_plotting_airwave.R
 expr_file <- as.character(args[3])
-# expr_file <- ''
+expr_file <- '../data.dir/cut_GEx_treated_4000_and_2000.tsv_matched.tsv'
+expr_file <- '../data.dir/normalised_filtered_annotated.tab'
 
 pheno_file <- as.character(args[4])
-# pheno_file <- 'final_phenotype_file.txt'
+# pheno_file <- '../data.dir/BEST-D_phenotype_file_final.tsv'
 
+# Probe annotation file to get corresponding info for genes:
+illumina_file <- as.character(args[5])
+# illumina_file <- '../annotation_external/HumanHT-12_V4_0_R2_15002873_B.txt'
+
+# Genes of interest:
+genes <- list('IFNG', 'IL6', 'IL8', 'IL10', 'TNF')
 #############################################
 
 
@@ -141,14 +149,15 @@ geno_file
 head(geno_file)
 dim(geno_file)
 tail(geno_file)
-summary(geno_file)
+# summary(geno_file)
 
-expr_file <- fread(expr_file, sep = ',', header = TRUE, stringsAsFactors = FALSE)
+expr_file <- fread(expr_file, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
 expr_file
 head(expr_file)
 dim(expr_file)
 tail(expr_file)
-summary(expr_file)
+head(expr_file)[1:5, 1:10]
+# summary(expr_file)
 
 pheno_file <- fread(pheno_file, sep = '\t', header = TRUE, stringsAsFactors = FALSE,
                     na.strings = '-99999')
@@ -158,6 +167,49 @@ dim(pheno_file)
 tail(pheno_file)
 summary(pheno_file)
 
+illumina_info <- fread(illumina_file, sep = '\t', 
+                       header = TRUE, stringsAsFactors = FALSE,
+                       skip = 8, nrows = 47323) # The first rows are metadata, the last rows 
+                                                # are additional control probe info
+head(illumina_info)
+tail(illumina_info)[, 1:10]
+dim(illumina_info)
+colnames(illumina_info)
+#############################################
+
+#############################################
+# Extract information for cytokines measured and gene expression
+# Cytokines measured:
+# IFN gamma, IL-6, IL-8, IL-10, and TNF-alpha
+
+# Corresponding genes:
+genes
+colnames(cyto_file)
+
+# Corresponding Illumina transcripts:
+head(illumina_info)
+colnames(illumina_info)
+
+# Check how one gene looks like:
+illumina_info[which(illumina_info[, 'ILMN_Gene'] == 'IFNG'), ]
+# Function to get info from Illumina annotation file:
+get_transcript <- function(data_table, colID1, colID2, colID3, gene){
+  subsetted <- data_table[which(data_table[, colID1, with = F] == gene), ]
+  transcript <- subsetted[, c(colID1, colID2, colID3), with = F]
+  return(transcript)
+}
+# Check:
+get_transcript(illumina_info, 'ILMN_Gene', 'Probe_Id', 'Transcript', 'IFNG')
+
+# Get all genes of interest and put them into a dataframe:
+transcript_info <- data.frame()
+for (i in genes)
+  {
+  print(i)
+  transcript <- get_transcript(illumina_info, 'ILMN_Gene', 'Probe_Id', 'Transcript', i)
+  transcript_info <- rbind(transcript_info, transcript)
+}
+transcript_info
 #############################################
 
 
@@ -167,10 +219,26 @@ summary(pheno_file)
 # TO DO: check expr ID as this is kit_id, not pt_id
 
 # Join pheno and cyto:
+pheno_file[, 'pt_id', with = F]
+cyto_file[, 'pt_id', with = F]
+setkey(pheno_file, 'pt_id')
+setkey(cyto_file, 'pt_id')
+
 all_data <- pheno_file[cyto_file]
 all_data
+dim(cyto_file)
+dim(pheno_file)
+dim(all_data)
+head(all_data)[, 1:10]
+head(all_data)[, (ncol(all_data) - 10):ncol(all_data)]
+
+summary(all_data[, (ncol(all_data) - 10):ncol(all_data)])
 
 # Join expr:
+colnames(all_data)
+which(all_data[, 'kit_id_randomisation', with = F] == 120005001)
+which(all_data[, 'kit_id_finalVisit', with = F] == 120005001)
+
 all_data <- all_data[expr_file]
 all_data
 
