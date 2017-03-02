@@ -75,7 +75,7 @@ getwd()
 ##TO DO extract parameters:
 
 # Re-load a previous R session, data and objects:
-#load('R_session_saved_image_order_and_match.RData', verbose=T)
+# load('R_session_saved_image_cytokines.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_cytokines','.RData', sep='')
@@ -102,6 +102,9 @@ args <- commandArgs(trailingOnly = TRUE)
 library(ggplot2)
 library(data.table)
 library(gridExtra)
+# library(GGally)
+library(reshape)
+library(plyr)
 #############################
 
 
@@ -109,7 +112,7 @@ library(gridExtra)
 # Set-up arguments:
 
 cyto_file <- as.character(args[1])
-# cyto_file <- 'bestd_cytokines.csv'
+cyto_file <- 'bestd_cytokines.csv'
 
 # See script 
 # /cgat_projects/BEST-D/genotype_analysis/plink_output_processing.R
@@ -117,17 +120,16 @@ geno_file <- as.character(args[2])
 # e.g. 'rs1993116_plink_results.raw'
 # geno_file <- ''
 
-# TO DO: genes need extracting and processing (see geno file as example)
 # See /Users/antoniob/Documents/github.dir/AntonioJBT/Airwave/eQTL_plotting_airwave.R
 expr_file <- as.character(args[3])
-# expr_file <- '../data.dir/normalised_filtered_annotated.tab'
+expr_file <- '../data.dir/normalised_filtered_annotated.tab'
 
 pheno_file <- as.character(args[4])
-# pheno_file <- '../data.dir/BEST-D_phenotype_file_final.tsv'
+pheno_file <- '../data.dir/BEST-D_phenotype_file_final.tsv'
 
 # Probe annotation file to get corresponding info for genes:
 illumina_file <- as.character(args[5])
-# illumina_file <- '../annotation_external/HumanHT-12_V4_0_R2_15002873_B.txt'
+illumina_file <- '../annotation_external/HumanHT-12_V4_0_R2_15002873_B.txt'
 
 # Genes of interest:
 genes <- list('IFNG', 'IL6', 'IL8', 'IL10', 'TNF')
@@ -143,11 +145,11 @@ dim(cyto_file)
 tail(cyto_file)
 summary(cyto_file)
 
-geno_file <- fread(geno_file, sep = ',', header = TRUE, stringsAsFactors = FALSE)
-geno_file
-head(geno_file)
-dim(geno_file)
-tail(geno_file)
+# geno_file <- fread(geno_file, sep = ',', header = TRUE, stringsAsFactors = FALSE)
+# geno_file
+# head(geno_file)
+# dim(geno_file)
+# tail(geno_file)
 # summary(geno_file)
 
 expr_file <- fread(expr_file, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
@@ -233,39 +235,39 @@ for (i in transcript_info$Probe_Id)
 ########
 
 ########
-# Check raw, non-QC expression file (before probe filtering, these is individuals QC):
-# Load saved RData analysis from QC stage:
-load('../data.dir/R_session_saved_image_read_and_QC_full.RData', verbose=T)
-head(raw_cleaned_as_matrix)[1:5, 1:5]
-rownames(raw_cleaned_as_matrix)
-which(transcript_info$Probe_Id %in% rownames(raw_cleaned_as_matrix))
-# All transcripts were initially present.
+# # Check raw, non-QC expression file (before probe filtering, these is individuals QC):
+# # Load saved RData analysis from QC stage:
+# load('../data.dir/R_session_saved_image_read_and_QC_full.RData', verbose=T)
+# head(raw_cleaned_as_matrix)[1:5, 1:5]
+# rownames(raw_cleaned_as_matrix)
+# which(transcript_info$Probe_Id %in% rownames(raw_cleaned_as_matrix))
+# # All transcripts were initially present.
 ########
 
 ########
-# Check why these transcripts were excluded:
-# Load RData file from pre probe-filtering stage:
-# load('../data.dir/R_session_saved_image_normalisation_full.RData', verbose=T)
-# If loading RData file normalised$E (limma format), otherwise read saved file in disk as here:
-normalised <- fread('../data.dir/normalised.csv', sep = ',', header = TRUE, stringsAsFactors = FALSE)
-dim(normalised)
-head(normalised)[1:5, 1:5]
-tail(normalised)[1:5, (ncol(normalised)-10):ncol(normalised)]
-normalised[, 'V1']
-which(transcript_info$Probe_Id %in% normalised$V1)
-# All transcripts were present pre-filtering.
+# # Check why these transcripts were excluded:
+# # Load RData file from pre probe-filtering stage:
+# # load('../data.dir/R_session_saved_image_normalisation_full.RData', verbose=T)
+# # If loading RData file normalised$E (limma format), otherwise read saved file in disk as here:
+# normalised <- fread('../data.dir/normalised.csv', sep = ',', header = TRUE, stringsAsFactors = FALSE)
+# dim(normalised)
+# head(normalised)[1:5, 1:5]
+# tail(normalised)[1:5, (ncol(normalised)-10):ncol(normalised)]
+# normalised[, 'V1']
+# which(transcript_info$Probe_Id %in% normalised$V1)
+# # All transcripts were present pre-filtering.
 
 
-# Check probe filtering script steps in:
-# '02a_microarray_GEx_normalisation_probe_filtering_sex.R'
-load('../data.dir/R_session_saved_image_normalisation.RData', verbose=T)
-which(transcript_info$Probe_Id %in% rownames(normalised_expressed$E))
-which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated$E))
-which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual$E))
-transcript_info[1, ] # Lost due to low quality illuminaHumanv4.db 'Bad' or 'No match'
-which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual_noSNPs$E))
-transcript_info[2, ]
-transcript_info[-2, ] # Lost all but IL10 due to probes matching a SNP
+# # Check probe filtering script steps in:
+# # '02a_microarray_GEx_normalisation_probe_filtering_sex.R'
+# load('../data.dir/R_session_saved_image_normalisation.RData', verbose=T)
+# which(transcript_info$Probe_Id %in% rownames(normalised_expressed$E))
+# which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated$E))
+# which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual$E))
+# transcript_info[1, ] # Lost due to low quality illuminaHumanv4.db 'Bad' or 'No match'
+# which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual_noSNPs$E))
+# transcript_info[2, ]
+# transcript_info[-2, ] # Lost all but IL10 due to probes matching a SNP
 ########
 
 ########
@@ -280,11 +282,14 @@ transcripts_present_t <- transpose(transcripts_present)
 # Expression data has kits as IDs:
 transcripts_present_t$kit_id <- colnames(transcripts_present)
 transcripts_present_t
-setnames(transcripts_present_t, 'V1', 'gene_expr')
+# TO DO: loop to name each column according to gene symbol when more than one transcript survives:
+setnames(transcripts_present_t, 'V1', 
+         sprintf('transcript_%s', transcripts_present[, 'ILMN_GENE']))
 dim(transcripts_present_t)
 colnames(transcripts_present_t)
 str(transcripts_present_t)
-transcripts_present_t$gene_expr <- as.numeric(transcripts_present_t$gene_expr)
+# TO DO: set up so that loop renames accordingly
+transcripts_present_t$transcript_IL10 <- as.numeric(transcripts_present_t$transcript_IL10)
 str(transcripts_present_t)
 summary(transcripts_present_t)
 ########
@@ -294,7 +299,6 @@ summary(transcripts_present_t)
 #############################################
 # Create one file with pt_id, kit_id, candidate geno, candidate expr, pheno and VD
 # Join files, these are data.table
-# TO DO: check expr ID as this is kit_id, not pt_id
 
 # Join pheno and cyto:
 pheno_file[, 'pt_id', with = F]
@@ -339,10 +343,9 @@ dim(all_data)
 setnames(all_data, 'gene_expr', 'gene_expr_12months')
 summary(all_data[, (ncol(all_data) - 10):ncol(all_data)])
 
-
-# Join geno:
-all_data <- all_data[geno_file]
-all_data
+# # Join geno:
+# all_data <- all_data[geno_file]
+# all_data
 
 # Sanity check:
 
@@ -352,10 +355,87 @@ all_data
 #############################################
 # Explore cytokine data, descriptive analysis
 
+# Rename groups for better plotting:
+all_data$arm2[all_data$arm == 0] <- '4000_IU'
+all_data$arm2[all_data$arm == 1] <- '2000_IU'
+all_data$arm2[all_data$arm == 2] <- 'Placebo'
+count(all_data$arm2)
+
+# Get variables of interest:
+colnames(all_data)
+all_data_melt <- melt(all_data, measure.vars = 88:97)
+all_data_melt
+head(all_data_melt)[1:5, 1:5]
+dim(all_data_melt)
+colnames(all_data_melt)
+
+all_data_melt[1:10, c('value', 'variable')]
+count(all_data_melt$variable)
+count(all_data_melt$arm2)
+group <- factor(all_data_melt$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                labels = c("Placebo", "2000 IU", "4000 IU"))
+count(group)
+
+# Plot cytokine distributions:
+ggplot(data = as.data.frame(all_data_melt),
+       aes(x = variable, y = value, fill = group)) + 
+  geom_boxplot(position = position_dodge(1)) +
+  labs(title = 'Circulating cytokines') +
+  scale_color_brewer(palette = "Dark2") +
+  theme_gray() +
+  theme(legend.title=element_blank())
+ggsave('cytokine_boxplots.png')
+
+
+# Plot IL10 and transcript:
+colnames(all_data)
+all_data_melt_IL10 <- melt(all_data, measure.vars = c(89, 94, 98, 99))
+                           # id.vars = c('Ln_IL10_0', 'Ln_IL10_12',
+                           #                        'transcript_IL10.x',
+                           #                        'transcript_IL10.y',
+                           #                         'arm2')) #c(89, 94, 98, 99))
+colnames(all_data_melt_IL10)
+all_data_melt_IL10
+str(all_data_melt_IL10)
+all_data_melt_IL10[1:10, c('value', 'variable')]
+count(all_data_melt_IL10$variable)
+count(all_data_melt_IL10$arm2)
+group <- factor(all_data_melt_IL10$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                labels = c("Placebo", "2000 IU", "4000 IU"))
+count(group)
 # Plot:
-png(paste('qqplot_', SNP_file, '.png', sep = ''))
-plot(cytokines_file)
-dev.off()
+ggplot(data = as.data.frame(all_data_melt_IL10),
+       aes(x = variable, y = value, fill = group)) + 
+  geom_boxplot(position = position_dodge(1)) +
+  labs(title = 'IL-10 protein and transcript levels') +
+  scale_color_brewer(palette = "Dark2") +
+  theme_gray() +
+  theme(legend.title=element_blank())
+ggsave('IL10_protein_transcript.png')
+
+
+# Plot correlations between cytokines:
+colnames(all_data)
+str(as.data.frame(all_data[, 88:97]))
+cormat <- round(cor(as.data.frame(all_data[, 88:97]), 
+                    use = "pairwise.complete.obs", 
+                    method = 'spearman'), 2)
+class(cormat)
+cormat
+cormat_melted <- melt(cormat)
+head(cormat_melted)
+str(cormat_melted)
+summary(cormat_melted)
+count(cormat_melted$X1)
+count(cormat_melted$X2)
+class(cormat_melted)
+# Plot:
+ggplot(data = cormat_melted, aes(x = X1, y = X2, fill = value)) + 
+  geom_tile() +
+  labs(title = 'Circulating cytokines')#, legend(legend = 'Spearman rho'))
+ggsave('cytokines_heatmap.png')
+# group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"),
+#                 labels = c("Placebo", "2000 IU", "4000 IU"))
 #############################################
 
 
@@ -367,19 +447,6 @@ dev.off()
 
 # Save table
 
-
-# Plot:
-png(paste(SNP, '_boxplot_by_genotype_arm_12mo.png', sep=''), width = 6, height = 6, units = 'in', res = 300)
-group <- factor(merged_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), labels = c("Placebo", "2000 IU", "4000 IU"))
-genotype_order <- factor(merged_data$genotype, levels = c("CC", "AC", "AA"))
-ggplot(aes(y = vitd12, x = genotype_order, fill = group), data = merged_data) + 
-  labs(x = paste(SNP, '(GC)'), y = '25(OH)D levels (nmol/L) at 12 months') + 
-  geom_boxplot(position = position_dodge(1)) + 
-  # geom_point(position = position_jitter(width = 0.2)) +
-  scale_color_brewer(palette = "Dark2") +
-  theme_gray() +
-  theme(legend.title=element_blank())
-dev.off()
 
 #############################################
 
@@ -404,7 +471,7 @@ dev.off()
 
 #############################################
 ## Save some text:
-cat(file = 'xxx.txt', xxx_var, "\t", xxx_var, '\n', append = TRUE)
+# cat(file = 'xxx.txt', xxx_var, "\t", xxx_var, '\n', append = TRUE)
 #############################################
 
 #############################################
