@@ -264,10 +264,10 @@ for (i in transcript_info$Probe_Id)
 # which(transcript_info$Probe_Id %in% rownames(normalised_expressed$E))
 # which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated$E))
 # which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual$E))
-# transcript_info[1, ] # Lost due to low quality illuminaHumanv4.db 'Bad' or 'No match'
+# transcript_info[c(1,5), ] # Lost due to low quality illuminaHumanv4.db 'Bad' or 'No match'
 # which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual_noSNPs$E))
 # transcript_info[2, ]
-# transcript_info[-2, ] # Lost all but IL10 due to probes matching a SNP
+# transcript_info[-c(1, 2, 5) ] # Lost all but IL10 due to probes matching a SNP
 ########
 
 ########
@@ -370,24 +370,112 @@ dim(all_data_melt)
 colnames(all_data_melt)
 
 all_data_melt[1:10, c('value', 'variable')]
+all_data_melt$variable <- factor(all_data_melt$variable, 
+                                 levels = c('Ln_IFNgamma0',
+                                            'Ln_IFNgamma12',
+                                            'Ln_IL10_0',
+                                            'Ln_IL10_12',
+                                            'Ln_IL6_0',
+                                            'Ln_IL6_12',
+                                            'Ln_IL8_0',
+                                            'Ln_IL8_12',
+                                            'Ln_TNFalpha0',
+                                            'Ln_TNFalpha12'),
+                                 labels = c('IFNg baseline',
+                                            'IFNg 12 months',
+                                            'IL10 baseline',
+                                            'IL10 12 months',
+                                            'IL6 baseline',
+                                            'IL6 12 months',
+                                            'IL8 baseline',
+                                            'IL8 12 months',
+                                            'TNFa baseline',
+                                            'TNFa 12 months')
+                                 )
 count(all_data_melt$variable)
 count(all_data_melt$arm2)
 group <- factor(all_data_melt$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
                 labels = c("Placebo", "2000 IU", "4000 IU"))
 count(group)
-
 # Plot cytokine distributions:
 ggplot(data = as.data.frame(all_data_melt),
        aes(x = variable, y = value, fill = group)) + 
-  geom_boxplot(position = position_dodge(1)) +
-  labs(title = 'Circulating cytokines') +
+  geom_boxplot(position = position_dodge(1), outlier.alpha = 0.7) +
+  labs(title = '', y = 'Circulating protein levels (natural logarithm)', x = '') +
   scale_color_brewer(palette = "Dark2") +
   theme_gray() +
-  theme(legend.title=element_blank())
+  theme(legend.title=element_blank(),
+        axis.text.x = element_text(angle=90, vjust = 0.5),
+        plot.title = element_text(hjust = 0.5))
 ggsave('cytokine_boxplots.png')
 
 
-# Plot IL10 and transcript:
+# Plot correlations between cytokines:
+colnames(all_data)
+str(as.data.frame(all_data[, 88:97]))
+cormat <- round(cor(as.data.frame(all_data[, 88:97]), 
+                    use = "pairwise.complete.obs", 
+                    method = 'spearman'), 2)
+class(cormat)
+cormat
+cormat_melted <- melt(cormat)
+head(cormat_melted)
+str(cormat_melted)
+summary(cormat_melted)
+count(cormat_melted$X1)
+count(cormat_melted$X2)
+class(cormat_melted)
+# Plot:
+ggplot(data = cormat_melted, aes(x = X1, y = X2, fill = value)) + 
+  geom_tile() +
+  labs(title = 'Circulating cytokines')#, legend(legend = 'Spearman rho'))
+ggsave('cytokines_heatmap.png')
+
+# Plot IL10 protein levels only:
+colnames(all_data)
+all_data_IL10 <- melt(all_data, measure.vars = c(89, 94))
+all_data_IL10$variable <- factor(all_data_IL10$variable, levels = c('Ln_IL10_0', 'Ln_IL10_12'),
+                                 labels = c('IL10 baseline', 'IL10 12 months'))
+count(all_data_IL10$variable)
+group <- factor(all_data_IL10$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                labels = c("Placebo", "2000 IU", "4000 IU"))
+count(group)
+# Plot:
+boxplot(all_data$Ln_IL10_0, all_data$Ln_IL10_12)
+boxplot(all_data$transcript_IL10.x, all_data$transcript_IL10.y)
+ggplot(data = as.data.frame(all_data_IL10),
+       aes(x = variable, y = value, fill = group)) + 
+  geom_boxplot(position = position_dodge(1), outlier.alpha = 0.7) +
+  labs(title = '', y = 'Circulating protein levels (natural logarithm)', x = '') +
+  scale_color_brewer(palette = "Dark2") +
+  theme_gray() +
+  theme(legend.title=element_blank(),
+        plot.title = element_text(hjust = 0.5))
+ggsave('IL10_boxplots.png')
+
+
+# Plot IL10 transcript levels only:
+colnames(all_data)
+all_data_gex <- melt(all_data, measure.vars = c(98, 99))
+all_data_gex$variable <- factor(all_data_gex$variable, levels = c('transcript_IL10.x', 'transcript_IL10.y'),
+                                 labels = c('IL10 baseline', 'IL10 12 months'))
+count(all_data_gex$variable)
+group <- factor(all_data_gex$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                labels = c("Placebo", "2000 IU", "4000 IU"))
+count(group)
+# Plot:
+ggplot(data = as.data.frame(all_data_gex),
+       aes(x = variable, y = value, fill = group)) + 
+  geom_boxplot(position = position_dodge(1), outlier.alpha = 0.7) +
+  labs(title = '', y = 'VSN normalised gene expression levels', x = '') +
+  scale_color_brewer(palette = "Dark2") +
+  theme_gray() +
+  theme(legend.title=element_blank(),
+        plot.title = element_text(hjust = 0.5))
+ggsave('IL10_transcripts_boxplots.png')
+
+
+# Plot IL10 protein and transcript levels together (looks ugly), wrong scales of course...):
 colnames(all_data)
 all_data_melt_IL10 <- melt(all_data, measure.vars = c(89, 94, 98, 99))
                            # id.vars = c('Ln_IL10_0', 'Ln_IL10_12',
@@ -413,29 +501,6 @@ ggplot(data = as.data.frame(all_data_melt_IL10),
   theme(legend.title=element_blank())
 ggsave('IL10_protein_transcript.png')
 
-
-# Plot correlations between cytokines:
-colnames(all_data)
-str(as.data.frame(all_data[, 88:97]))
-cormat <- round(cor(as.data.frame(all_data[, 88:97]), 
-                    use = "pairwise.complete.obs", 
-                    method = 'spearman'), 2)
-class(cormat)
-cormat
-cormat_melted <- melt(cormat)
-head(cormat_melted)
-str(cormat_melted)
-summary(cormat_melted)
-count(cormat_melted$X1)
-count(cormat_melted$X2)
-class(cormat_melted)
-# Plot:
-ggplot(data = cormat_melted, aes(x = X1, y = X2, fill = value)) + 
-  geom_tile() +
-  labs(title = 'Circulating cytokines')#, legend(legend = 'Spearman rho'))
-ggsave('cytokines_heatmap.png')
-# group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"),
-#                 labels = c("Placebo", "2000 IU", "4000 IU"))
 #############################################
 
 
