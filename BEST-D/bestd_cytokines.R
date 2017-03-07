@@ -103,8 +103,9 @@ library(ggplot2)
 library(data.table)
 library(gridExtra)
 # library(GGally)
-library(reshape)
+library(reshape2)
 library(plyr)
+library(dplyr)
 #############################
 
 
@@ -396,23 +397,6 @@ summary(all_data[, (ncol(all_data) - 10):(ncol(all_data)-1)])
 # TO DO: Pretty print:
 as.data.frame(summary(all_data[, (ncol(all_data) - 10):(ncol(all_data)-1)]))
 
-# Basic significance tests
-# Subgroup:
-colnames(all_data)
-all_data[, 88:ncol(all_data)]
-summary(all_data[, 88:ncol(all_data)])
-all_data$arm2 <- as.factor(all_data$arm2)
-all_data_placebo <- all_data[which(all_data$arm2 == 'Placebo'), ]
-all_data_2000 <- all_data[which(all_data$arm2 == '2000_IU'), ]
-all_data_4000 <- all_data[which(all_data$arm2 == '4000_IU'), ]
-dim(all_data_placebo)
-dim(all_data_2000)
-dim(all_data_4000)
-# t tests:
-t.test(all_data_4000$transcript_IFNG_baseline, all_data_4000$transcript_IFNG_12months)
-t.test(all_data_4000$Ln_IFNgamma0, all_data_4000$Ln_IFNgamma12)
-t.test(all_data_2000$Ln_IFNgamma0, all_data_2000$Ln_IFNgamma12)
-
 
 # # Join geno:
 # all_data <- all_data[geno_file]
@@ -436,43 +420,43 @@ count(all_data$arm2)
 #########
 # Get variables of interest for circulating cytokines:
 colnames(all_data)
-all_data_melt <- melt(all_data, measure.vars = 88:97)
-all_data_melt
-head(all_data_melt)[1:5, 1:5]
-dim(all_data_melt)
-colnames(all_data_melt)
+all_data_melt_cyto <- melt(all_data, measure.vars = 88:97)
+all_data_melt_cyto
+head(all_data_melt_cyto)[1:5, 1:5]
+dim(all_data_melt_cyto)
+colnames(all_data_melt_cyto)
 
-all_data_melt[1:10, c('value', 'variable')]
-all_data_melt$variable <- factor(all_data_melt$variable, 
-                                 levels = c('Ln_IFNgamma0',
-                                            'Ln_IFNgamma12',
-                                            'Ln_IL10_0',
-                                            'Ln_IL10_12',
-                                            'Ln_IL6_0',
-                                            'Ln_IL6_12',
-                                            'Ln_IL8_0',
-                                            'Ln_IL8_12',
-                                            'Ln_TNFalpha0',
-                                            'Ln_TNFalpha12'),
-                                 labels = c('IFNg baseline',
-                                            'IFNg 12 months',
-                                            'IL10 baseline',
-                                            'IL10 12 months',
-                                            'IL6 baseline',
-                                            'IL6 12 months',
-                                            'IL8 baseline',
-                                            'IL8 12 months',
-                                            'TNFa baseline',
-                                            'TNFa 12 months')
-                                 )
-count(all_data_melt$variable)
-count(all_data_melt$arm2)
-group <- factor(all_data_melt$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
-                labels = c("Placebo", "2000 IU", "4000 IU"))
-count(group)
+all_data_melt_cyto[1:10, c('value', 'variable')]
+all_data_melt_cyto$variable <- factor(all_data_melt_cyto$variable, 
+                                   levels = c('Ln_IFNgamma0',
+                                              'Ln_IFNgamma12',
+                                              'Ln_IL10_0',
+                                              'Ln_IL10_12',
+                                              'Ln_IL6_0',
+                                              'Ln_IL6_12',
+                                              'Ln_IL8_0',
+                                              'Ln_IL8_12',
+                                              'Ln_TNFalpha0',
+                                              'Ln_TNFalpha12'),
+                                   labels = c('IFNg baseline',
+                                              'IFNg 12m',
+                                              'IL10 baseline',
+                                              'IL10 12m',
+                                              'IL6 baseline',
+                                              'IL6 12m',
+                                              'IL8 baseline',
+                                              'IL8 12m',
+                                              'TNFa baseline',
+                                              'TNFa 12m')
+                                   )
+plyr::count(all_data_melt_cyto$variable)
+plyr::count(all_data_melt_cyto$arm2)
+group_cyto <- factor(all_data_melt_cyto$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                     labels = c("Placebo", "2000 IU", "4000 IU"))
+plyr::count(group_cyto)
 # Plot cytokine distributions:
-ggplot(data = as.data.frame(all_data_melt),
-       aes(x = variable, y = value, fill = group)) + 
+ggplot(data = as.data.frame(all_data_melt_cyto),
+       aes(x = variable, y = value, fill = group_cyto)) + 
   geom_boxplot(position = position_dodge(1), outlier.alpha = 0.7) +
   labs(title = '', y = 'Circulating protein levels (natural logarithm)', x = '') +
   scale_color_brewer(palette = "Dark2") +
@@ -514,44 +498,44 @@ ggsave('cytokines_heatmap.png')
 #########
 # Plot all cytokine transcript data (pre-SNP filtering):
 colnames(all_data)
-all_data_melt <- melt(all_data, measure.vars = 98:107)
-all_data_melt
-head(all_data_melt)[1:5, 1:5]
-dim(all_data_melt)
-colnames(all_data_melt)
-count(all_data_melt$variable)
+all_data_melt_gex <- melt(all_data, measure.vars = 98:107)
+all_data_melt_gex
+head(all_data_melt_gex)[1:5, 1:5]
+dim(all_data_melt_gex)
+colnames(all_data_melt_gex)
+plyr::count(all_data_melt_gex$variable)
 
-all_data_melt[1:10, c('value', 'variable')]
-all_data_melt$variable <- factor(all_data_melt$variable, 
-                                 levels = c('transcript_IFNG_baseline',
-                                            'transcript_IFNG_12months',
-                                            'transcript_IL10_baseline',
-                                            'transcript_IL10_12months',
-                                            'transcript_IL6_baseline',
-                                            'transcript_IL6_12months',
-                                            'transcript_IL8_baseline',
-                                            'transcript_IL8_12months',
-                                            'transcript_TNF_baseline',
-                                            'transcript_TNF_12months'),
-                                 labels = c('IFNg baseline',
-                                            'IFNg 12 months',
-                                            'IL10 baseline',
-                                            'IL10 12 months',
-                                            'IL6 baseline',
-                                            'IL6 12 months',
-                                            'IL8 baseline',
-                                            'IL8 12 months',
-                                            'TNFa baseline',
-                                            'TNFa 12 months')
-                                 )
-count(all_data_melt$variable)
-count(all_data_melt$arm2)
-group <- factor(all_data_melt$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
-                labels = c("Placebo", "2000 IU", "4000 IU"))
-count(group)
+all_data_melt_gex[1:10, c('value', 'variable')]
+all_data_melt_gex$variable <- factor(all_data_melt_gex$variable, 
+                                     levels = c('transcript_IFNG_baseline', 
+                                                'transcript_IFNG_12months',
+                                                'transcript_IL10_baseline',
+                                                'transcript_IL10_12months',
+                                                'transcript_IL6_baseline',
+                                                'transcript_IL6_12months',
+                                                'transcript_IL8_baseline',
+                                                'transcript_IL8_12months',
+                                                'transcript_TNF_baseline',
+                                                'transcript_TNF_12months'),
+                                     labels = c('IFNg baseline',
+                                                'IFNg 12m',
+                                                'IL10 baseline',
+                                                'IL10 12m',
+                                                'IL6 baseline',
+                                                'IL6 12m',
+                                                'IL8 baseline',
+                                                'IL8 12m',
+                                                'TNFa baseline',
+                                                'TNFa 12m')
+                                     )
+plyr::count(all_data_melt_gex$variable)
+plyr::count(all_data_melt_gex$arm2)
+group_gex <- factor(all_data_melt_gex$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                    labels = c("Placebo", "2000 IU", "4000 IU"))
+plyr::count(group_gex)
 # Plot cytokine transcript distributions:
-ggplot(data = as.data.frame(all_data_melt),
-       aes(x = variable, y = value, fill = group)) + 
+ggplot(data = as.data.frame(all_data_melt_gex),
+       aes(x = variable, y = value, fill = group_gex)) + 
   geom_boxplot(position = position_dodge(1), outlier.alpha = 0.7) +
   labs(title = '', y = 'Transcript levels (VSN normalised, pre-SNP filtering)', x = '') +
   scale_color_brewer(palette = "Dark2") +
@@ -562,6 +546,49 @@ ggplot(data = as.data.frame(all_data_melt),
         )
 ggsave('cytokine_transcripts_boxplots.png', width = 10, height = 10)
 #########
+
+
+#########
+# Facets for all data protein and transcript:
+transcripts <- 
+  ggplot(data = as.data.frame(all_data_melt_gex),
+       aes(x = group_gex, y = value, fill = group_gex)) +
+  facet_grid(~variable) +
+  geom_boxplot(position = position_dodge(1), outlier.alpha = 0.7) +
+  labs(title = '', y = 'Gene expression levels (VSN normalised)', x = '') +
+  scale_color_brewer(palette = "Dark2") +
+  theme_gray() +
+  theme(text = element_text(size = 14), 
+        legend.title=element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position="none",
+        strip.background = element_blank()
+        # legend.position = 'bottom'
+        # axis.text.x = element_text(angle=90, vjust = 0.5)
+        )
+
+cytokines <-
+  ggplot(data = as.data.frame(all_data_melt_cyto),
+         aes(x = group_cyto, y = value, fill = group_cyto)) +
+  facet_grid(~variable) +
+  geom_boxplot(position = position_dodge(1), outlier.alpha = 0.7) +
+  labs(title = '', y = 'Circulating levels (natural logarithm)', x = '') +
+  scale_color_brewer(palette = "Dark2") +
+  theme_gray() +
+  theme(text = element_text(size = 14), 
+        legend.title=element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position = 'bottom',
+        strip.text.x = element_blank()
+        # axis.text.x = element_text(angle=90, vjust = 0.5)
+        )
+plots <- arrangeGrob(transcripts, cytokines, nrow = 2)
+ggsave('boxplots_cytokine_and_transcripts.png', 
+       plots, height = 10, width = 12)
+#########
+
 
 #########
 # Plot IL10 protein levels only:

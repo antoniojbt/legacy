@@ -75,7 +75,7 @@ getwd()
 ##TO DO extract parameters:
 
 # Re-load a previous R session, data and objects:
-# load('R_session_saved_image_cytokines.RData', verbose=T)
+# load('../data.dir/R_session_saved_image_cytokines.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_cytokines_lm','.RData', sep='')
@@ -102,8 +102,9 @@ args <- commandArgs(trailingOnly = TRUE)
 library(ggplot2)
 library(data.table)
 library(gridExtra)
-library(reshape)
+library(reshape2)
 library(plyr)
+library(dplyr)
 #############################
 
 
@@ -211,6 +212,27 @@ group <- factor(all_data_melt$arm2, levels=c("Placebo", "2000_IU", "4000_IU"),
 count(group)
 #############################################
 
+
+#############################################
+# Basic significance tests
+# Subgroup:
+colnames(all_data)
+all_data[, 88:ncol(all_data)]
+summary(all_data[, 88:ncol(all_data)])
+all_data$arm2 <- as.factor(all_data$arm2)
+all_data_placebo <- all_data[which(all_data$arm2 == 'Placebo'), ]
+all_data_2000 <- all_data[which(all_data$arm2 == '2000_IU'), ]
+all_data_4000 <- all_data[which(all_data$arm2 == '4000_IU'), ]
+dim(all_data_placebo)
+dim(all_data_2000)
+dim(all_data_4000)
+# t tests:
+t.test(all_data_4000$transcript_IFNG_baseline, all_data_4000$transcript_IFNG_12months)
+t.test(all_data_4000$Ln_IFNgamma0, all_data_4000$Ln_IFNgamma12)
+t.test(all_data_2000$Ln_IFNgamma0, all_data_2000$Ln_IFNgamma12)
+#############################################
+
+
 #############################################
 # Basic sanity check, see thresholds, basic comparisons between 0, 12 and groups
 # TO DO: extract variables of interest, assign groups, run lm correcting for baseline 
@@ -236,10 +258,12 @@ par(mfrow=c(2,2))
 plot(fit) 
 #############################################
 
+
 #############################################
 # Correlation to VD and other measures?
 
 #############################################
+
 
 #############################################
 # Association with genotype, SNPs tested only
