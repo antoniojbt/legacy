@@ -483,6 +483,8 @@ write.table(normalised_filtered, 'normalised_filtered_expression_values.tab', se
 
 # fwrite(data.table(normalised$E, keep.rownames = TRUE), 'normalised.csv', na='NA')
 write.csv(normalised$E, 'normalised.csv', quote=FALSE, na='NA')
+# write.csv(normalised, 'normalised_test.csv', quote=FALSE, na='NA')
+# write.csv(normalised_expressed_annotated_qual_noSNPs, 'normalised_expressed_annotated_qual_noSNPs.csv', quote=FALSE, na='NA')
 write.csv(normalised_filtered, 'normalised_filtered_annotated.csv', quote=FALSE, na='NA')
 write.csv(normalised_filtered, 'normalised_filtered_expression_values.csv', quote=FALSE, na='NA')
 ###############################

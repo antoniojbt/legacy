@@ -75,7 +75,7 @@ getwd()
 ##TO DO extract parameters:
 
 # Re-load a previous R session, data and objects:
-# load('R_session_saved_image_cytokines.RData', verbose=T)
+# load('../data.dir/R_session_saved_image_cytokines.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_cytokines','.RData', sep='')
@@ -270,28 +270,58 @@ for (i in transcript_info$Probe_Id)
 # transcript_info[-c(1, 2, 5) ] # Lost all but IL10 due to probes matching a SNP
 ########
 
+
 ########
 # Subset expression file to leave only transcripts corresponding to cytokines:
 transcripts_present <- expr_file[which(expr_file$Probe_Id %in% transcript_info$Probe_Id), ]
 dim(transcripts_present)
 transcripts_present[, 1:10]
+########
 
+########
+# # Check how pre-filtered transcripts look like (requires loading
+# # normalised_expressed_annotated_qual$E (above from normalisation script, step before SNPs):
+# pre_SNP_filter_transcripts <- as.data.frame(normalised_expressed_annotated_qual)
+# dim(pre_SNP_filter_transcripts)
+# head(pre_SNP_filter_transcripts)[1:5, 1:5]
+# colnames(pre_SNP_filter_transcripts)
+# pre_SNP_filter_transcripts$Probe_Id <- rownames(pre_SNP_filter_transcripts)
+# # Subset all cytokines in gene expression file:
+# transcripts_all <- pre_SNP_filter_transcripts[which(pre_SNP_filter_transcripts$Probe_Id %in% transcript_info$Probe_Id), ]
+# transcripts_all
+# dim(transcripts_all)
+# # Overwrite object name for downstream processing only:
+# transcripts_present <- transcripts_all
+# dim(transcripts_present)
+# transcripts_present[, 1:10]
+########
+
+########
 # Patients IDs are kit ID, each as column, transpose to merge:
 transcripts_present_t <- data.table()
 transcripts_present_t <- transpose(transcripts_present)
 # Expression data has kits as IDs:
 transcripts_present_t$kit_id <- colnames(transcripts_present)
-transcripts_present_t
-# TO DO: loop to name each column according to gene symbol when more than one transcript survives:
-setnames(transcripts_present_t, 'V1', 
-         sprintf('transcript_%s', transcripts_present[, 'ILMN_GENE']))
-dim(transcripts_present_t)
+head(transcripts_present_t)
 colnames(transcripts_present_t)
+rownames(transcripts_present_t)
+# Check symbols, probe IDs, etc., match:
+transcripts_present_t[c(1:4, 10:15, 568), ]
+# Name each column according to gene symbol when more than one transcript survives:
+setnames(transcripts_present_t, old = c("V1", "V2", "V3", "V4", "V5"), 
+         new = sprintf('transcript_%s', transcripts_present[, 'ILMN_GENE']))
+colnames(transcripts_present_t)
+dim(transcripts_present_t)
 str(transcripts_present_t)
-# TO DO: set up so that loop renames accordingly
+head(transcripts_present_t)
+# Convert variables to numeric instead of character:
 transcripts_present_t$transcript_IL10 <- as.numeric(transcripts_present_t$transcript_IL10)
+for(i in c(1, 1:(ncol(transcripts_present_t)-1))) {
+  transcripts_present_t[, i] <- as.numeric(as.character(transcripts_present_t[, i]))
+  }
 str(transcripts_present_t)
 summary(transcripts_present_t)
+
 ########
 #############################################
 
@@ -324,11 +354,23 @@ str(all_data$kit_id_randomisation)
 all_data$kit_id_randomisation <- as.character(all_data$kit_id_randomisation)
 all_data
 transcripts_present_t
+# convert to data.table:
+class(transcripts_present_t)
+transcripts_present_t <- as.data.table(transcripts_present_t)
 # Set keys for merging:
 setkey(transcripts_present_t, 'kit_id_randomisation')
 setkey(all_data, 'kit_id_randomisation')
 all_data <- merge(all_data, transcripts_present_t, all.x = TRUE)
-setnames(all_data, 'gene_expr', 'gene_expr_baseline')
+all_data
+colnames(all_data)[98:102]
+# Rename columns:
+new_names <- list()
+for (i in colnames(all_data)[98:102]) {
+  print(i)
+  new_names[[length(new_names)+1]] <- list(sprintf('%s_%s', i, 'baseline'))
+  # c(new_names, i = sprintf('%s_%s', i, 'baseline'))
+  }
+setnames(all_data, old = colnames(all_data)[98:102], new = unlist(new_names))
 
 # Join expression data, final visit column:
 colnames(all_data)
@@ -340,15 +382,45 @@ setkey(transcripts_present_t, 'kit_id_finalVisit')
 all_data <- merge(all_data, transcripts_present_t, all.x = TRUE)
 all_data
 dim(all_data)
-setnames(all_data, 'gene_expr', 'gene_expr_12months')
-summary(all_data[, (ncol(all_data) - 10):ncol(all_data)])
+# Rename columns:
+colnames(all_data)[103:107]
+new_names <- list()
+for (i in colnames(all_data)[103:107]) {
+  print(i)
+  new_names[[length(new_names)+1]] <- list(sprintf('%s_%s', i, '12months'))
+  # c(new_names, i = sprintf('%s_%s', i, 'baseline'))
+}
+setnames(all_data, old = colnames(all_data)[103:107], new = unlist(new_names))
+colnames(all_data)[98:107]
+summary(all_data[, (ncol(all_data) - 10):(ncol(all_data)-1)])
+# TO DO: Pretty print:
+as.data.frame(summary(all_data[, (ncol(all_data) - 10):(ncol(all_data)-1)]))
+
+# Basic significance tests
+# Subgroup:
+colnames(all_data)
+all_data[, 88:ncol(all_data)]
+summary(all_data[, 88:ncol(all_data)])
+all_data$arm2 <- as.factor(all_data$arm2)
+all_data_placebo <- all_data[which(all_data$arm2 == 'Placebo'), ]
+all_data_2000 <- all_data[which(all_data$arm2 == '2000_IU'), ]
+all_data_4000 <- all_data[which(all_data$arm2 == '4000_IU'), ]
+dim(all_data_placebo)
+dim(all_data_2000)
+dim(all_data_4000)
+# t tests:
+t.test(all_data_4000$transcript_IFNG_baseline, all_data_4000$transcript_IFNG_12months)
+t.test(all_data_4000$Ln_IFNgamma0, all_data_4000$Ln_IFNgamma12)
+t.test(all_data_2000$Ln_IFNgamma0, all_data_2000$Ln_IFNgamma12)
+
 
 # # Join geno:
 # all_data <- all_data[geno_file]
 # all_data
 
 # Sanity check:
-
+colnames(all_data)
+summary(all_data[, c(99, 104)]) # IL10
 #############################################
 
 
@@ -361,7 +433,8 @@ all_data$arm2[all_data$arm == 1] <- '2000_IU'
 all_data$arm2[all_data$arm == 2] <- 'Placebo'
 count(all_data$arm2)
 
-# Get variables of interest:
+#########
+# Get variables of interest for circulating cytokines:
 colnames(all_data)
 all_data_melt <- melt(all_data, measure.vars = 88:97)
 all_data_melt
@@ -408,8 +481,9 @@ ggplot(data = as.data.frame(all_data_melt),
         axis.text.x = element_text(angle=90, vjust = 0.5),
         plot.title = element_text(hjust = 0.5))
 ggsave('cytokine_boxplots.png')
+#########
 
-
+#########
 # Plot correlations between cytokines:
 colnames(all_data)
 str(as.data.frame(all_data[, 88:97]))
@@ -426,11 +500,70 @@ count(cormat_melted$X1)
 count(cormat_melted$X2)
 class(cormat_melted)
 # Plot:
+# Improve with: 
+# http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
 ggplot(data = cormat_melted, aes(x = X1, y = X2, fill = value)) + 
   geom_tile() +
-  labs(title = 'Circulating cytokines')#, legend(legend = 'Spearman rho'))
+  labs(title = 'Circulating cytokines', y = '', x = '') +
+  theme(axis.text.x = element_text(angle=90, vjust = 0.5),
+        plot.title = element_text(hjust = 0.5),
+        legend.title = element_text('Spearman rho'))
 ggsave('cytokines_heatmap.png')
+#########
 
+#########
+# Plot all cytokine transcript data (pre-SNP filtering):
+colnames(all_data)
+all_data_melt <- melt(all_data, measure.vars = 98:107)
+all_data_melt
+head(all_data_melt)[1:5, 1:5]
+dim(all_data_melt)
+colnames(all_data_melt)
+count(all_data_melt$variable)
+
+all_data_melt[1:10, c('value', 'variable')]
+all_data_melt$variable <- factor(all_data_melt$variable, 
+                                 levels = c('transcript_IFNG_baseline',
+                                            'transcript_IFNG_12months',
+                                            'transcript_IL10_baseline',
+                                            'transcript_IL10_12months',
+                                            'transcript_IL6_baseline',
+                                            'transcript_IL6_12months',
+                                            'transcript_IL8_baseline',
+                                            'transcript_IL8_12months',
+                                            'transcript_TNF_baseline',
+                                            'transcript_TNF_12months'),
+                                 labels = c('IFNg baseline',
+                                            'IFNg 12 months',
+                                            'IL10 baseline',
+                                            'IL10 12 months',
+                                            'IL6 baseline',
+                                            'IL6 12 months',
+                                            'IL8 baseline',
+                                            'IL8 12 months',
+                                            'TNFa baseline',
+                                            'TNFa 12 months')
+                                 )
+count(all_data_melt$variable)
+count(all_data_melt$arm2)
+group <- factor(all_data_melt$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                labels = c("Placebo", "2000 IU", "4000 IU"))
+count(group)
+# Plot cytokine transcript distributions:
+ggplot(data = as.data.frame(all_data_melt),
+       aes(x = variable, y = value, fill = group)) + 
+  geom_boxplot(position = position_dodge(1), outlier.alpha = 0.7) +
+  labs(title = '', y = 'Transcript levels (VSN normalised, pre-SNP filtering)', x = '') +
+  scale_color_brewer(palette = "Dark2") +
+  theme_gray() +
+  theme(text = element_text(size = 14), 
+        legend.title=element_blank(),
+        axis.text.x = element_text(angle=90, vjust = 0.5)
+        )
+ggsave('cytokine_transcripts_boxplots.png', width = 10, height = 10)
+#########
+
+#########
 # Plot IL10 protein levels only:
 colnames(all_data)
 all_data_IL10 <- melt(all_data, measure.vars = c(89, 94))
@@ -452,8 +585,9 @@ ggplot(data = as.data.frame(all_data_IL10),
   theme(legend.title=element_blank(),
         plot.title = element_text(hjust = 0.5))
 ggsave('IL10_boxplots.png')
+#########
 
-
+#########
 # Plot IL10 transcript levels only:
 colnames(all_data)
 all_data_gex <- melt(all_data, measure.vars = c(98, 99))
@@ -473,8 +607,9 @@ ggplot(data = as.data.frame(all_data_gex),
   theme(legend.title=element_blank(),
         plot.title = element_text(hjust = 0.5))
 ggsave('IL10_transcripts_boxplots.png')
+#########
 
-
+#########
 # Plot IL10 protein and transcript levels together (looks ugly), wrong scales of course...):
 colnames(all_data)
 all_data_melt_IL10 <- melt(all_data, measure.vars = c(89, 94, 98, 99))
@@ -500,6 +635,11 @@ ggplot(data = as.data.frame(all_data_melt_IL10),
   theme_gray() +
   theme(legend.title=element_blank())
 ggsave('IL10_protein_transcript.png')
+#########
+#############################################
+
+
+#############################################
 
 #############################################
 
