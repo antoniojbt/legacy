@@ -168,7 +168,7 @@ summary(all_data[, (ncol(all_data) - 10):ncol(all_data)])
 all_data$arm2[all_data$arm == 0] <- '4000_IU'
 all_data$arm2[all_data$arm == 1] <- '2000_IU'
 all_data$arm2[all_data$arm == 2] <- 'Placebo'
-count(all_data$arm2)
+plyr::count(all_data$arm2)
 
 # Get variables of interest:
 colnames(all_data)
@@ -177,7 +177,7 @@ all_data_melt
 head(all_data_melt)[1:5, 1:5]
 dim(all_data_melt)
 colnames(all_data_melt)
-count(all_data_melt$variable)
+plyr::count(all_data_melt$variable)
 all_data_melt[1:10, c('value', 'variable')]
 all_data_melt$variable <- factor(all_data_melt$variable, 
                                  levels = c('vitd0',
@@ -205,11 +205,11 @@ all_data_melt$variable <- factor(all_data_melt$variable,
                                             'TNFa baseline',
                                             'TNFa 12 months')
                                  )
-count(all_data_melt$variable)
-count(all_data_melt$arm2)
+plyr::count(all_data_melt$variable)
+plyr::count(all_data_melt$arm2)
 group <- factor(all_data_melt$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
                 labels = c("Placebo", "2000 IU", "4000 IU"))
-count(group)
+plyr::count(group)
 #############################################
 
 
@@ -226,10 +226,11 @@ all_data_4000 <- all_data[which(all_data$arm2 == '4000_IU'), ]
 dim(all_data_placebo)
 dim(all_data_2000)
 dim(all_data_4000)
-# t tests:
-t.test(all_data_4000$transcript_IFNG_baseline, all_data_4000$transcript_IFNG_12months)
-t.test(all_data_4000$Ln_IFNgamma0, all_data_4000$Ln_IFNgamma12)
+# Some t tests on cytokine levels:
 t.test(all_data_2000$Ln_IFNgamma0, all_data_2000$Ln_IFNgamma12)
+t.test(all_data_4000$Ln_IFNgamma0, all_data_4000$Ln_IFNgamma12)
+t.test(all_data_2000$Ln_IL10_0, all_data_2000$Ln_IL10_12)
+t.test(all_data_4000$Ln_IL10_0, all_data_4000$Ln_IL10_12)
 #############################################
 
 
@@ -240,22 +241,58 @@ t.test(all_data_2000$Ln_IFNgamma0, all_data_2000$Ln_IFNgamma12)
 # TO DO: from here
 class(all_data_melt)
 colnames(all_data_melt)
-lm_fit_cyto <- lm.fit(formula = ' ~ .',
-                      data = as.matrix(all_data_melt_matrix))
+class(all_data)
+head(all_data)
+colnames(all_data)
 
-fit <- lm(weight ~ height, data = women)
-summary(fit)
-fitted(fit)
-residuals(fit)
-plot(women$height,women$weight, 
-     xlab="Height (in inches)",
-     ylab="Weight (in pounds)")
-abline(fit)
+# Covars used in genotype regression analysis:
+# male +
+#   vitd0 +
+#   incident_fracture +
+#   incident_resp_infection +
+#   diabetes +
+#   heart_disease +
+#   copd_asthma +
+#   basemed_vitamind +
+#   currsmoker +
+#   bmi0 +
+#   calendar_age_ra +
+#   season_randomisation_2 +
+#   arm'
+contrasts(all_data$arm2) <- contr.treatment(n = 3, base = 2)
+
+lm_cyto <- lm(formula = 'Ln_IL10_12 ~ Ln_IL10_0 +
+              male +
+              vitd0 +
+              incident_fracture +
+              incident_resp_infection +
+              diabetes +
+              heart_disease +
+              copd_asthma +
+              basemed_vitamind +
+              currsmoker +
+              bmi0 +
+              calendar_age_ra +
+              season_randomisation_2 +
+              arm',
+              data = all_data)
+lm_cyto <- lm(formula = 'Ln_IL10_12 ~ Ln_IL10_0 +
+              male +
+              bmi0 +
+              calendar_age_ra +
+              arm2',
+              data = all_data)
+
+summary.lm(lm_cyto)
+fitted(lm_cyto)
+residuals(lm_cyto)
+plot(all_data$Ln_IL10_0, all_data$Ln_IL10_12)
+abline(lm_cyto)
 # Plot diagnostics
 # Normality, Independence, Linearity, Homoscedasticity, Residual versus Leverage graph (outliers, high leverage values and
 # influential observation's (Cook's D))
 par(mfrow=c(2,2)) 
-plot(fit) 
+plot(lm_cyto)
 #############################################
 
 
