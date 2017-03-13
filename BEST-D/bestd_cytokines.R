@@ -486,13 +486,40 @@ class(cormat_melted)
 # Plot:
 # Improve with: 
 # http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
-ggplot(data = cormat_melted, aes(x = X1, y = X2, fill = value)) + 
+ggplot(data = cormat_melted, aes(x = Var1, y = Var2, fill = value)) + 
   geom_tile() +
   labs(title = 'Circulating cytokines', y = '', x = '') +
   theme(axis.text.x = element_text(angle=90, vjust = 0.5),
         plot.title = element_text(hjust = 0.5),
         legend.title = element_text('Spearman rho'))
 ggsave('cytokines_heatmap.png')
+
+# Add vitamin D levels:
+# Plot correlations between cytokines:
+colnames(all_data)
+str(as.data.frame(all_data[, c(29, 42, 88:97)]))
+cormat <- round(cor(as.data.frame(all_data[, c(29, 42, 88:97)]), 
+                    use = "pairwise.complete.obs", 
+                    method = 'spearman'), 2)
+class(cormat)
+cormat
+cormat_melted <- melt(cormat)
+head(cormat_melted)
+str(cormat_melted)
+summary(cormat_melted)
+plyr::count(cormat_melted$Var1)
+plyr::count(cormat_melted$Var2)
+class(cormat_melted)
+# Plot:
+# Improve with: 
+# http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
+ggplot(data = cormat_melted, aes(x = Var1, y = Var2, fill = value)) + 
+  geom_tile() +
+  labs(title = 'Circulating cytokines', y = '', x = '') +
+  theme(axis.text.x = element_text(angle=90, vjust = 0.5),
+        plot.title = element_text(hjust = 0.5),
+        legend.title = element_blank())
+ggsave('cytokines_heatmap_vitd.png')
 #########
 
 #########
@@ -634,34 +661,6 @@ ggplot(data = as.data.frame(all_data_gex),
   theme(legend.title=element_blank(),
         plot.title = element_text(hjust = 0.5))
 ggsave('IL10_transcripts_boxplots.png')
-#########
-
-#########
-# Plot IL10 protein and transcript levels together (looks ugly), wrong scales of course...):
-colnames(all_data)
-all_data_melt_IL10 <- melt(all_data, measure.vars = c(89, 94, 98, 99))
-                           # id.vars = c('Ln_IL10_0', 'Ln_IL10_12',
-                           #                        'transcript_IL10.x',
-                           #                        'transcript_IL10.y',
-                           #                         'arm2')) #c(89, 94, 98, 99))
-colnames(all_data_melt_IL10)
-all_data_melt_IL10
-str(all_data_melt_IL10)
-all_data_melt_IL10[1:10, c('value', 'variable')]
-count(all_data_melt_IL10$variable)
-count(all_data_melt_IL10$arm2)
-group <- factor(all_data_melt_IL10$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
-                labels = c("Placebo", "2000 IU", "4000 IU"))
-count(group)
-# Plot:
-ggplot(data = as.data.frame(all_data_melt_IL10),
-       aes(x = variable, y = value, fill = group)) + 
-  geom_boxplot(position = position_dodge(1)) +
-  labs(title = 'IL-10 protein and transcript levels') +
-  scale_color_brewer(palette = "Dark2") +
-  theme_gray() +
-  theme(legend.title=element_blank())
-ggsave('IL10_protein_transcript.png')
 #########
 #############################################
 

@@ -157,7 +157,65 @@ head(all_data)[, (ncol(all_data) - 10):ncol(all_data)]
 summary(all_data[, (ncol(all_data) - 10):ncol(all_data)])
 
 # Sanity check:
+str(all_data)
+all_data$vitd12 <- as.numeric(all_data$vitd12)
+summary(all_data$vitd12)
+# 12:41 are ptr_si0 to phosphate12:
+str(all_data[, 12:41])
+colnames(all_data[, 12:41])
+vars_convert <- list('vitd12',
+                      'BMI_DEXA12',
+                      'grip_strength12',
+                      'egfr0',
+                      'joint_severity12',
+                      'muscle_severity12',
+                      'physical_activity12',
+                      'corrected_calcium12',
+                      'corrected_calcium0',
+                      'creatinine0',
+                      'creatinine12',
+                       "ptr_si0",
+                       "ptr_ri0",
+                       "ptr_si12",
+                       "ptr_ri12",
+                       "art_pwv0",
+                       "art_AI_aortic0",
+                       "art_sbp0",
+                       "art_dbp0",
+                       "art_hr0",
+                       "art_pwv12",
+                       "art_AI_aortic12",
+                       "art_sbp12",
+                       "art_dbp12",
+                       "art_hr12",
+                       "albumin0",
+                       "alk_phosphatase0",
+                       "phosphate0",  
+                       "vitd0",      
+                       "apo_a10",
+                       "apo_b0",
+                       "tchol0",
+                       "ldlc0",
+                       "ipth0",
+                       "trig0",
+                       "hdlc0",
+                       "crp0",
+                       "vitd6",
+                       "albumin12",
+                       "alk_phosphatase12",
+                       "phosphate12")
+vars_convert
+all_data <- as.data.frame(all_data)
+class(all_data)
 
+# Assign correct types to variables:
+for (i in vars_convert){
+  print(i)
+  # all_data[, i, with = F] <- as.numeric(as.character(all_data[, i, with = F]))
+  all_data[, i] <- as.numeric(as.character(all_data[, i]))
+  }
+str(all_data)
+dim(all_data)
 #############################################
 
 
@@ -227,18 +285,125 @@ dim(all_data_placebo)
 dim(all_data_2000)
 dim(all_data_4000)
 # Some t tests on cytokine levels:
-t.test(all_data_2000$Ln_IFNgamma0, all_data_2000$Ln_IFNgamma12)
-t.test(all_data_4000$Ln_IFNgamma0, all_data_4000$Ln_IFNgamma12)
-t.test(all_data_2000$Ln_IL10_0, all_data_2000$Ln_IL10_12)
-t.test(all_data_4000$Ln_IL10_0, all_data_4000$Ln_IL10_12)
+t.test(all_data_placebo$Ln_IFNgamma0, all_data_placebo$Ln_IFNgamma12, paired =  T)
+t.test(all_data_2000$Ln_IFNgamma0, all_data_2000$Ln_IFNgamma12, paired =  T)
+wilcox.test(all_data_2000$Ln_IFNgamma0, all_data_2000$Ln_IFNgamma12, paired =  T)
+t.test(all_data_4000$Ln_IFNgamma0, all_data_4000$Ln_IFNgamma12, paired =  T)
+wilcox.test(all_data_4000$Ln_IFNgamma0, all_data_4000$Ln_IFNgamma12, paired =  T)
+
+t.test(all_data_placebo$Ln_IL10_0, all_data_placebo$Ln_IL10_12, paired = T)
+t.test(all_data_2000$Ln_IL10_0, all_data_2000$Ln_IL10_12, paired = T)
+t.test(all_data_4000$Ln_IL10_0, all_data_4000$Ln_IL10_12, paired = T)
+
+t.test(all_data_placebo$Ln_IL6_0, all_data_placebo$Ln_IL6_12, paired = T)
+t.test(all_data_2000$Ln_IL6_0, all_data_2000$Ln_IL6_12, paired = T)
+t.test(all_data_4000$Ln_IL6_0, all_data_4000$Ln_IL6_12, paired = T)
+
+t.test(all_data_placebo$Ln_IL8_0, all_data_placebo$Ln_IL8_12, paired = T)
+t.test(all_data_2000$Ln_IL8_0, all_data_2000$Ln_IL8_12, paired = T)
+t.test(all_data_4000$Ln_IL8_0, all_data_4000$Ln_IL8_12, paired = T)
+
+t.test(all_data_placebo$Ln_TNFalpha0, all_data_placebo$Ln_TNFalpha12, paired = T)
+t.test(all_data_2000$Ln_TNFalpha0, all_data_2000$Ln_TNFalpha12, paired = T)
+t.test(all_data_4000$Ln_TNFalpha0, all_data_4000$Ln_TNFalpha12, paired = T)
+
+# IL10 4000 IU is borderline significant (without multiple testing)
 #############################################
 
 
 #############################################
+# Basic scatterplots of changes in each group:
+plot(all_data$Ln_IFNgamma12, all_data$vitd12)
+plot(all_data_placebo$Ln_IL10_12, all_data_placebo$Ln_IL10_0)
+plot(all_data_2000$Ln_IL10_12, all_data_2000$Ln_IL10_0)
+plot(all_data_4000$Ln_IL10_12, all_data_4000$Ln_IL10_0)
+boxplot(all_data_placebo$Ln_IL10_0,
+        all_data_placebo$Ln_IL10_12,
+        all_data_2000$Ln_IL10_0,
+        all_data_2000$Ln_IL10_12,
+        all_data_4000$Ln_IL10_0,
+        all_data_4000$Ln_IL10_12)
+
+
+##########
+group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                labels = c("Placebo", "2000 IU", "4000 IU"))
+plyr::count(group)
+
+a1 <- ggplot(data = all_data, aes(x = vitd0, Ln_IFNgamma0, colour = group)) +
+      geom_point(shape = 1) + # Hollow circles
+      scale_colour_hue(l = 50) + # darker palette
+      geom_smooth(method = lm,   # regression line
+                  se = FALSE    # exclude confidence region
+                  ) + # fullrange = TRUE # Extend regression line
+      labs(title = '', x = '') +
+      theme_classic() +
+      theme(text = element_text(size = 14), 
+            legend.title=element_blank()
+        )
+a1
+a2 <- ggplot(data = all_data, aes(x = vitd12, Ln_IFNgamma12, colour = group)) +
+      geom_point(shape = 1) + # Hollow circles
+      scale_colour_hue(l = 50) + # darker palette
+      geom_smooth(method = lm,   # regression line
+                  se = FALSE    # exclude confidence region
+                  ) + # fullrange = TRUE # Extend regression line
+      labs(title = '') +
+      theme_classic() +
+      theme(text = element_text(size = 14), 
+            legend.title=element_blank()
+            )
+a2
+grid.arrange(a1, a2, nrow = 2)
+# plots <- arrangeGrob(a1, a2, nrow = 2)
+# plots
+# ggsave('scatterplots_cytokines_and_VD.png', 
+#        plots, height = 10, width = 12)
+##########
+
+##########
+group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                labels = c("Placebo", "2000 IU", "4000 IU"))
+plyr::count(group)
+
+a1 <- ggplot(data = all_data, aes(x = vitd0, Ln_IL10_0, colour = group)) +
+  geom_point(shape = 1) + # Hollow circles
+  scale_colour_hue(l = 50) + # darker palette
+  geom_smooth(method = lm,   # regression line
+              se = FALSE    # exclude confidence region
+  ) + # fullrange = TRUE # Extend regression line
+  labs(title = '', x = '') +
+  theme_classic() +
+  theme(text = element_text(size = 14), 
+        legend.title=element_blank()
+  )
+a1
+a2 <- ggplot(data = all_data, aes(x = vitd12, Ln_IL10_12, colour = group)) +
+  geom_point(shape = 1) + # Hollow circles
+  scale_colour_hue(l = 50) + # darker palette
+  geom_smooth(method = lm,   # regression line
+              se = FALSE    # exclude confidence region
+  ) + # fullrange = TRUE # Extend regression line
+  labs(title = '', x = '25OHD levels') +
+  theme_classic() +
+  theme(text = element_text(size = 14), 
+        legend.title=element_blank()
+  )
+a2
+grid.arrange(a1, a2, nrow = 2)
+# plots <- arrangeGrob(a1, a2, nrow = 2)
+# plots
+# ggsave('scatterplots_cytokines_and_VD.png', 
+#        plots, height = 10, width = 12)
+##########
+#############################################
+
+
+#############################################
+##########
 # Basic sanity check, see thresholds, basic comparisons between 0, 12 and groups
-# TO DO: extract variables of interest, assign groups, run lm correcting for baseline 
+# Extract variables of interest, assign groups, run lm correcting for baseline 
 # and other groups
-# TO DO: from here
 class(all_data_melt)
 colnames(all_data_melt)
 class(all_data)
@@ -259,46 +424,168 @@ colnames(all_data)
 #   calendar_age_ra +
 #   season_randomisation_2 +
 #   arm'
-contrasts(all_data$arm2) <- contr.treatment(n = 3, base = 2)
 
-lm_cyto <- lm(formula = 'Ln_IL10_12 ~ Ln_IL10_0 +
-              male +
-              vitd0 +
-              incident_fracture +
-              incident_resp_infection +
-              diabetes +
-              heart_disease +
-              copd_asthma +
-              basemed_vitamind +
-              currsmoker +
-              bmi0 +
-              calendar_age_ra +
-              season_randomisation_2 +
-              arm',
-              data = all_data)
-lm_cyto <- lm(formula = 'Ln_IL10_12 ~ Ln_IL10_0 +
-              male +
-              bmi0 +
-              calendar_age_ra +
-              arm2',
-              data = all_data)
+# Sanity check treatment groups and vitamin D levels:
+str(all_data$arm)
+all_data[1:20, c('arm', 'vitd12')]
+summary(all_data[which(all_data$arm == 0), 'vitd12']) # 4000IU
+summary(all_data[which(all_data$arm == 1), 'vitd12']) # 2000IU
+summary(all_data[which(all_data$arm == 2), 'vitd12']) # Placebo
 
-summary.lm(lm_cyto)
-fitted(lm_cyto)
-residuals(lm_cyto)
-plot(all_data$Ln_IL10_0, all_data$Ln_IL10_12)
-abline(lm_cyto)
-# Plot diagnostics
-# Normality, Independence, Linearity, Homoscedasticity, Residual versus Leverage graph (outliers, high leverage values and
-# influential observation's (Cook's D))
-par(mfrow=c(2,2)) 
-plot(lm_cyto)
-#############################################
+summary(all_data[which(all_data$arm == 0), 'vitd0'])
+summary(all_data[which(all_data$arm == 1), 'vitd0'])
+summary(all_data[which(all_data$arm == 2), 'vitd0'])
+
+all_data$delta <- (all_data$vitd12 - all_data$vitd0)
+summary(all_data$delta)
+summary(all_data[which(all_data$arm == 0), 'delta'])
+summary(all_data[which(all_data$arm == 1), 'delta'])
+summary(all_data[which(all_data$arm == 2), 'delta'])
+t.test(all_data_4000$vitd12, all_data_4000$vitd0, paired = T)
+##########
+
+##########
+# Linear model with all covariates
+# Factor arm so that placebo is taken as reference group:
+all_data$arm <- factor(all_data$arm, levels = c('2', '1', '0'),
+                       labels = c('A_placebo',
+                                  'B_2000IU',
+                                  'C_4000IU'))
+plyr::count(all_data$arm)
+str(all_data$arm)
+
+# Code variables for easier referencing downstream:
+y <- 'vitd12'
+covars <- c('male +
+            vitd0 +
+            incident_fracture +
+            incident_resp_infection +
+            diabetes +
+            heart_disease +
+            copd_asthma +
+            basemed_vitamind +
+            currsmoker +
+            bmi0 +
+            calendar_age_ra +
+            season_randomisation_2 +
+            arm')
+
+pass_formula <- sprintf('%s ~ %s', y, covars)
+pass_formula
+
+lm_cyto <- lm(formula = pass_formula, data = all_data)
+summary(lm_cyto)
+
+# Sanity check basemed_vitamind, diabetes, bmi0 and age
+# as came out significant:
+# TO DO:
+summary(all_data[which(all_data$diabetes == 0), 'arm'])
+summary(all_data[which(all_data$diabetes == 1), 'arm'])
+kruskal.test(all_data$diabetes, all_data$arm)
+anova(lm(all_data$diabetes ~ all_data$arm))
+
+plyr::count(all_data$arm)
+summary(all_data[which(all_data$arm == 'A_placebo'), 'bmi0'])
+summary(all_data[which(all_data$arm == 'B_2000IU'), 'bmi0'])
+summary(all_data[which(all_data$arm == 'C_4000IU'), 'bmi0'])
+anova(lm(all_data$bmi0 ~ all_data$arm))
+
+summary(all_data[which(all_data$arm == 'A_placebo'), 'calendar_age_ra'])
+summary(all_data[which(all_data$arm == 'B_2000IU'), 'calendar_age_ra'])
+summary(all_data[which(all_data$arm == 'C_4000IU'), 'calendar_age_ra'])
+anova(lm(all_data$calendar_age_ra ~ all_data$arm))
+
+summary(all_data[which(all_data$basemed_vitamind == 0), 'arm'])
+summary(all_data[which(all_data$basemed_vitamind == 1), 'arm'])
+# tapply(all_data$basemed_vitamind, all_data$arm, plyr::count)
+kruskal.test(all_data$basemed_vitamind, all_data$arm)
+
+# TO DO: run with contrasts?
+# contrasts(all_data$arm) <- contr.treatment(n = 3, base = 3) # Specifies placebo (arm == 2) is the baseline
+# contrasts(all_data$arm)
+##########
+
+##########
+# Linear model for change in vitd (final minus baseline):
+y <- 'delta'
+pass_formula
+lm_cyto <- lm(formula = pass_formula, data = all_data)
+summary(lm_cyto)
+# Results as expected, double check but seem fine.
+##########
 
 
-#############################################
-# Correlation to VD and other measures?
+##########
+# Linear models for cytokine levels before and after vitD:
+# Simple scenario, does x interleukin correlate with vitamin D levels:
+lm_cyto <- lm(formula = 'Ln_IL10_0 ~ vitd0', data = all_data)
+summary(lm_cyto)
+lm_cyto <- lm(formula = 'Ln_IL10_12 ~ vitd12', data = all_data)
+summary(lm_cyto)
 
+# Run all cytokines in all groups, use all covariates used in genotype analysis:
+cytokines_0 <- c('Ln_IFNgamma0',
+               'Ln_IL10_0',
+               'Ln_IL6_0',
+               'Ln_IL8_0',
+               'Ln_TNFalpha0'
+               )
+cytokines_12 <- c('Ln_IFNgamma12',
+               'Ln_IL10_12',
+               'Ln_IL6_12',
+               'Ln_IL8_12',
+               'Ln_TNFalpha12'
+               )
+covars
+plyr::count(all_data$arm)
+
+# i <- 'Ln_TNFalpha12'
+for (i in cytokines_12) {
+  print(i)
+  pass_formula <- sprintf('%s ~ vitd12 + %s', i, covars)
+  print(pass_formula)
+  df <- all_data
+  print(summary(lm(formula = pass_formula, data = df)))
+  # # Check results and diagnostic plots:
+  # fitted(lm_cyto)
+  # residuals(lm_cyto)
+  # plot(all_data$vitd12, all_data$Ln_IL10_12)
+  # abline(lm_cyto)
+  # # Plot diagnostics
+  # # Normality, Independence, Linearity, Homoscedasticity, Residual versus Leverage graph (outliers, high leverage values and
+  # # influential observation's (Cook's D))
+  # par(mfrow=c(2,2)) 
+  # plot(lm_cyto)
+  }
+
+# Interpretation:
+# Running a basic lm adjusted for basic covariates in all data 
+# gives null results for all five cytokines at 12 months for vitd12.
+# Ln_IL6_12 is assoc. with vitd0, calendar_age_ra and others but not vitd12 and is
+# borderline significant for armB_2000IU
+
+# Other 12 month cytokines are associated with age, disease, etc but not arm or
+# vitd variables.
+##########
+
+
+##########
+# TO DO: run random effects?
+library(lme4)
+library(nlme)
+lm_cyto <- lme('formula = vitd12 ~ vitd0 +
+               male +
+               bmi0 +
+               calendar_age_ra +
+               (1 | arm)',
+               data = all_data)
+
+
+lm_cyto_null <- lmer('formula = vitd12 ~ (1 | arm)',
+                     data = all_data)
+anova(lm_cyto, lm_cyto_null)
+summary(lm_cyto)
+##########
 #############################################
 
 
@@ -311,11 +598,6 @@ plot(lm_cyto)
 #############################################
 ## Save some text:
 # cat(file = 'xxx.txt', xxx_var, "\t", xxx_var, '\n', append = TRUE)
-#############################################
-
-#############################################
-# 
-
 #############################################
 
 
