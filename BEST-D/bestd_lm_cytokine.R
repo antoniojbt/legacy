@@ -106,6 +106,7 @@ library(reshape2)
 library(plyr)
 library(dplyr)
 library(grid)
+library(svglite)
 #############################
 
 
@@ -450,7 +451,7 @@ scatter_plot_cyto_loop <- function(base, final, label) {
 }
 # scatter_plot_cyto_loop('Ln_IFNgamma0', 'Ln_IFNgamma12', 'IFNG')
 # mapply runs one for one for each element, save these as a list:
-all_plots <- assign(v, mapply(scatter_plot_cyto_loop, cytokines_0, cytokines_12, labels))
+all_plots <- mapply(scatter_plot_cyto_loop, cytokines_0, cytokines_12, labels)
 class(all_plots)
 all_plots
 # Create legend separately to insert later:
@@ -466,12 +467,12 @@ g_legend <- function(a.gplot) {
 legend <- g_legend(my_plot)
 # Plot and save in one figure, check:
 grid.arrange(grobs = all_plots, ncol = length(cytokines_0)) # Pass explicitely as a 'grob'
-# Add legend:
+# # TO DO: Add legend: messes the margins:
 plots <- arrangeGrob(grobs = all_plots, ncol = length(cytokines_0))
-grid.arrange(plots, legend, nrow = 2)
+# grid.arrange(plots, legend, nrow = 2)
 # Save to file:
-plots <- arrangeGrob(grid.arrange(grobs = all_plots, ncol = length(cytokines_0)), legend, nrow = 2)
-ggsave('scatterplots_cytokines_and_VD.png', plots, height = 8, width = 13)
+# plots <- arrangeGrob(grid.arrange(grobs = all_plots, ncol = length(cytokines_0)), legend, nrow = 2)
+ggsave('scatterplots_cytokines_and_VD.svg', plots, height = 15, width = 15)
 ##########
 #############################################
 
@@ -486,21 +487,6 @@ colnames(all_data_melt)
 class(all_data)
 head(all_data)
 colnames(all_data)
-
-# Covars used in genotype regression analysis:
-# male +
-#   vitd0 +
-#   incident_fracture +
-#   incident_resp_infection +
-#   diabetes +
-#   heart_disease +
-#   copd_asthma +
-#   basemed_vitamind +
-#   currsmoker +
-#   bmi0 +
-#   calendar_age_ra +
-#   season_randomisation_2 +
-#   arm'
 
 # Sanity check treatment groups and vitamin D levels:
 str(all_data$arm)
@@ -522,6 +508,7 @@ t.test(all_data_4000$vitd12, all_data_4000$vitd0, paired = T)
 ##########
 
 ##########
+# TO DO:
 # Linear model with all covariates
 # Factor arm so that placebo is taken as reference group:
 all_data$arm <- factor(all_data$arm, levels = c('2', '1', '0'),
@@ -533,6 +520,7 @@ str(all_data$arm)
 
 # Code variables for easier referencing downstream:
 y <- 'vitd12'
+# Covars used in genotype regression analysis:
 covars <- c('male +
             vitd0 +
             incident_fracture +
@@ -593,6 +581,7 @@ summary(lm_cyto)
 
 
 ##########
+# TO DO:
 # Linear models for cytokine levels before and after vitD:
 # Simple scenario, does x interleukin correlate with vitamin D levels:
 lm_cyto <- lm(formula = 'Ln_IL10_0 ~ vitd0', data = all_data)
@@ -638,20 +627,71 @@ for (i in cytokines_12) {
 
 ##########
 # TO DO: run random effects?
+# See: http://stackoverflow.com/questions/1169539/linear-regression-and-group-by-in-r
 library(lme4)
-library(nlme)
-lm_cyto <- lme('formula = vitd12 ~ vitd0 +
-               male +
-               bmi0 +
-               calendar_age_ra +
-               (1 | arm)',
-               data = all_data)
+# library(nlme)
+library(lattice)
 
+# Another scatterlot example:
+xyplot(Ln_IL10_12 ~ vitd12, groups = arm, data = all_data, type = c('p', 'r', 'g'))
+# Run linear regression by group:
+summary(lmList(formula = vitd12 ~
+                 male +
+                 vitd0 +
+                 incident_fracture +
+                 incident_resp_infection +
+                 diabetes +
+                 heart_disease +
+                 copd_asthma +
+                 basemed_vitamind +
+                 currsmoker +
+                 bmi0 +
+                 calendar_age_ra +
+                 season_randomisation_2 | arm,
+               data = all_data))
 
-lm_cyto_null <- lmer('formula = vitd12 ~ (1 | arm)',
-                     data = all_data)
-anova(lm_cyto, lm_cyto_null)
-summary(lm_cyto)
+# Run for all cytokines with covariates, exclude arm:
+for (i in cytokines_12) {
+  print(i)
+  df <- all_data
+  print(summary(lmList(formula = i ~ vitd12 +
+                         male +
+                         vitd0 +
+                         incident_fracture +
+                         incident_resp_infection +
+                         diabetes +
+                         heart_disease +
+                         copd_asthma +
+                         basemed_vitamind +
+                         currsmoker +
+                         bmi0 +
+                         calendar_age_ra +
+                         season_randomisation_2 
+                       | arm, 
+                       data = df)))
+  # # Check results and diagnostic plots:
+  # fitted(lm_cyto)
+  # residuals(lm_cyto)
+  # plot(all_data$vitd12, all_data$Ln_IL10_12)
+  # abline(lm_cyto)
+  # # Plot diagnostics
+  # # Normality, Independence, Linearity, Homoscedasticity, Residual versus Leverage graph (outliers, high leverage values and
+  # # influential observation's (Cook's D))
+  # par(mfrow=c(2,2)) 
+  # plot(lm_cyto)
+}
+
+# lm_cyto <- lme('formula = vitd12 ~ vitd0 +
+#                male +
+#                bmi0 +
+#                calendar_age_ra +
+#                (1 | arm)',
+#                data = all_data)
+# 
+# lm_cyto_null <- lmer('formula = vitd12 ~ (1 | arm)',
+#                      data = all_data)
+# anova(lm_cyto, lm_cyto_null)
+# summary(lm_cyto)
 ##########
 #############################################
 
