@@ -105,6 +105,7 @@ library(gridExtra)
 library(reshape2)
 library(plyr)
 library(dplyr)
+library(grid)
 #############################
 
 
@@ -323,45 +324,10 @@ boxplot(all_data_placebo$Ln_IL10_0,
         all_data_2000$Ln_IL10_12,
         all_data_4000$Ln_IL10_0,
         all_data_4000$Ln_IL10_12)
-
-
-##########
-group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
-                labels = c("Placebo", "2000 IU", "4000 IU"))
-plyr::count(group)
-
-a1 <- ggplot(data = all_data, aes(x = vitd0, Ln_IFNgamma0, colour = group)) +
-      geom_point(shape = 1) + # Hollow circles
-      scale_colour_hue(l = 50) + # darker palette
-      geom_smooth(method = lm,   # regression line
-                  se = FALSE    # exclude confidence region
-                  ) + # fullrange = TRUE # Extend regression line
-      labs(title = '', x = '') +
-      theme_classic() +
-      theme(text = element_text(size = 14), 
-            legend.title=element_blank()
-        )
-a1
-a2 <- ggplot(data = all_data, aes(x = vitd12, Ln_IFNgamma12, colour = group)) +
-      geom_point(shape = 1) + # Hollow circles
-      scale_colour_hue(l = 50) + # darker palette
-      geom_smooth(method = lm,   # regression line
-                  se = FALSE    # exclude confidence region
-                  ) + # fullrange = TRUE # Extend regression line
-      labs(title = '') +
-      theme_classic() +
-      theme(text = element_text(size = 14), 
-            legend.title=element_blank()
-            )
-a2
-grid.arrange(a1, a2, nrow = 2)
-# plots <- arrangeGrob(a1, a2, nrow = 2)
-# plots
-# ggsave('scatterplots_cytokines_and_VD.png', 
-#        plots, height = 10, width = 12)
 ##########
 
 ##########
+# Plot one cytokine:
 group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
                 labels = c("Placebo", "2000 IU", "4000 IU"))
 plyr::count(group)
@@ -375,9 +341,9 @@ a1 <- ggplot(data = all_data, aes(x = vitd0, Ln_IL10_0, colour = group)) +
   labs(title = '', x = '') +
   theme_classic() +
   theme(text = element_text(size = 14), 
-        legend.title=element_blank()
+        legend.title = element_blank(),
+        legend.position = 'none'
   )
-a1
 a2 <- ggplot(data = all_data, aes(x = vitd12, Ln_IL10_12, colour = group)) +
   geom_point(shape = 1) + # Hollow circles
   scale_colour_hue(l = 50) + # darker palette
@@ -387,14 +353,125 @@ a2 <- ggplot(data = all_data, aes(x = vitd12, Ln_IL10_12, colour = group)) +
   labs(title = '', x = '25OHD levels') +
   theme_classic() +
   theme(text = element_text(size = 14), 
-        legend.title=element_blank()
+        legend.title = element_blank(),
+        legend.position = 'bottom'
+        # legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "pt")
+        # plot.margin = margin(b = 0, unit = "pt")
   )
-a2
+# dev.off()
 grid.arrange(a1, a2, nrow = 2)
-# plots <- arrangeGrob(a1, a2, nrow = 2)
-# plots
-# ggsave('scatterplots_cytokines_and_VD.png', 
-#        plots, height = 10, width = 12)
+plots <- arrangeGrob(a1, a2, nrow = 2)
+ggsave('scatterplot_IL10_and_VD.png', plots, height = 10, width = 12)
+##########
+
+##########
+# Function to plot all cytkones:
+scatter_plot_cyto <- function(df, y_base, y_final, 
+                              x_base, x_final, 
+                              group, 
+                              y_label_base,
+                              y_label_final,
+                              x_label_base,
+                              x_label_final,
+                              a1_title) {
+  a1 <- ggplot(data = df, aes(x = x_base, y = y_base, colour = group)) +
+    geom_point(shape = 1) + # Hollow circles
+    scale_colour_hue(l = 50) + # darker palette
+    geom_smooth(method = lm,   # regression line
+                se = FALSE    # exclude confidence region
+    ) + # fullrange = TRUE # Extend regression line
+    labs(title = a1_title, x = x_label_base, y = y_label_base) +
+    theme_classic() +
+    theme(text = element_text(size = 14), 
+          legend.title = element_blank(),
+          plot.title = element_text(hjust = 0.5), # centre title
+          legend.position="none"
+    )
+  # + xlim(0, 300) # fixes the x axis to match the second plot
+  a2 <- ggplot(data = df, aes(x = x_final, y = y_final, colour = group)) +
+    geom_point(shape = 1) + # Hollow circles
+    scale_colour_hue(l = 50) + # darker palette
+    geom_smooth(method = lm,   # regression line
+                se = FALSE    # exclude confidence region
+    ) + # fullrange = TRUE # Extend regression line
+    labs(title = '', x = x_label_final, y = y_label_final) +
+    theme_classic() +
+    theme(text = element_text(size = 14), 
+          legend.title = element_blank(),
+          plot.title = element_text(hjust = 0.5), # centre title
+          legend.position="none",
+          plot.margin = margin(b = 0.5, unit = "pt")
+    ) 
+  # + xlim(0, 300) # fixes x axis, if matching first plot
+  return(grid.arrange(a1, a2, nrow = 2))
+}
+# Test:
+scatter_plot_cyto(all_data,
+                  all_data$Ln_IFNgamma0, all_data$Ln_IFNgamma12, 
+                  all_data$vitd0, all_data$vitd12,
+                  group,
+                  '',
+                  '',
+                  '',
+                  '',
+                  'IFNg')
+##########
+# All together now
+# Create lists for variables of interest at baseline and final:
+cytokines_0 <- c('Ln_IFNgamma0',
+                 'Ln_IL10_0',
+                 'Ln_IL6_0',
+                 'Ln_IL8_0',
+                 'Ln_TNFalpha0'
+)
+cytokines_12 <- c('Ln_IFNgamma12',
+                  'Ln_IL10_12',
+                  'Ln_IL6_12',
+                  'Ln_IL8_12',
+                  'Ln_TNFalpha12'
+)
+# Create titles for each plot:
+labels <- c('IFN gamma',
+            'Interleukin 10',
+            'Interleukin 6',
+            'Interleukin 8',
+            'TNF alpha')
+# Run the loop to get all plots:
+scatter_plot_cyto_loop <- function(base, final, label) {
+  scatter_plot_cyto(all_data,
+                    all_data[, base], all_data[, final],
+                    all_data$vitd0, all_data$vitd12,
+                    group,
+                    '',
+                    '',
+                    '',
+                    '',
+                    label)
+}
+# scatter_plot_cyto_loop('Ln_IFNgamma0', 'Ln_IFNgamma12', 'IFNG')
+# mapply runs one for one for each element, save these as a list:
+all_plots <- assign(v, mapply(scatter_plot_cyto_loop, cytokines_0, cytokines_12, labels))
+class(all_plots)
+all_plots
+# Create legend separately to insert later:
+# See: http://stackoverflow.com/questions/12041042/how-to-plot-just-the-legends-in-ggplot2
+my_plot <- a2 # Created above for IL10
+# Extract legend:
+g_legend <- function(a.gplot) {
+  tmp <- ggplot_gtable(ggplot_build(a.gplot)) 
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box") 
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+  }
+legend <- g_legend(my_plot)
+# Plot and save in one figure, check:
+grid.arrange(grobs = all_plots, ncol = length(cytokines_0)) # Pass explicitely as a 'grob'
+# Add legend:
+plots <- arrangeGrob(grobs = all_plots, ncol = length(cytokines_0))
+grid.arrange(plots, legend, nrow = 2)
+# Save to file:
+plots <- arrangeGrob(grid.arrange(grobs = all_plots, ncol = length(cytokines_0)), legend, nrow = 2)
+ggsave('scatterplots_cytokines_and_VD.png', plots, height = 8, width = 13)
 ##########
 #############################################
 
@@ -524,18 +601,8 @@ lm_cyto <- lm(formula = 'Ln_IL10_12 ~ vitd12', data = all_data)
 summary(lm_cyto)
 
 # Run all cytokines in all groups, use all covariates used in genotype analysis:
-cytokines_0 <- c('Ln_IFNgamma0',
-               'Ln_IL10_0',
-               'Ln_IL6_0',
-               'Ln_IL8_0',
-               'Ln_TNFalpha0'
-               )
-cytokines_12 <- c('Ln_IFNgamma12',
-               'Ln_IL10_12',
-               'Ln_IL6_12',
-               'Ln_IL8_12',
-               'Ln_TNFalpha12'
-               )
+cytokines_0
+cytokines_12
 covars
 plyr::count(all_data$arm)
 
