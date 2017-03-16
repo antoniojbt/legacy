@@ -75,7 +75,7 @@ getwd()
 ##TO DO extract parameters:
 
 # Re-load a previous R session, data and objects:
-# load('../data.dir/R_session_saved_image_cytokines.RData', verbose=T)
+# load('../data.dir/R_session_saved_image_cytokines_lm.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_cytokines_lm','.RData', sep='')
@@ -107,6 +107,9 @@ library(plyr)
 library(dplyr)
 library(grid)
 library(svglite)
+library(lattice)
+library(mice)
+library(VIM)
 #############################
 
 
@@ -216,7 +219,24 @@ for (i in vars_convert){
   # all_data[, i, with = F] <- as.numeric(as.character(all_data[, i, with = F]))
   all_data[, i] <- as.numeric(as.character(all_data[, i]))
   }
-str(all_data)
+
+vars_categorical <- list("male",
+                         "incident_fracture",
+                         "incident_resp_infection",
+                         "diabetes",
+                         "heart_disease",
+                         "copd_asthma",
+                         "basemed_vitamind",
+                         "currsmoker",
+                         "season_randomisation_2",
+                         "arm")
+for (i in vars_categorical){
+  print(i)
+  # all_data[, i, with = F] <- as.numeric(as.character(all_data[, i, with = F]))
+  all_data[, i] <- as.factor(as.character(all_data[, i]))
+}
+str(all_data[, as.character(vars_categorical)])
+str(all_data[, as.character(vars_convert)])
 dim(all_data)
 #############################################
 
@@ -359,7 +379,6 @@ a2 <- ggplot(data = all_data, aes(x = vitd12, Ln_IL10_12, colour = group)) +
         # legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "pt")
         # plot.margin = margin(b = 0, unit = "pt")
   )
-# dev.off()
 grid.arrange(a1, a2, nrow = 2)
 plots <- arrangeGrob(a1, a2, nrow = 2)
 ggsave('scatterplot_IL10_and_VD.png', plots, height = 10, width = 12)
@@ -472,7 +491,7 @@ plots <- arrangeGrob(grobs = all_plots, ncol = length(cytokines_0))
 # grid.arrange(plots, legend, nrow = 2)
 # Save to file:
 # plots <- arrangeGrob(grid.arrange(grobs = all_plots, ncol = length(cytokines_0)), legend, nrow = 2)
-ggsave('scatterplots_cytokines_and_VD.svg', plots, height = 15, width = 15)
+ggsave('scatterplots_cytokines_and_VD.png', plots, height = 15, width = 15)
 ##########
 #############################################
 
@@ -508,14 +527,114 @@ t.test(all_data_4000$vitd12, all_data_4000$vitd0, paired = T)
 ##########
 
 ##########
+# TO DO: move to separate script
+# Impute missing values
+# See:
+# https://www.r-bloggers.com/imputing-missing-data-with-r-mice-package/
+# How to formally check data is missing at random or not?
+
+# Check proportion of missing data, usually <5%:
+# cytokines_0
+# cytokines_12
+# covars_list
+covars_list <- c('vitd12', 
+                 'male',
+                 'vitd0',
+                 'incident_fracture',
+                 'incident_resp_infection',
+                'diabetes',
+                 'heart_disease',
+                 'copd_asthma',
+                 'basemed_vitamind',
+                 'currsmoker',
+                 'bmi0',
+                 'calendar_age_ra',
+                 'season_randomisation_2',
+                 'arm')
+
+prop_NA <- function(x) {sum(is.na(x)) / length(x) * 100}
+# Individuals with more than 5% of missing variables:
+apply(all_data, 1, prop_NA) # by rows
+length(all_data[which(apply(all_data, 1, prop_NA) > 10), 'pt_id'])
+# By columns:
+apply(all_data[, covars_list], 2, prop_NA)
+apply(all_data[, cytokines_0], 2, prop_NA)
+apply(all_data[, cytokines_12], 2, prop_NA)
+
+# See pattern using VIM and mice libraries
+# Plot missing values:
+# View(md.pattern(all_data))
+png('missing_data_plots_vars_interest.png', width = 7.3, height = 5, units = 'in', res = 600)
+aggr_plot <- aggr(all_data[, c(covars_list, cytokines_0, cytokines_12)],
+                  only.miss = T, # Plot only missing variables
+                  col = c('lightgrey', 'red'), # 1 colour for missing data, 2 observed, 3 imputed
+                  numbers = T, sortVars = T,
+                  labels = names(all_data[, c(covars_list, cytokines_0, cytokines_12)]),
+                  cex.axis = 0.4,
+                  gap = 2,
+                  ylab = c('Proportion of missing data', 'Pattern'))
+dev.off()
+
+# Impute missing data
+all_data_interest <- all_data[, c(covars_list, cytokines_0, cytokines_12)]
+temp_all_data <- mice(all_data_interest,
+                      m = 10, # Number of imputed datasets, 5 is default
+                      maxit = 100, 
+                      # meth = 'pmm', # predictive mean matching, leave empty for 
+                                      # auto selection depending on variable type
+                      seed = 500)
+summary(temp_all_data)
+# Check the imputed data, e.g.:
+temp_all_data$imp$vitd12 # Each column is the number of datasets ran
+png('missing_data_scatterplots_VD12_cyto12.png', width = 7.3, height = 5, units = 'in', res = 600)
+xyplot(temp_all_data, 
+       vitd12 ~ Ln_IFNgamma12 + 
+         Ln_IL10_12 +
+         Ln_IL6_12 +
+         Ln_IL8_12 +    
+         Ln_TNFalpha12,
+       # pch = 1, cex = 1, strip = T, 
+       ylab = '25OHD levels at 12 months',
+       xlab = '',
+       strip = strip.custom(factor.levels = labels),
+       type = c('p')) # Magenta are imputed, blue observed
+dev.off()
+
+# Further exploratory plots:
+densityplot(temp_all_data) # Plots all numerical variables with 2 or more missing values 
+bwplot(temp_all_data)
+
+# Stripplots look better:
+png('missing_data_stripplots.png', width = 7.3, height = 5, units = 'in', res = 600)
+stripplot(temp_all_data, pch = 20, cex = 0.7,
+          strip = strip.custom(par.strip.text = list(cex = 0.7)))
+# Magenta are imputed
+dev.off()
+
 # TO DO:
+# Consider library(Hmisc) with aregImpute() using additive regression, 
+# bootstrapping, and predictive mean matching (pmm)
+# It also adapts the method based on variable type automatically
+# PMM (with mice or others) for numerical variables
+# For categorical in mice use
+# polyreg(Bayesian polytomous regression) for factor variables with >= 2 levels
+# proportional odds model for ordered variables with >= 2 levels
+##########
+
+
+##########
 # Linear model with all covariates
 # Factor arm so that placebo is taken as reference group:
 all_data$arm <- factor(all_data$arm, levels = c('2', '1', '0'),
                        labels = c('A_placebo',
                                   'B_2000IU',
                                   'C_4000IU'))
+temp_all_data$data$arm <- factor(temp_all_data$data$arm, levels = c('2', '1', '0'),
+                                 labels = c('A_placebo',
+                                            'B_2000IU',
+                                            'C_4000IU'))
 plyr::count(all_data$arm)
+plyr::count(temp_all_data$data$arm)
 str(all_data$arm)
 
 # Code variables for easier referencing downstream:
@@ -532,15 +651,58 @@ covars <- c('male +
             currsmoker +
             bmi0 +
             calendar_age_ra +
-            season_randomisation_2 +
-            arm')
+            season_randomisation_2') # Add arm
 
 pass_formula <- sprintf('%s ~ %s', y, covars)
 pass_formula
 
-lm_cyto <- lm(formula = pass_formula, data = all_data)
-summary(lm_cyto)
+##########
+# TO DO: continue from here: 
+# setup anovas per group comparison
+# all in one lm
+# line plots like VD in results paper: fig2, fig3, table2 or 3
 
+# Pool results from imputed missing data and fit a linear model:
+names(temp_all_data$data)
+imp_fit <- with(temp_all_data, 
+                lm(formula = vitd12 ~ 
+                     male +
+                     vitd0 +
+                     incident_fracture +
+                     incident_resp_infection +
+                     diabetes +
+                     heart_disease +
+                     copd_asthma +
+                     basemed_vitamind +
+                     currsmoker +
+                     bmi0 +
+                     calendar_age_ra +
+                     season_randomisation_2+
+                     arm))
+summary(imp_fit)
+pool(imp_fit)
+summary(pool(imp_fit))
+
+# # Using more imputed datasets
+# tempData2 <- mice(data,m=50,seed=245435)
+# modelFit2 <- with(tempData2,lm(Temp~ Ozone+Solar.R+Wind))
+# summary(pool(modelFit2))
+##########
+
+##########
+lm_vd12 <- lm(formula = pass_formula, data = all_data)
+lm_vd12_placebo <- lm(formula = pass_formula, 
+                      data = all_data[which(all_data$arm == 'A_placebo'), ],
+                      na.action = na.omit)
+lm_vd12_2000 <- lm(formula = pass_formula, data = all_data_2000)
+lm_vd12_4000 <- lm(formula = pass_formula, 
+                   data = all_data[which(all_data$arm == 'C_4000IU'), ],
+                   na.action = na.omit)
+summary(lm_vd12)
+summary(lm_vd12_placebo)
+anova(lm_vd12_4000, lm_vd12_placebo)
+
+##########
 # Sanity check basemed_vitamind, diabetes, bmi0 and age
 # as came out significant:
 # TO DO:
@@ -589,6 +751,11 @@ summary(lm_cyto)
 lm_cyto <- lm(formula = 'Ln_IL10_12 ~ vitd12', data = all_data)
 summary(lm_cyto)
 
+# ANOVA group vs group
+lm_cyto <- lm(formula = 'Ln_IL10_12 ~ vitd12', data = all_data_placebo)
+summary(lm_cyto)
+anova()
+
 # Run all cytokines in all groups, use all covariates used in genotype analysis:
 cytokines_0
 cytokines_12
@@ -630,7 +797,7 @@ for (i in cytokines_12) {
 # See: http://stackoverflow.com/questions/1169539/linear-regression-and-group-by-in-r
 library(lme4)
 # library(nlme)
-library(lattice)
+
 
 # Another scatterlot example:
 xyplot(Ln_IL10_12 ~ vitd12, groups = arm, data = all_data, type = c('p', 'r', 'g'))
