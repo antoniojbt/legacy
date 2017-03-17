@@ -165,6 +165,11 @@ summary(all_data[, (ncol(all_data) - 10):ncol(all_data)])
 str(all_data)
 all_data$vitd12 <- as.numeric(all_data$vitd12)
 summary(all_data$vitd12)
+
+# Correct variable types:
+str(all_data$pt_id)
+all_data$pt_id <- as.character(all_data$pt_id)
+plyr::count(all_data$pt_id)
 # 12:41 are ptr_si0 to phosphate12:
 str(all_data[, 12:41])
 colnames(all_data[, 12:41])
@@ -531,6 +536,7 @@ t.test(all_data_4000$vitd12, all_data_4000$vitd0, paired = T)
 # Impute missing values
 # See:
 # https://www.r-bloggers.com/imputing-missing-data-with-r-mice-package/
+# https://www.jstatsoft.org/article/view/v045i03
 # How to formally check data is missing at random or not?
 
 # Check proportion of missing data, usually <5%:
@@ -575,19 +581,43 @@ aggr_plot <- aggr(all_data[, c(covars_list, cytokines_0, cytokines_12)],
                   ylab = c('Proportion of missing data', 'Pattern'))
 dev.off()
 
+###########
 # Impute missing data
+# Easy tutorial using library mice:
+# http://web.maths.unsw.edu.au/~dwarton/missingDataLab.html
+
+names(all_data)
+all_data[1:5, 1:5]
 all_data_interest <- all_data[, c(covars_list, cytokines_0, cytokines_12)]
-temp_all_data <- mice(all_data_interest,
-                      m = 10, # Number of imputed datasets, 5 is default
-                      maxit = 100, 
-                      # meth = 'pmm', # predictive mean matching, leave empty for 
-                                      # auto selection depending on variable type
-                      seed = 500)
-summary(temp_all_data)
+# Keep samples IDs but exclude them from imputation (non missing and would be used to estimate
+# imputation if left as column):
+rownames(all_data_interest) <- all_data[, 'pt_id']
+identical(all_data[, 'pt_id'], rownames(all_data_interest))
+head(all_data_interest)
+
+# Run imputation
+# Roughly one imputation per percent of incomplete data (White et al.,2011),
+# but the more the better, 100 can easily be run on small datasets on a laptop
+# Roughly 20-30 iterations should be enough, use plot() to check convergence:
+# http://stats.stackexchange.com/questions/219013/how-do-the-number-of-imputations-the-maximum-iterations-affect-accuracy-in-mul
+imp_all_data <- mice(all_data_interest,
+                     m = 50, # Number of imputed datasets, 5 is default
+                     maxit = 50, 
+                     # meth = 'pmm', # predictive mean matching, leave empty for 
+                                    # auto selection depending on variable type
+                     diagnostics = T,
+                     seed = 500)
+summary(imp_all_data)
+# Plot convergence of imputed data, only plots the last 3 variables:
+png('convergence_plot_imputations.png', width = 7.3, height = 5, units = 'in', res = 600)
+plot(imp_all_data)
+dev.off()
+
 # Check the imputed data, e.g.:
-temp_all_data$imp$vitd12 # Each column is the number of datasets ran
+imp_all_data$method
+imp_all_data$imp$vitd12 # Each column is the number of datasets ran
 png('missing_data_scatterplots_VD12_cyto12.png', width = 7.3, height = 5, units = 'in', res = 600)
-xyplot(temp_all_data, 
+xyplot(imp_all_data, 
        vitd12 ~ Ln_IFNgamma12 + 
          Ln_IL10_12 +
          Ln_IL6_12 +
@@ -600,17 +630,60 @@ xyplot(temp_all_data,
        type = c('p')) # Magenta are imputed, blue observed
 dev.off()
 
+
+###########
 # Further exploratory plots:
-densityplot(temp_all_data) # Plots all numerical variables with 2 or more missing values 
-bwplot(temp_all_data)
+png('missing_data_densityplots.png', width = 7.3, height = 5, units = 'in', res = 600)
+densityplot(imp_all_data) # Plots all numerical variables with 2 or more missing values 
+dev.off()
+
+png('missing_data_bwplots.png', width = 7.3, height = 5, units = 'in', res = 600)
+bwplot(imp_all_data)
+dev.off()
 
 # Stripplots look better:
 png('missing_data_stripplots.png', width = 7.3, height = 5, units = 'in', res = 600)
-stripplot(temp_all_data, pch = 20, cex = 0.7,
+stripplot(imp_all_data,
+          subset = (.imp == 1 | .imp == 2 | .imp == 3 | .imp == 4 | .imp == 5 |
+                    .imp == 6 | .imp == 7 | .imp == 8 | .imp == 9 | .imp == 10),
+          # col = mdc(1:2), #col = mdc(1:2), pch=20, cex=1.5,
+          pch = 1, cex = 0.7,
           strip = strip.custom(par.strip.text = list(cex = 0.7)))
 # Magenta are imputed
 dev.off()
 
+
+###########
+# Sanity check observed and imputed data
+# Variables used as predictors for imputation of each incomplete variable:
+imp_all_data$pred
+# Implausible results for specific variables:
+which(imp_all_data$imp$vitd12 <= 1 | imp_all_data$imp$vitd12 >= 250)
+which(imp_all_data$imp$calendar_age_ra <= 60 | imp_all_data$imp$calendar_age_ra >= 100)
+
+# Create dataset with both observed and imputed data:
+imp_all_data_completed <- complete(imp_all_data, action = 'repeat', include = T)
+# 'repeated' includes original data (colnames "xxx.0") and all imputations ("xxx.1, etc"). 
+dim(imp_all_data_completed)
+head(imp_all_data_completed)
+# View(imp_all_data_completed)
+
+complete.cases(all_data_interest)
+complete.cases(imp_all_data$data)
+complete.cases(imp_all_data_completed)
+# If mice::complete(action = 'repeat') then this should be TRUE:
+identical(complete.cases(all_data_interest), complete.cases(imp_all_data_completed))
+
+sapply(all_data_interest, function(x) sum(is.na(x)))
+sapply(imp_all_data$data, function(x) sum(is.na(x)))
+sapply(imp_all_data_completed, function(x) sum(is.na(x)))
+
+# These should all be TRUE:
+identical(all_data$vitd12, all_data_interest$vitd12)
+identical(all_data_interest$vitd12, imp_all_data$data$vitd12)
+identical(imp_all_data$data$vitd12, imp_all_data_completed$vitd12.0) # 'xxx.0' is the original data
+
+###########
 # TO DO:
 # Consider library(Hmisc) with aregImpute() using additive regression, 
 # bootstrapping, and predictive mean matching (pmm)
@@ -629,12 +702,12 @@ all_data$arm <- factor(all_data$arm, levels = c('2', '1', '0'),
                        labels = c('A_placebo',
                                   'B_2000IU',
                                   'C_4000IU'))
-temp_all_data$data$arm <- factor(temp_all_data$data$arm, levels = c('2', '1', '0'),
+imp_all_data$data$arm <- factor(imp_all_data$data$arm, levels = c('2', '1', '0'),
                                  labels = c('A_placebo',
                                             'B_2000IU',
                                             'C_4000IU'))
 plyr::count(all_data$arm)
-plyr::count(temp_all_data$data$arm)
+plyr::count(imp_all_data$data$arm)
 str(all_data$arm)
 
 # Code variables for easier referencing downstream:
@@ -651,20 +724,16 @@ covars <- c('male +
             currsmoker +
             bmi0 +
             calendar_age_ra +
-            season_randomisation_2') # Add arm
+            season_randomisation_2 + arm') # Add arm
 
 pass_formula <- sprintf('%s ~ %s', y, covars)
 pass_formula
 
 ##########
-# TO DO: continue from here: 
-# setup anovas per group comparison
-# all in one lm
-# line plots like VD in results paper: fig2, fig3, table2 or 3
-
-# Pool results from imputed missing data and fit a linear model:
-names(temp_all_data$data)
-imp_fit <- with(temp_all_data, 
+# Pool results from imputed missing data and fit a linear model
+# Use imputed set, not complete(), pool() then uses the multiple imputations
+names(imp_all_data$data)
+imp_fit <- with(imp_all_data,
                 lm(formula = vitd12 ~ 
                      male +
                      vitd0 +
@@ -677,20 +746,107 @@ imp_fit <- with(temp_all_data,
                      currsmoker +
                      bmi0 +
                      calendar_age_ra +
-                     season_randomisation_2+
+                     season_randomisation_2 +
                      arm))
 summary(imp_fit)
 pool(imp_fit)
 summary(pool(imp_fit))
 
-# # Using more imputed datasets
-# tempData2 <- mice(data,m=50,seed=245435)
-# modelFit2 <- with(tempData2,lm(Temp~ Ozone+Solar.R+Wind))
-# summary(pool(modelFit2))
+# Manually looked at coefficients and p-values, these are largely the same between pool()
+# and lm_vd12:
+lm_vd12 <- lm(formula = pass_formula, data = all_data)
+
+##########
+# TO DO: continue from here: 
+# setup anovas per group comparison
+# all in one lm
+# line plots like VD in results paper: fig2, fig3, table2 or 3
+
+# Run anova on pooled imputations:
+library(miceadds)
+# library(car)
+class(imp_all_data)
+imp_fit_anova <- mi.anova(mi.res = imp_all_data,
+                          formula = 'vitd12 ~ 
+                                     male +
+                                     vitd0 +
+                                     incident_fracture +
+                                     incident_resp_infection +
+                                     diabetes +
+                                     heart_disease +
+                                     copd_asthma +
+                                     basemed_vitamind +
+                                     currsmoker +
+                                     bmi0 +
+                                     calendar_age_ra +
+                                     season_randomisation_2 * arm')
+
+summary(imp_fit_anova)
+
+##########
+# Compare two models with mice::pooled.compare(), pool.r.square(), etc.:
+imp_fit_model1 <- with(imp_all_data,
+                       lm(formula = vitd12 ~ 
+                            male +
+                            vitd0 +
+                            diabetes +
+                            bmi0))
+imp_fit_model2 <- with(imp_all_data,
+                       lm(formula = vitd12 ~ 
+                            male +
+                            vitd0 +
+                            diabetes +
+                            bmi0 +
+                            calendar_age_ra))
+# Check variance explained:
+pool.r.squared(imp_fit, adjusted = T)
+pool.r.squared(imp_fit_model1, adjusted = T)
+pool.r.squared(imp_fit_model2, adjusted = T)
+# Wald test and p-value for comparison:
+compare_imp_models <- pool.compare(imp_fit_model2,
+                                   imp_fit_model1,
+                                   method = "Wald")
+compare_imp_models$pvalue
+pool.compare(imp_fit, imp_fit_model2, method = "Wald")$pvalue
 ##########
 
 ##########
-lm_vd12 <- lm(formula = pass_formula, data = all_data)
+
+plyr::count(imp_all_data$data$arm)
+imp_fit_placebo <- with(imp_all_data$data[which(imp_all_data$data$arm == 'A_placebo'), ],
+                lm(formula = vitd12 ~ 
+                     male +
+                     vitd0 +
+                     incident_fracture +
+                     incident_resp_infection +
+                     diabetes +
+                     heart_disease +
+                     copd_asthma +
+                     basemed_vitamind +
+                     currsmoker +
+                     bmi0 +
+                     calendar_age_ra +
+                     season_randomisation_2))
+summary(imp_fit_placebo)
+pool(imp_fit_placebo)
+summary(pool(imp_fit_placebo))
+
+imp_fit_2000 <- with(imp_all_data$data[which(imp_all_data$data$arm == 'B_2000IU'), ],
+                        lm(formula = vitd12 ~ 
+                             male +
+                             vitd0 +
+                             incident_fracture +
+                             incident_resp_infection +
+                             diabetes +
+                             heart_disease +
+                             copd_asthma +
+                             basemed_vitamind +
+                             currsmoker +
+                             bmi0 +
+                             calendar_age_ra +
+                             season_randomisation_2))
+
+
 lm_vd12_placebo <- lm(formula = pass_formula, 
                       data = all_data[which(all_data$arm == 'A_placebo'), ],
                       na.action = na.omit)
@@ -886,7 +1042,7 @@ for (i in cytokines_12) {
 #save(list=objects_to_save, file=R_session_saved_image, compress='gzip')
 
 # To save R workspace with all objects to use at a later time:
-save.image(file=R_session_saved_image, compress='gzip')
+save.image(file = R_session_saved_image, compress='gzip')
 
 sessionInfo()
 q()
