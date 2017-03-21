@@ -110,6 +110,8 @@ library(svglite)
 library(lattice)
 library(mice)
 library(VIM)
+library(miceadds)
+# library(car)
 #############################
 
 
@@ -335,6 +337,7 @@ t.test(all_data_2000$Ln_TNFalpha0, all_data_2000$Ln_TNFalpha12, paired = T)
 t.test(all_data_4000$Ln_TNFalpha0, all_data_4000$Ln_TNFalpha12, paired = T)
 
 # IL10 4000 IU is borderline significant (without multiple testing)
+# IL6 4000 IU is borderline non-significant (without multiple testing)
 #############################################
 
 
@@ -532,8 +535,8 @@ t.test(all_data_4000$vitd12, all_data_4000$vitd0, paired = T)
 ##########
 
 ##########
-# TO DO: move to separate script
 # Impute missing values
+# TO DO: move to separate script
 # See:
 # https://www.r-bloggers.com/imputing-missing-data-with-r-mice-package/
 # https://www.jstatsoft.org/article/view/v045i03
@@ -630,7 +633,6 @@ xyplot(imp_all_data,
        type = c('p')) # Magenta are imputed, blue observed
 dev.off()
 
-
 ###########
 # Further exploratory plots:
 png('missing_data_densityplots.png', width = 7.3, height = 5, units = 'in', res = 600)
@@ -651,7 +653,6 @@ stripplot(imp_all_data,
           strip = strip.custom(par.strip.text = list(cex = 0.7)))
 # Magenta are imputed
 dev.off()
-
 
 ###########
 # Sanity check observed and imputed data
@@ -683,6 +684,9 @@ identical(all_data$vitd12, all_data_interest$vitd12)
 identical(all_data_interest$vitd12, imp_all_data$data$vitd12)
 identical(imp_all_data$data$vitd12, imp_all_data_completed$vitd12.0) # 'xxx.0' is the original data
 
+# Next step: use mice and miceadds libraries to run regression models (bottom of script)
+# with imputed dataset and pooled values from multiple imputed datasets and observed data.
+
 ###########
 # TO DO:
 # Consider library(Hmisc) with aregImpute() using additive regression, 
@@ -696,7 +700,7 @@ identical(imp_all_data$data$vitd12, imp_all_data_completed$vitd12.0) # 'xxx.0' i
 
 
 ##########
-# Linear model with all covariates
+# Setup linear model with all covariates
 # Factor arm so that placebo is taken as reference group:
 all_data$arm <- factor(all_data$arm, levels = c('2', '1', '0'),
                        labels = c('A_placebo',
@@ -724,14 +728,241 @@ covars <- c('male +
             currsmoker +
             bmi0 +
             calendar_age_ra +
-            season_randomisation_2 + arm') # Add arm
+            season_randomisation_2') # Add arm
 
 pass_formula <- sprintf('%s ~ %s', y, covars)
 pass_formula
 
+
+##########
+# ANOVA tests
+
+# Make sure arm and other variables are coded as factors for anova
+# otherwise they are run as linear regressions with 0 and 1's
+class(imp_all_data)
+class(imp_all_data$data)
+plyr::count(imp_all_data$data$arm)
+summary(imp_all_data$data$arm)
+summary(imp_all_data$data$vitd12)
+pass_formula <- sprintf('%s ~ arm + %s', y, covars)
+pass_formula
+
+# imputed dataset contains the original observations (imp_all_data$data) and is 
+# exactly the same as all_data
+class(imp_all_data$data$arm)
+sapply(imp_all_data$data[, covars_list], class)
+
+class(all_data$arm)
+sapply(all_data[, covars_list], class)
+
+##########
+# TO DO: check and complete assumptions tests
+# Assumptions linear regression
+# Bivariate independent variables
+# Continuous dependent variable
+# Dependent variable has a normal distribution, 
+# with the same variance, σ2, in each group 
+
+# No heteroscedasticity of residuals
+# i.e. the variance of residuals should not increase with 
+# fitted values of the response variable. 
+# Simple tutorial:
+# https://www.r-bloggers.com/how-to-detect-heteroscedasticity-and-rectify-it/
+# https://datascienceplus.com/linear-regression-predict-energy-output-power-plant/
+
+# Residual analysis, diagnostic plots:
+par(mfrow = c(2, 2))
+plot(lm(data = imp_all_data$data, formula = 'vitd0 ~ arm'))
+dev.off()
+# Without heteroscedastity a random, equal distribution of points 
+# throughout the range of X axis and a flat red line should be observed
+# (left side plots).
+
+# Breusch-Pagan test for heteroscedasticity:
+lmtest::bptest(lm(data = imp_all_data$data, formula = 'vitd0 ~ arm'))
+# ncv test:
+car::ncvTest(lm(data = imp_all_data$data, formula = 'vitd0 ~ arm'))
+# If p-values are <0.05, reject null that heteroscedasticity is constant
+# among groups for variable of interest
+
+##########
+# Run anova on arm with other covariates of interest:
+anova(lm(data = imp_all_data$data, formula = 'vitd12 ~ arm'))
+anova_imp_vitd12 <- anova(lm(data = imp_all_data$data, formula = pass_formula))
+anova_imp_vitd12
+# F-tests are significant for:
+# arm, vitd0, incident_resp_infection, basemed_vitamind, bmi0
+# Marginal for:
+# diabetes, calendar_age_ra
+# i.e. means between groups are different, if more than two groups, which groups actually
+# differ? Run pairwise comparisons.
+
+# Pairwise comparisons and multiple testing
+# Default is treatment contrasts with first group treated as baseline (alphanumerical order)
+# Run as multiple regression analysis with dummy variable ('0' for baseline group, 
+# '1' for others)
+# If running with different contrasts do e.g.:
+# contrasts(all_data$arm) <- contr.treatment(n = 3, base = 3) # Specifies placebo (arm == 2) is the baseline
+# contrasts(all_data$arm)
+
+# t-tests test whether group 0 vs other (pairwise) have the same true mean
+summary(lm(data = imp_all_data$data, formula = 'vitd12 ~ arm'))
+pairwise_imp_vitd12 <- summary(lm(data = imp_all_data$data, formula = pass_formula))
+pairwise_imp_vitd12
+# So here the probability of the means of arm_placebo vs armB_2000IU
+# being the same is p<2e-16
+# And arm_placebo vs armB_4000IU is also p<2e-16
+# Use relevel() to re-order factor levels to compare e.g. armB vs armC
+
+# All pairwise comparisons with p-value adjustment:
+pairwise.t.test(x = imp_all_data$data$vitd12, 
+                g = imp_all_data$data$arm,
+                p.adjust.method = 'bonferroni')
+
+# Plot, e.g.:
+names(all_data)
+ggplot(imp_all_data$data, aes(x = arm, y = vitd12, fill = arm)) +
+  geom_boxplot() +
+  geom_jitter(position = position_jitter(0.2)) +
+  theme_classic() +
+  theme(legend.position = 'none') +
+  labs(x = '')
+  # theme(axis.text.x = element_blank())
+
+##########
+# TO DO: check
+# Sanity check significant cofactors:
+# Significant: arm, vitd0, incident_resp_infection, basemed_vitamind, bmi0
+plyr::count(all_data$arm)
+summary(all_data[which(all_data$arm == 'A_placebo'), 'vitd0'])
+summary(all_data[which(all_data$arm == 'B_2000IU'), 'vitd0'])
+summary(all_data[which(all_data$arm == 'C_4000IU'), 'vitd0'])
+kruskal.test(all_data$vitd0, all_data$arm)
+anova(lm(all_data$vitd0 ~ all_data$arm))
+summary(lm(all_data$vitd0 ~ all_data$arm))
+pairwise.t.test(x = imp_all_data$data$vitd0,
+                g = imp_all_data$data$arm,
+                p.adjust.method = 'bonferroni')
+
+summary(all_data[which(all_data$incident_resp_infection == 0), 'arm'])
+summary(all_data[which(all_data$incident_resp_infection == 1), 'arm'])
+table(all_data$incident_resp_infection, all_data$arm)
+chisq.test(x = all_data$incident_resp_infection, y = all_data$arm)
+
+summary(all_data[which(all_data$basemed_vitamind == 0), 'arm'])
+summary(all_data[which(all_data$basemed_vitamind == 1), 'arm'])
+# tapply(all_data$basemed_vitamind, all_data$arm, plyr::count)
+table(all_data$basemed_vitamind, all_data$arm)
+chisq.test(x = all_data$basemed_vitamind, y = all_data$arm)
+
+summary(all_data[which(all_data$arm == 'A_placebo'), 'bmi0'])
+summary(all_data[which(all_data$arm == 'B_2000IU'), 'bmi0'])
+summary(all_data[which(all_data$arm == 'C_4000IU'), 'bmi0'])
+kruskal.test(all_data$bmi0, all_data$arm)
+anova(lm(all_data$bmi0 ~ all_data$arm))
+summary(lm(all_data$bmi0 ~ all_data$arm))
+pairwise.t.test(x = imp_all_data$data$bmi0,
+                g = imp_all_data$data$arm,
+                p.adjust.method = 'bonferroni')
+
+# Marginal: diabetes, calendar_age_ra
+summary(all_data[which(all_data$diabetes == 0), 'arm'])
+summary(all_data[which(all_data$diabetes == 1), 'arm'])
+kruskal.test(all_data$diabetes, all_data$arm)
+anova(lm(all_data$diabetes ~ all_data$arm))
+
+summary(all_data[which(all_data$arm == 'A_placebo'), 'calendar_age_ra'])
+summary(all_data[which(all_data$arm == 'B_2000IU'), 'calendar_age_ra'])
+summary(all_data[which(all_data$arm == 'C_4000IU'), 'calendar_age_ra'])
+anova(lm(all_data$calendar_age_ra ~ all_data$arm))
+##########
+
+
+##########
+# Linear models for cytokine levels before and after vitD:
+# Run all cytokines in all groups, use all covariates used in genotype analysis:
+cytokines_0
+cytokines_12
+covars
+plyr::count(all_data$arm)
+
+# Simple scenario, does x interleukin correlate with vitamin D levels:
+for (i in cytokines_0) {
+  print(i)
+  print(summary(lm(formula = sprintf('%s ~ vitd0', i), data = all_data)))
+  }
+# Only IL6_0 is associated to vitd0
+for (i in cytokines_12) {
+  print(i)
+  print(summary(lm(formula = sprintf('%s ~ vitd12', i), data = all_data)))
+}
+# No cytokine at 12 months is associated with vitd12, regardless of arm
+
+# Run for 12 months with arm and adjusting for covariates:
+for (i in cytokines_12) {
+  print(i)
+  pass_formula <- sprintf('%s ~ vitd12 + arm + %s', i, covars)
+  print(pass_formula)
+  df <- all_data
+  print(summary(lm(formula = pass_formula, data = df)))
+  # # Check results and diagnostic plots:
+  # fitted(lm_cyto)
+  # residuals(lm_cyto)
+  # plot(all_data$vitd12, all_data$Ln_IL10_12)
+  # abline(lm_cyto)
+  # # Plot diagnostics
+  # # Normality, Independence, Linearity, Homoscedasticity, Residual versus Leverage graph (outliers, high leverage values and
+  # # influential observation's (Cook's D))
+  # par(mfrow=c(2,2)) 
+  # plot(lm_cyto)
+}
+
+# Interpretation:
+# Running a basic lm adjusted for basic covariates in all data 
+# gives null results for all five cytokines at 12 months for vitd12.
+# Ln_IL6_12 is assoc. with vitd0, calendar_age_ra and others but not vitd12 and is
+# borderline significant for armB_2000IU
+
+# Other 12 month cytokines are associated with age, disease, etc but not arm or
+# vitd variables.
+
+##########
+# Run anova and pairwise for each cytokine at 12 months:
+covars_list
+covars
+# Pairwise t-tests with p-value adjustment:
+for (i in cytokines_12) {
+  print(i)
+  print(
+    pairwise.t.test(x = imp_all_data$data[, i],
+                    g = imp_all_data$data$arm,
+                    p.adjust.method = 'bonferroni')
+  )
+}
+# None are significant.
+
+# Anova:
+for (i in cytokines_12) {
+  pass_formula <- sprintf('%s ~ arm + vitd12 + %s', i, covars)
+  print(pass_formula)
+  print(
+    anova(lm(data = imp_all_data$data, formula = pass_formula))
+  )
+  }
+# None are significant for arm, some with age and disease variables
+
+##########
+# TO DO: run ANCOVA: 
+# line plots like VD in results paper: fig2, fig3, table2 or 3 ?
+
+
+##########
+
+
 ##########
 # Pool results from imputed missing data and fit a linear model
 # Use imputed set, not complete(), pool() then uses the multiple imputations
+# For vitd12:
 names(imp_all_data$data)
 imp_fit <- with(imp_all_data,
                 lm(formula = vitd12 ~ 
@@ -751,53 +982,70 @@ imp_fit <- with(imp_all_data,
 summary(imp_fit)
 pool(imp_fit)
 summary(pool(imp_fit))
-
 # Manually looked at coefficients and p-values, these are largely the same between pool()
 # and lm_vd12:
 lm_vd12 <- lm(formula = pass_formula, data = all_data)
 
 ##########
-# TO DO: continue from here: 
-# setup anovas per group comparison
-# all in one lm
-# line plots like VD in results paper: fig2, fig3, table2 or 3
-
-# Run anova on pooled imputations:
-library(miceadds)
-# library(car)
-class(imp_all_data)
-imp_fit_anova <- mi.anova(mi.res = imp_all_data,
-                          formula = 'vitd12 ~ 
-                                     male +
-                                     vitd0 +
-                                     incident_fracture +
-                                     incident_resp_infection +
-                                     diabetes +
-                                     heart_disease +
-                                     copd_asthma +
-                                     basemed_vitamind +
-                                     currsmoker +
-                                     bmi0 +
-                                     calendar_age_ra +
-                                     season_randomisation_2 * arm')
-
-summary(imp_fit_anova)
+# Run anova on pooled imputations for cytokines:
+# Using miceadds to be able to pool the results from multiple imputations
+for (i in cytokines_12) {
+  pass_formula <- sprintf('%s ~ arm + vitd12 + %s', i, covars)
+  print(pass_formula)
+  print(
+    mi.anova(mi.res = imp_all_data, formula = pass_formula)
+  )
+}
+# No significant results for arm
 
 ##########
-# Compare two models with mice::pooled.compare(), pool.r.square(), etc.:
-imp_fit_model1 <- with(imp_all_data,
-                       lm(formula = vitd12 ~ 
-                            male +
-                            vitd0 +
-                            diabetes +
-                            bmi0))
-imp_fit_model2 <- with(imp_all_data,
-                       lm(formula = vitd12 ~ 
-                            male +
-                            vitd0 +
-                            diabetes +
-                            bmi0 +
-                            calendar_age_ra))
+# Test with arm as interaction term: y ~ + x + z * arm, e.g.
+# TO DO: correct so as to use pooled imputations
+pass_formula <- sprintf('Ln_IFNgamma12 ~ vitd12 + arm + vitd12*arm + %s', covars)
+pass_formula
+imp_fit_interaction <- with(imp_all_data, lm(formula = pass_formula))
+lm_IFN12 <- lm(formula = pass_formula, imp_all_data$data)
+anova(lm_IFN12)
+summary(lm_IFN12)
+
+
+# Scatterplot:
+xyplot(Ln_IFNgamma12 ~ vitd12 | arm, all_data,
+       panel = function(x, y, ...) {
+         panel.xyplot(x, y, ...)
+         panel.lmline(x, y, ...)
+         }
+       )
+
+# Diagnostic plots:
+xyplot(resid(lm_IFN12) ~ fitted(lm_IFN12) | all_data$arm,
+       xlab = "Fitted Values",
+       ylab = "Residuals",
+       main = "Residual Diagnostic Plot",
+       panel = function(x, y, ...)
+       {
+         panel.grid(h = -1, v = -1)
+         panel.abline(h = 0)
+         panel.xyplot(x, y, ...)
+       }
+)
+
+# For all cytokines at 12 months:
+for (i in cytokines_12) {
+  pass_formula <- sprintf('%s ~ vitd12 + arm + vitd12*arm + %s', i, covars)
+  print(pass_formula)
+  print(
+    mi.anova(mi.res = imp_all_data, formula = pass_formula)
+  )
+}
+# No significant results
+
+##########
+# Only for reference, not used:
+# Compare two models with mice::pooled.compare(), pool.r.square(), etc. e.g.:
+imp_fit_model1 <- with(imp_all_data, lm(formula = vitd12 ~ arm))
+imp_fit_model2 <- with(imp_all_data, lm(formula = vitd12 ~ arm + male)) 
+
 # Check variance explained:
 pool.r.squared(imp_fit, adjusted = T)
 pool.r.squared(imp_fit_model1, adjusted = T)
@@ -810,188 +1058,44 @@ compare_imp_models$pvalue
 pool.compare(imp_fit, imp_fit_model2, method = "Wald")$pvalue
 ##########
 
-##########
-
-plyr::count(imp_all_data$data$arm)
-imp_fit_placebo <- with(imp_all_data$data[which(imp_all_data$data$arm == 'A_placebo'), ],
-                lm(formula = vitd12 ~ 
-                     male +
-                     vitd0 +
-                     incident_fracture +
-                     incident_resp_infection +
-                     diabetes +
-                     heart_disease +
-                     copd_asthma +
-                     basemed_vitamind +
-                     currsmoker +
-                     bmi0 +
-                     calendar_age_ra +
-                     season_randomisation_2))
-summary(imp_fit_placebo)
-pool(imp_fit_placebo)
-summary(pool(imp_fit_placebo))
-
-imp_fit_2000 <- with(imp_all_data$data[which(imp_all_data$data$arm == 'B_2000IU'), ],
-                        lm(formula = vitd12 ~ 
-                             male +
-                             vitd0 +
-                             incident_fracture +
-                             incident_resp_infection +
-                             diabetes +
-                             heart_disease +
-                             copd_asthma +
-                             basemed_vitamind +
-                             currsmoker +
-                             bmi0 +
-                             calendar_age_ra +
-                             season_randomisation_2))
-
-
-lm_vd12_placebo <- lm(formula = pass_formula, 
-                      data = all_data[which(all_data$arm == 'A_placebo'), ],
-                      na.action = na.omit)
-lm_vd12_2000 <- lm(formula = pass_formula, data = all_data_2000)
-lm_vd12_4000 <- lm(formula = pass_formula, 
-                   data = all_data[which(all_data$arm == 'C_4000IU'), ],
-                   na.action = na.omit)
-summary(lm_vd12)
-summary(lm_vd12_placebo)
-anova(lm_vd12_4000, lm_vd12_placebo)
 
 ##########
-# Sanity check basemed_vitamind, diabetes, bmi0 and age
-# as came out significant:
-# TO DO:
-summary(all_data[which(all_data$diabetes == 0), 'arm'])
-summary(all_data[which(all_data$diabetes == 1), 'arm'])
-kruskal.test(all_data$diabetes, all_data$arm)
-anova(lm(all_data$diabetes ~ all_data$arm))
-
-plyr::count(all_data$arm)
-summary(all_data[which(all_data$arm == 'A_placebo'), 'bmi0'])
-summary(all_data[which(all_data$arm == 'B_2000IU'), 'bmi0'])
-summary(all_data[which(all_data$arm == 'C_4000IU'), 'bmi0'])
-anova(lm(all_data$bmi0 ~ all_data$arm))
-
-summary(all_data[which(all_data$arm == 'A_placebo'), 'calendar_age_ra'])
-summary(all_data[which(all_data$arm == 'B_2000IU'), 'calendar_age_ra'])
-summary(all_data[which(all_data$arm == 'C_4000IU'), 'calendar_age_ra'])
-anova(lm(all_data$calendar_age_ra ~ all_data$arm))
-
-summary(all_data[which(all_data$basemed_vitamind == 0), 'arm'])
-summary(all_data[which(all_data$basemed_vitamind == 1), 'arm'])
-# tapply(all_data$basemed_vitamind, all_data$arm, plyr::count)
-kruskal.test(all_data$basemed_vitamind, all_data$arm)
-
-# TO DO: run with contrasts?
-# contrasts(all_data$arm) <- contr.treatment(n = 3, base = 3) # Specifies placebo (arm == 2) is the baseline
-# contrasts(all_data$arm)
-##########
-
-##########
+# Only for reference, not used:
 # Linear model for change in vitd (final minus baseline):
 y <- 'delta'
+pass_formula <- sprintf('%s ~ arm + %s', y, covars)
 pass_formula
-lm_cyto <- lm(formula = pass_formula, data = all_data)
-summary(lm_cyto)
-# Results as expected, double check but seem fine.
+lm_delta <- lm(formula = pass_formula, data = all_data)
+summary(lm_delta)
+# Results as above/expected
 ##########
 
 
 ##########
-# TO DO:
-# Linear models for cytokine levels before and after vitD:
-# Simple scenario, does x interleukin correlate with vitamin D levels:
-lm_cyto <- lm(formula = 'Ln_IL10_0 ~ vitd0', data = all_data)
-summary(lm_cyto)
-lm_cyto <- lm(formula = 'Ln_IL10_12 ~ vitd12', data = all_data)
-summary(lm_cyto)
-
-# ANOVA group vs group
-lm_cyto <- lm(formula = 'Ln_IL10_12 ~ vitd12', data = all_data_placebo)
-summary(lm_cyto)
-anova()
-
-# Run all cytokines in all groups, use all covariates used in genotype analysis:
-cytokines_0
-cytokines_12
-covars
-plyr::count(all_data$arm)
-
-# i <- 'Ln_TNFalpha12'
-for (i in cytokines_12) {
-  print(i)
-  pass_formula <- sprintf('%s ~ vitd12 + %s', i, covars)
-  print(pass_formula)
-  df <- all_data
-  print(summary(lm(formula = pass_formula, data = df)))
-  # # Check results and diagnostic plots:
-  # fitted(lm_cyto)
-  # residuals(lm_cyto)
-  # plot(all_data$vitd12, all_data$Ln_IL10_12)
-  # abline(lm_cyto)
-  # # Plot diagnostics
-  # # Normality, Independence, Linearity, Homoscedasticity, Residual versus Leverage graph (outliers, high leverage values and
-  # # influential observation's (Cook's D))
-  # par(mfrow=c(2,2)) 
-  # plot(lm_cyto)
-  }
-
-# Interpretation:
-# Running a basic lm adjusted for basic covariates in all data 
-# gives null results for all five cytokines at 12 months for vitd12.
-# Ln_IL6_12 is assoc. with vitd0, calendar_age_ra and others but not vitd12 and is
-# borderline significant for armB_2000IU
-
-# Other 12 month cytokines are associated with age, disease, etc but not arm or
-# vitd variables.
-##########
-
-
-##########
-# TO DO: run random effects?
-# See: http://stackoverflow.com/questions/1169539/linear-regression-and-group-by-in-r
-library(lme4)
+# # TO DO: run random effects?
+# # See: http://stackoverflow.com/questions/1169539/linear-regression-and-group-by-in-r
+# library(lme4)
 # library(nlme)
-
-
-# Another scatterlot example:
-xyplot(Ln_IL10_12 ~ vitd12, groups = arm, data = all_data, type = c('p', 'r', 'g'))
-# Run linear regression by group:
-summary(lmList(formula = vitd12 ~
-                 male +
-                 vitd0 +
-                 incident_fracture +
-                 incident_resp_infection +
-                 diabetes +
-                 heart_disease +
-                 copd_asthma +
-                 basemed_vitamind +
-                 currsmoker +
-                 bmi0 +
-                 calendar_age_ra +
-                 season_randomisation_2 | arm,
-               data = all_data))
+# 
+# # Another scatterlot example:
+# # xyplot(Ln_IL10_12 ~ vitd12, groups = arm, data = all_data, type = c('p', 'r', 'g'))
+# # Run linear regression by group:
+# summary(lmList(formula = vitd12 ~
+#                  male +
+#                  vitd0 +
+#                  incident_fracture +
+#                  incident_resp_infection +
+#                  diabetes +
+#                  heart_disease +
+#                  copd_asthma +
+#                  basemed_vitamind +
+#                  currsmoker +
+#                  bmi0 +
+#                  calendar_age_ra +
+#                  season_randomisation_2 | arm,
+#                data = all_data))
 
 # Run for all cytokines with covariates, exclude arm:
-for (i in cytokines_12) {
-  print(i)
-  df <- all_data
-  print(summary(lmList(formula = i ~ vitd12 +
-                         male +
-                         vitd0 +
-                         incident_fracture +
-                         incident_resp_infection +
-                         diabetes +
-                         heart_disease +
-                         copd_asthma +
-                         basemed_vitamind +
-                         currsmoker +
-                         bmi0 +
-                         calendar_age_ra +
-                         season_randomisation_2 
-                       | arm, 
-                       data = df)))
   # # Check results and diagnostic plots:
   # fitted(lm_cyto)
   # residuals(lm_cyto)
@@ -1002,19 +1106,18 @@ for (i in cytokines_12) {
   # # influential observation's (Cook's D))
   # par(mfrow=c(2,2)) 
   # plot(lm_cyto)
-}
 
-# lm_cyto <- lme('formula = vitd12 ~ vitd0 +
-#                male +
-#                bmi0 +
-#                calendar_age_ra +
-#                (1 | arm)',
-#                data = all_data)
 # 
-# lm_cyto_null <- lmer('formula = vitd12 ~ (1 | arm)',
-#                      data = all_data)
-# anova(lm_cyto, lm_cyto_null)
-# summary(lm_cyto)
+lmm_vitd12 <- lmer(formula = vitd12 ~ vitd0 +
+               male +
+               bmi0 +
+               calendar_age_ra +
+               (1 | arm),
+               data = all_data)
+
+lmm_null <- lmer(formula = vitd12 ~ (1 | arm),
+                     data = all_data)
+anova(lmm_vitd12, lmm_null)
 ##########
 #############################################
 
