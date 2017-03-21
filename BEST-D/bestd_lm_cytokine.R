@@ -90,12 +90,7 @@ args <- commandArgs(trailingOnly = TRUE)
 # Join info with geno, expr, VD, pheno:
 # Create one file with pt_id, kit_id, candidate geno, candidate expr, pheno and VD
 # This file has pt_id with 0 and 12 months for each variable
-# Pull in above data and join
-# Plot gene expression with cytokines as main figure
-
-# Basic sanity check, see thresholds, basic comparisons between 0, 12 and groups
-# Correlation to VD and other measures?
-# Association with genotype, SNPs tested only
+# Association with genotype, SNPs tested only?
 
 #############################
 # Import libraries:
@@ -1000,14 +995,35 @@ for (i in cytokines_12) {
 
 ##########
 # Test with arm as interaction term: y ~ + x + z * arm, e.g.
-# TO DO: correct so as to use pooled imputations
-pass_formula <- sprintf('Ln_IFNgamma12 ~ vitd12 + arm + vitd12*arm + %s', covars)
-pass_formula
-imp_fit_interaction <- with(imp_all_data, lm(formula = pass_formula))
 lm_IFN12 <- lm(formula = pass_formula, imp_all_data$data)
 anova(lm_IFN12)
 summary(lm_IFN12)
 
+# With pooled imputations:
+pass_formula <- sprintf('Ln_IFNgamma12 ~ vitd12 + arm + vitd12*arm + %s', covars)
+pass_formula
+mi.anova(mi.res = imp_all_data, formula = pass_formula)
+# Quotes cause errors for lm with imputed data in mice (?):
+cytokines_12
+imp_fit_interaction <- imp_fit <- with(imp_all_data,
+                                        lm(formula = Ln_TNFalpha12 ~ vitd12 + 
+                                             arm + vitd12*arm +
+                                             male +
+                                             vitd0 +
+                                             incident_fracture +
+                                             incident_resp_infection +
+                                             diabetes +
+                                             heart_disease +
+                                             copd_asthma +
+                                             basemed_vitamind +
+                                             currsmoker +
+                                             bmi0 +
+                                             calendar_age_ra +
+                                             season_randomisation_2))
+summary(imp_fit_interaction)
+pool(imp_fit_interaction)
+summary(pool(imp_fit_interaction))
+# Not significant for any cytokine for interaction between arms and vitd12.
 
 # Scatterplot:
 xyplot(Ln_IFNgamma12 ~ vitd12 | arm, all_data,
@@ -1016,7 +1032,6 @@ xyplot(Ln_IFNgamma12 ~ vitd12 | arm, all_data,
          panel.lmline(x, y, ...)
          }
        )
-
 # Diagnostic plots:
 xyplot(resid(lm_IFN12) ~ fitted(lm_IFN12) | all_data$arm,
        xlab = "Fitted Values",
@@ -1030,7 +1045,7 @@ xyplot(resid(lm_IFN12) ~ fitted(lm_IFN12) | all_data$arm,
        }
 )
 
-# For all cytokines at 12 months:
+# ANOVA for all cytokines at 12 months with pooled imputations:
 for (i in cytokines_12) {
   pass_formula <- sprintf('%s ~ vitd12 + arm + vitd12*arm + %s', i, covars)
   print(pass_formula)
