@@ -782,15 +782,24 @@ car::ncvTest(lm(data = imp_all_data$data, formula = 'vitd0 ~ arm'))
 
 ##########
 # Run anova on arm with other covariates of interest:
+pass_formula <- sprintf('vitd12 ~ arm + %s', covars)
+pass_formula
 anova(lm(data = imp_all_data$data, formula = 'vitd12 ~ arm'))
-anova_imp_vitd12 <- anova(lm(data = imp_all_data$data, formula = pass_formula))
-anova_imp_vitd12
+lm_imp_vitd12 <- lm(data = imp_all_data$data, formula = pass_formula)
+anova(lm_imp_vitd12)
 # F-tests are significant for:
 # arm, vitd0, incident_resp_infection, basemed_vitamind, bmi0
 # Marginal for:
 # diabetes, calendar_age_ra
 # i.e. means between groups are different, if more than two groups, which groups actually
 # differ? Run pairwise comparisons.
+
+# Diagnostic plots of normality:
+par(mfrow = c(2, 2))
+plot(lm_imp_vitd12)
+qqnorm(lm_imp_vitd12$residuals)
+plot(lm_imp_vitd12$fitted, lm_imp_vitd12$residuals, 
+     xlab = "Fitted", ylab = "Residuals")
 
 # Pairwise comparisons and multiple testing
 # Default is treatment contrasts with first group treated as baseline (alphanumerical order)
@@ -892,6 +901,9 @@ for (i in cytokines_12) {
   print(summary(lm(formula = sprintf('%s ~ vitd12', i), data = all_data)))
 }
 # No cytokine at 12 months is associated with vitd12, regardless of arm
+# TO DO: plot diagnostics for each, e.g.:
+# par(mfrow = c(2, 2))
+# plot(lm_imp_vitd12)
 
 # Run for 12 months with arm and adjusting for covariates:
 for (i in cytokines_12) {
@@ -900,7 +912,7 @@ for (i in cytokines_12) {
   print(pass_formula)
   df <- all_data
   print(summary(lm(formula = pass_formula, data = df)))
-  # # Check results and diagnostic plots:
+  # # TO DO: Check results and diagnostic plots:
   # fitted(lm_cyto)
   # residuals(lm_cyto)
   # plot(all_data$vitd12, all_data$Ln_IL10_12)
@@ -947,10 +959,50 @@ for (i in cytokines_12) {
 # None are significant for arm, some with age and disease variables
 
 ##########
-# TO DO: run ANCOVA: 
+# TO DO: Plot with corrected values after lm?
 # line plots like VD in results paper: fig2, fig3, table2 or 3 ?
+# arm
+# vitd12
+# cytokines_0
+# cytokines_12
+# y is cytokine levels
+# x is time
+all_data_melt_i <- melt(data = all_data, measure.vars = c('Ln_IFNgamma0', 'Ln_IFNgamma12'))
+all_data_melt_i$variable <- factor(all_data_melt_i$variable,
+                                   levels = c('Ln_IFNgamma0',
+                                              'Ln_IFNgamma12'
+                                              ),
+                                   labels = c('IFNg baseline',
+                                              'IFNg 12 months'
+                                              ))
+plyr::count(all_data_melt_i$variable)
+plyr::count(all_data_melt_i$arm2)
+group <- factor(all_data_melt_i$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                labels = c("Placebo", "2000 IU", "4000 IU"))
+plyr::count(group)
+ggplot(all_data_melt_i, aes(y = value, x = variable, fill = group)) +
+  geom_boxplot()
 
+group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+                labels = c("Placebo", "2000 IU", "4000 IU"))
 
+all_data$Ln_IFNgamma_delta <- all_data$Ln_IFNgamma12 - all_data$Ln_IFNgamma0
+summary(all_data$Ln_IFNgamma_delta)
+
+ggplot(data = all_data, aes(x = vitd12, Ln_IFNgamma_delta, colour = group)) +
+  geom_point(shape = 1) + # Hollow circles
+  scale_colour_hue(l = 50) + # darker palette
+  geom_smooth(method = lm,   # regression line
+              se = FALSE    # exclude confidence region
+  ) + # fullrange = TRUE # Extend regression line
+  labs(title = '', x = 'Change in 25OHD levels', y = 'Change in cytokine levels') +
+  theme_classic() +
+  theme(text = element_text(size = 14), 
+        legend.title = element_blank(),
+        legend.position = 'bottom'
+        # legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "pt")
+        # plot.margin = margin(b = 0, unit = "pt")
+  )
 ##########
 
 
@@ -981,6 +1033,10 @@ summary(pool(imp_fit))
 # and lm_vd12:
 lm_vd12 <- lm(formula = pass_formula, data = all_data)
 
+# TO DO Diagnostic plots of normality with imputed data:
+# par(mfrow = c(2, 2))
+# mice::plot.mids(pool(imp_fit)) # function doesn't exist
+
 ##########
 # Run anova on pooled imputations for cytokines:
 # Using miceadds to be able to pool the results from multiple imputations
@@ -992,12 +1048,19 @@ for (i in cytokines_12) {
   )
 }
 # No significant results for arm
+# TO DO Diagnostic plots of normality with imputed data
 
 ##########
 # Test with arm as interaction term: y ~ + x + z * arm, e.g.
 lm_IFN12 <- lm(formula = pass_formula, imp_all_data$data)
 anova(lm_IFN12)
 summary(lm_IFN12)
+# par(mfrow=c(1,2))
+# plot(vitd12 ~ arm + diabetes, data = imp_all_data$data)
+# dev.off()
+# interaction.plot(imp_all_data$data$arm,
+#                  imp_all_data$data$diabetes,
+#                  imp_all_data$data$Ln_IFNgamma12)
 
 # With pooled imputations:
 pass_formula <- sprintf('Ln_IFNgamma12 ~ vitd12 + arm + vitd12*arm + %s', covars)
@@ -1024,6 +1087,7 @@ summary(imp_fit_interaction)
 pool(imp_fit_interaction)
 summary(pool(imp_fit_interaction))
 # Not significant for any cytokine for interaction between arms and vitd12.
+# TO DO Diagnostic plots of normality with imputed data
 
 # Scatterplot:
 xyplot(Ln_IFNgamma12 ~ vitd12 | arm, all_data,
@@ -1054,6 +1118,7 @@ for (i in cytokines_12) {
   )
 }
 # No significant results
+# TO DO Diagnostic plots of normality with imputed data
 
 ##########
 # Only for reference, not used:
