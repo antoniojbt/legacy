@@ -112,7 +112,6 @@ library(miceadds)
 
 #############################################
 # Set-up arguments:
-
 cyto_file <- as.character(args[1])
 cyto_file <- 'bestd_cytokines.csv'
 
@@ -337,6 +336,7 @@ t.test(all_data_4000$Ln_TNFalpha0, all_data_4000$Ln_TNFalpha12, paired = T)
 
 
 #############################################
+##########
 # Basic scatterplots of changes in each group:
 plot(all_data$Ln_IFNgamma12, all_data$vitd12)
 plot(all_data_placebo$Ln_IL10_12, all_data_placebo$Ln_IL10_0)
@@ -439,6 +439,8 @@ scatter_plot_cyto(all_data,
                   '',
                   'IFNg')
 ##########
+
+##########
 # All together now
 # Create lists for variables of interest at baseline and final:
 cytokines_0 <- c('Ln_IFNgamma0',
@@ -500,7 +502,6 @@ ggsave('scatterplots_cytokines_and_VD.png', plots, height = 15, width = 15)
 
 
 #############################################
-##########
 # Basic sanity check, see thresholds, basic comparisons between 0, 12 and groups
 # Extract variables of interest, assign groups, run lm correcting for baseline 
 # and other groups
@@ -527,8 +528,10 @@ summary(all_data[which(all_data$arm == 0), 'delta'])
 summary(all_data[which(all_data$arm == 1), 'delta'])
 summary(all_data[which(all_data$arm == 2), 'delta'])
 t.test(all_data_4000$vitd12, all_data_4000$vitd0, paired = T)
-##########
+#############################################
 
+
+#############################################
 ##########
 # Impute missing values
 # TO DO: move to separate script
@@ -578,6 +581,7 @@ aggr_plot <- aggr(all_data[, c(covars_list, cytokines_0, cytokines_12)],
                   gap = 2,
                   ylab = c('Proportion of missing data', 'Pattern'))
 dev.off()
+##########
 
 ###########
 # Impute missing data
@@ -627,6 +631,7 @@ xyplot(imp_all_data,
        strip = strip.custom(factor.levels = labels),
        type = c('p')) # Magenta are imputed, blue observed
 dev.off()
+##########
 
 ###########
 # Further exploratory plots:
@@ -648,6 +653,7 @@ stripplot(imp_all_data,
           strip = strip.custom(par.strip.text = list(cex = 0.7)))
 # Magenta are imputed
 dev.off()
+##########
 
 ###########
 # Sanity check observed and imputed data
@@ -681,6 +687,7 @@ identical(imp_all_data$data$vitd12, imp_all_data_completed$vitd12.0) # 'xxx.0' i
 
 # Next step: use mice and miceadds libraries to run regression models (bottom of script)
 # with imputed dataset and pooled values from multiple imputed datasets and observed data.
+##########
 
 ###########
 # TO DO:
@@ -692,8 +699,10 @@ identical(imp_all_data$data$vitd12, imp_all_data_completed$vitd12.0) # 'xxx.0' i
 # polyreg(Bayesian polytomous regression) for factor variables with >= 2 levels
 # proportional odds model for ordered variables with >= 2 levels
 ##########
+#############################################
 
 
+#############################################
 ##########
 # Setup linear model with all covariates
 # Factor arm so that placebo is taken as reference group:
@@ -723,14 +732,25 @@ covars <- c('male +
             currsmoker +
             bmi0 +
             calendar_age_ra +
-            season_randomisation_2') # Add arm
+            season_randomisation_2') # Add arm at the end for ANOVA
 
 pass_formula <- sprintf('%s ~ %s', y, covars)
 pass_formula
-
+##########
 
 ##########
 # ANOVA tests
+# NOTE:
+# In R, the ANOVA tests are sequential. To control for a confounder it must come first in the
+# order of the model formula. For the regression output it won't matter but for the ANOVA output
+# it does.
+# The proportion of explained variation attributed to a given variable 
+# is eta-squared (or r^2 [effect size] in lm)
+# anova is by default type II, for type III car's Anova() is needed
+# Type III anova deals with unbalanced designs, e.g. experimental with randomisation
+# See e.g. tutorial:
+# https://ww2.coastal.edu/kingw/statistics/R-tutorials/unbalanced.html
+# https://ww2.coastal.edu/kingw/statistics/R-tutorials/ancova.html
 
 # Make sure arm and other variables are coded as factors for anova
 # otherwise they are run as linear regressions with 0 and 1's
@@ -739,7 +759,7 @@ class(imp_all_data$data)
 plyr::count(imp_all_data$data$arm)
 summary(imp_all_data$data$arm)
 summary(imp_all_data$data$vitd12)
-pass_formula <- sprintf('%s ~ arm + %s', y, covars)
+pass_formula <- sprintf('%s ~ %s + arm', y, covars)
 pass_formula
 
 # imputed dataset contains the original observations (imp_all_data$data) and is 
@@ -749,6 +769,7 @@ sapply(imp_all_data$data[, covars_list], class)
 
 class(all_data$arm)
 sapply(all_data[, covars_list], class)
+##########
 
 ##########
 # TO DO: check and complete assumptions tests
@@ -779,10 +800,11 @@ lmtest::bptest(lm(data = imp_all_data$data, formula = 'vitd0 ~ arm'))
 car::ncvTest(lm(data = imp_all_data$data, formula = 'vitd0 ~ arm'))
 # If p-values are <0.05, reject null that heteroscedasticity is constant
 # among groups for variable of interest
+##########
 
 ##########
 # Run anova on arm with other covariates of interest:
-pass_formula <- sprintf('vitd12 ~ arm + %s', covars)
+pass_formula <- sprintf('vitd12 ~ %s + arm', covars)
 pass_formula
 anova(lm(data = imp_all_data$data, formula = 'vitd12 ~ arm'))
 lm_imp_vitd12 <- lm(data = imp_all_data$data, formula = pass_formula)
@@ -832,7 +854,11 @@ ggplot(imp_all_data$data, aes(x = arm, y = vitd12, fill = arm)) +
   theme(legend.position = 'none') +
   labs(x = '')
   # theme(axis.text.x = element_blank())
+##########
+#############################################
 
+
+#############################################
 ##########
 # TO DO: check
 # Sanity check significant cofactors:
@@ -880,8 +906,10 @@ summary(all_data[which(all_data$arm == 'B_2000IU'), 'calendar_age_ra'])
 summary(all_data[which(all_data$arm == 'C_4000IU'), 'calendar_age_ra'])
 anova(lm(all_data$calendar_age_ra ~ all_data$arm))
 ##########
+#############################################
 
 
+#############################################
 ##########
 # Linear models for cytokine levels before and after vitD:
 # Run all cytokines in all groups, use all covariates used in genotype analysis:
@@ -904,34 +932,7 @@ for (i in cytokines_12) {
 # TO DO: plot diagnostics for each, e.g.:
 # par(mfrow = c(2, 2))
 # plot(lm_imp_vitd12)
-
-# Run for 12 months with arm and adjusting for covariates:
-for (i in cytokines_12) {
-  print(i)
-  pass_formula <- sprintf('%s ~ vitd12 + arm + %s', i, covars)
-  print(pass_formula)
-  df <- all_data
-  print(summary(lm(formula = pass_formula, data = df)))
-  # # TO DO: Check results and diagnostic plots:
-  # fitted(lm_cyto)
-  # residuals(lm_cyto)
-  # plot(all_data$vitd12, all_data$Ln_IL10_12)
-  # abline(lm_cyto)
-  # # Plot diagnostics
-  # # Normality, Independence, Linearity, Homoscedasticity, Residual versus Leverage graph (outliers, high leverage values and
-  # # influential observation's (Cook's D))
-  # par(mfrow=c(2,2)) 
-  # plot(lm_cyto)
-}
-
-# Interpretation:
-# Running a basic lm adjusted for basic covariates in all data 
-# gives null results for all five cytokines at 12 months for vitd12.
-# Ln_IL6_12 is assoc. with vitd0, calendar_age_ra and others but not vitd12 and is
-# borderline significant for armB_2000IU
-
-# Other 12 month cytokines are associated with age, disease, etc but not arm or
-# vitd variables.
+##########
 
 ##########
 # Run anova and pairwise for each cytokine at 12 months:
@@ -950,7 +951,7 @@ for (i in cytokines_12) {
 
 # Anova:
 for (i in cytokines_12) {
-  pass_formula <- sprintf('%s ~ arm + vitd12 + %s', i, covars)
+  pass_formula <- sprintf('%s ~ %s + arm', i, covars)
   print(pass_formula)
   print(
     anova(lm(data = imp_all_data$data, formula = pass_formula))
@@ -958,6 +959,38 @@ for (i in cytokines_12) {
   }
 # None are significant for arm, some with age and disease variables
 
+# Run for 12 months with arm and adjusting for covariates:
+for (i in cytokines_12) {
+  print(i)
+  pass_formula <- sprintf('%s ~ %s + arm', i, covars)
+  print(pass_formula)
+  df <- all_data
+  print(summary(lm(formula = pass_formula, data = df)))
+  # # TO DO: Check results and diagnostic plots:
+  # fitted(lm_cyto)
+  # residuals(lm_cyto)
+  # plot(all_data$vitd12, all_data$Ln_IL10_12)
+  # abline(lm_cyto)
+  # # Plot diagnostics
+  # # Normality, Independence, Linearity, Homoscedasticity, Residual versus Leverage graph (outliers, high leverage values and
+  # # influential observation's (Cook's D))
+  # par(mfrow=c(2,2)) 
+  # plot(lm_cyto)
+}
+
+# Interpretation:
+# Running a basic lm adjusted for basic covariates in all data 
+# gives null results for all five cytokines at 12 months for arm.
+# Ln_IL6_12 is assoc. with vitd0, calendar_age_ra and others but not arm
+# borderline significant for armB_2000IU though
+
+# Other 12 month cytokines are associated with age, disease, etc but not arm or
+# vitd variables.
+##########
+#############################################
+
+
+#############################################
 ##########
 # TO DO: Plot with corrected values after lm?
 # line plots like VD in results paper: fig2, fig3, table2 or 3 ?
@@ -1004,8 +1037,10 @@ ggplot(data = all_data, aes(x = vitd12, Ln_IFNgamma_delta, colour = group)) +
         # plot.margin = margin(b = 0, unit = "pt")
   )
 ##########
+#############################################
 
 
+#############################################
 ##########
 # Pool results from imputed missing data and fit a linear model
 # Use imputed set, not complete(), pool() then uses the multiple imputations
@@ -1031,46 +1066,109 @@ pool(imp_fit)
 summary(pool(imp_fit))
 # Manually looked at coefficients and p-values, these are largely the same between pool()
 # and lm_vd12:
+pass_formula <- sprintf('vitd12 ~ %s + arm', covars)
+pass_formula
 lm_vd12 <- lm(formula = pass_formula, data = all_data)
+summary(lm_vd12)
 
 # TO DO Diagnostic plots of normality with imputed data:
 # par(mfrow = c(2, 2))
 # mice::plot.mids(pool(imp_fit)) # function doesn't exist
+##########
 
 ##########
 # Run anova on pooled imputations for cytokines:
 # Using miceadds to be able to pool the results from multiple imputations
+# Type II anova (sum of squares method) is run by default, 
+# type III uses library(car) method 'Anova'
+# Type III can be used for mildly unbalanced designs, such as experimental and randomised
+cytokines_12
+pass_formula <- sprintf('Ln_IL6_12 ~ %s + arm', covars)
+pass_formula
+mi.anova(mi.res = imp_all_data, formula = pass_formula, type = 2)
+mi.anova(mi.res = imp_all_data, formula = pass_formula, type = 3)
+
+# pass_formula <- sprintf('%s ~ %s + arm', i, covars)
+# pass_formula <- sprintf('%s ~ %s + vitd12', i, covars)
+
 for (i in cytokines_12) {
-  pass_formula <- sprintf('%s ~ arm + vitd12 + %s', i, covars)
+  pass_formula <- sprintf('%s ~ %s + arm', i, covars)
   print(pass_formula)
   print(
-    mi.anova(mi.res = imp_all_data, formula = pass_formula)
+    mi.anova(mi.res = imp_all_data, formula = pass_formula, type = 3)
   )
 }
-# No significant results for arm
+
+# type II and III seem to give very similar results
+# No significant results for arm for type II or III
+# No significant results for vitd12 for type II or III
+# IFN and IL6 borderline non-significant for arm, p-values 0.0759 and 0.0704, but not vitd12.
 # TO DO Diagnostic plots of normality with imputed data
+##########
+#############################################
+
+
+#############################################
+##########
+# Single cytokine test, then add interaction model:
+cytokines_12
+imp_fit <- with(imp_all_data,
+                lm(formula = Ln_IL6_12 ~
+                     # vitd12 +
+                     male +
+                     vitd0 +
+                     incident_fracture +
+                     incident_resp_infection +
+                     diabetes +
+                     heart_disease +
+                     copd_asthma +
+                     basemed_vitamind +
+                     currsmoker +
+                     bmi0 +
+                     calendar_age_ra +
+                     season_randomisation_2 +
+                     arm))
+imp_fit$call
+summary(imp_fit)
+pool(imp_fit)
+summary(pool(imp_fit))
+# IL6 and IFN are significant for 2000 IU vs placebo? Not significant without covariates:
+# Observed data only:
+anova(with(imp_all_data$data, lm(Ln_IL6_12 ~ vitd0 + arm)))
+anova(with(imp_all_data$data, lm(Ln_IL6_12 ~ arm)))
+# With imputed data:
+mi.anova(mi.res = imp_all_data, formula = 'Ln_IL6_12 ~ vitd0 + arm', type = 3)
+mi.anova(mi.res = imp_all_data, formula = 'Ln_IL6_12 ~ arm', type = 3)
+# With imputed data:
+summary(pool(with(imp_all_data, lm(Ln_IL6_12 ~ vitd0 + arm))))
+summary(pool(with(imp_all_data, lm(Ln_IL6_12 ~ arm))))
+# anova is non-significant with or without correcting for baseline vitd in
+# both observed and pooled imputed data anova
+# TO DO check:
+# pooled imputed lm is significant for 2000 IU (type 2 and 3 anovas)
+# without correcting for vitd0 it is non-significant
+##########
 
 ##########
-# Test with arm as interaction term: y ~ + x + z * arm, e.g.
+# Test with interaction term: y ~ + x + z * arm, e.g.
+pass_formula <- sprintf('Ln_IFNgamma12 ~ %s + arm + vitd12 * bmi0', covars)
+pass_formula
 lm_IFN12 <- lm(formula = pass_formula, imp_all_data$data)
 anova(lm_IFN12)
 summary(lm_IFN12)
 # par(mfrow=c(1,2))
-# plot(vitd12 ~ arm + diabetes, data = imp_all_data$data)
+# plot(vitd12 ~ diabetes + arm, data = imp_all_data$data)
 # dev.off()
 # interaction.plot(imp_all_data$data$arm,
 #                  imp_all_data$data$diabetes,
 #                  imp_all_data$data$Ln_IFNgamma12)
 
 # With pooled imputations:
-pass_formula <- sprintf('Ln_IFNgamma12 ~ vitd12 + arm + vitd12*arm + %s', covars)
-pass_formula
 mi.anova(mi.res = imp_all_data, formula = pass_formula)
 # Quotes cause errors for lm with imputed data in mice (?):
-cytokines_12
 imp_fit_interaction <- imp_fit <- with(imp_all_data,
-                                        lm(formula = Ln_TNFalpha12 ~ vitd12 + 
-                                             arm + vitd12*arm +
+                                        lm(formula = Ln_IFNgamma12 ~ 
+                                             # vitd12 + 
                                              male +
                                              vitd0 +
                                              incident_fracture +
@@ -1082,7 +1180,9 @@ imp_fit_interaction <- imp_fit <- with(imp_all_data,
                                              currsmoker +
                                              bmi0 +
                                              calendar_age_ra +
-                                             season_randomisation_2))
+                                             season_randomisation_2 +
+                                             + arm +
+                                             vitd12 * bmi0))
 summary(imp_fit_interaction)
 pool(imp_fit_interaction)
 summary(pool(imp_fit_interaction))
@@ -1109,9 +1209,9 @@ xyplot(resid(lm_IFN12) ~ fitted(lm_IFN12) | all_data$arm,
        }
 )
 
-# ANOVA for all cytokines at 12 months with pooled imputations:
+# ANOVA for all cytokines at 12 months with pooled imputations and interaction term:
 for (i in cytokines_12) {
-  pass_formula <- sprintf('%s ~ vitd12 + arm + vitd12*arm + %s', i, covars)
+  pass_formula <- sprintf('%s ~ %s + arm + vitd12 * bmi0', i, covars)
   print(pass_formula)
   print(
     mi.anova(mi.res = imp_all_data, formula = pass_formula)
@@ -1120,38 +1220,38 @@ for (i in cytokines_12) {
 # No significant results
 # TO DO Diagnostic plots of normality with imputed data
 
-##########
-# Only for reference, not used:
+# Formally test if interaction significantly contribute to the model, e.g.:
+# anova(lm.without_interaction, lm.interaction)
 # Compare two models with mice::pooled.compare(), pool.r.square(), etc. e.g.:
-imp_fit_model1 <- with(imp_all_data, lm(formula = vitd12 ~ arm))
-imp_fit_model2 <- with(imp_all_data, lm(formula = vitd12 ~ arm + male)) 
-
 # Check variance explained:
+imp_fit$call
+imp_fit_interaction$call
 pool.r.squared(imp_fit, adjusted = T)
-pool.r.squared(imp_fit_model1, adjusted = T)
-pool.r.squared(imp_fit_model2, adjusted = T)
+pool.r.squared(imp_fit_interaction, adjusted = T)
 # Wald test and p-value for comparison:
-compare_imp_models <- pool.compare(imp_fit_model2,
-                                   imp_fit_model1,
-                                   method = "Wald")
+compare_imp_models <- pool.compare(imp_fit_interaction, # larger model first
+                                   imp_fit,
+                                   # data = imp_all_data,
+                                   method = 'Wald') #'likelihood')
 compare_imp_models$pvalue
-pool.compare(imp_fit, imp_fit_model2, method = "Wald")$pvalue
-##########
+# Results are non-significant, interaction term does not add to the model
+#############################################
 
 
-##########
+#############################################
 # Only for reference, not used:
 # Linear model for change in vitd (final minus baseline):
 y <- 'delta'
-pass_formula <- sprintf('%s ~ arm + %s', y, covars)
+pass_formula <- sprintf('%s ~ %s + arm', y, covars)
 pass_formula
 lm_delta <- lm(formula = pass_formula, data = all_data)
 summary(lm_delta)
 # Results as above/expected
-##########
+#############################################
 
 
-##########
+
+#############################################
 # # TO DO: run random effects?
 # # See: http://stackoverflow.com/questions/1169539/linear-regression-and-group-by-in-r
 # library(lme4)
@@ -1198,7 +1298,6 @@ lmm_vitd12 <- lmer(formula = vitd12 ~ vitd0 +
 lmm_null <- lmer(formula = vitd12 ~ (1 | arm),
                      data = all_data)
 anova(lmm_vitd12, lmm_null)
-##########
 #############################################
 
 
