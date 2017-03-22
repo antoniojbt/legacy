@@ -664,10 +664,12 @@ which(imp_all_data$imp$vitd12 <= 1 | imp_all_data$imp$vitd12 >= 250)
 which(imp_all_data$imp$calendar_age_ra <= 60 | imp_all_data$imp$calendar_age_ra >= 100)
 
 # Create dataset with both observed and imputed data:
-imp_all_data_completed <- complete(imp_all_data, action = 'repeat', include = T)
+# imp_all_data_completed <- complete(imp_all_data, action = 'repeat', include = T)
 # 'repeated' includes original data (colnames "xxx.0") and all imputations ("xxx.1, etc"). 
-dim(imp_all_data_completed)
+imp_all_data_completed <- complete(imp_all_data, include = T)
 head(imp_all_data_completed)
+dim(imp_all_data_completed)
+length(complete.cases(imp_all_data_completed) == TRUE)
 # View(imp_all_data_completed)
 
 complete.cases(all_data_interest)
@@ -710,12 +712,12 @@ all_data$arm <- factor(all_data$arm, levels = c('2', '1', '0'),
                        labels = c('A_placebo',
                                   'B_2000IU',
                                   'C_4000IU'))
-imp_all_data$data$arm <- factor(imp_all_data$data$arm, levels = c('2', '1', '0'),
+imp_all_data_completed$arm <- factor(imp_all_data_completed$arm, levels = c('2', '1', '0'),
                                  labels = c('A_placebo',
                                             'B_2000IU',
                                             'C_4000IU'))
 plyr::count(all_data$arm)
-plyr::count(imp_all_data$data$arm)
+plyr::count(imp_all_data_completed$arm)
 str(all_data$arm)
 
 # Code variables for easier referencing downstream:
@@ -755,10 +757,10 @@ pass_formula
 # Make sure arm and other variables are coded as factors for anova
 # otherwise they are run as linear regressions with 0 and 1's
 class(imp_all_data)
-class(imp_all_data$data)
-plyr::count(imp_all_data$data$arm)
-summary(imp_all_data$data$arm)
-summary(imp_all_data$data$vitd12)
+class(imp_all_data_completed)
+plyr::count(imp_all_data_completed$arm)
+summary(imp_all_data_completed$arm)
+summary(imp_all_data_completed$vitd12)
 pass_formula <- sprintf('%s ~ %s + arm', y, covars)
 pass_formula
 
@@ -788,16 +790,16 @@ sapply(all_data[, covars_list], class)
 
 # Residual analysis, diagnostic plots:
 par(mfrow = c(2, 2))
-plot(lm(data = imp_all_data$data, formula = 'vitd0 ~ arm'))
+plot(lm(data = imp_all_data_completed, formula = 'vitd0 ~ arm'))
 dev.off()
 # Without heteroscedastity a random, equal distribution of points 
 # throughout the range of X axis and a flat red line should be observed
 # (left side plots).
 
 # Breusch-Pagan test for heteroscedasticity:
-lmtest::bptest(lm(data = imp_all_data$data, formula = 'vitd0 ~ arm'))
+lmtest::bptest(lm(data = imp_all_data_completed, formula = 'vitd0 ~ arm'))
 # ncv test:
-car::ncvTest(lm(data = imp_all_data$data, formula = 'vitd0 ~ arm'))
+car::ncvTest(lm(data = imp_all_data_completed, formula = 'vitd0 ~ arm'))
 # If p-values are <0.05, reject null that heteroscedasticity is constant
 # among groups for variable of interest
 ##########
@@ -806,8 +808,8 @@ car::ncvTest(lm(data = imp_all_data$data, formula = 'vitd0 ~ arm'))
 # Run anova on arm with other covariates of interest:
 pass_formula <- sprintf('vitd12 ~ %s + arm', covars)
 pass_formula
-anova(lm(data = imp_all_data$data, formula = 'vitd12 ~ arm'))
-lm_imp_vitd12 <- lm(data = imp_all_data$data, formula = pass_formula)
+anova(lm(data = imp_all_data_completed, formula = 'vitd12 ~ arm'))
+lm_imp_vitd12 <- lm(data = imp_all_data_completed, formula = pass_formula)
 anova(lm_imp_vitd12)
 # F-tests are significant for:
 # arm, vitd0, incident_resp_infection, basemed_vitamind, bmi0
@@ -832,8 +834,8 @@ plot(lm_imp_vitd12$fitted, lm_imp_vitd12$residuals,
 # contrasts(all_data$arm)
 
 # t-tests test whether group 0 vs other (pairwise) have the same true mean
-summary(lm(data = imp_all_data$data, formula = 'vitd12 ~ arm'))
-pairwise_imp_vitd12 <- summary(lm(data = imp_all_data$data, formula = pass_formula))
+summary(lm(data = imp_all_data_completed, formula = 'vitd12 ~ arm'))
+pairwise_imp_vitd12 <- summary(lm(data = imp_all_data_completed, formula = pass_formula))
 pairwise_imp_vitd12
 # So here the probability of the means of arm_placebo vs armB_2000IU
 # being the same is p<2e-16
@@ -841,13 +843,13 @@ pairwise_imp_vitd12
 # Use relevel() to re-order factor levels to compare e.g. armB vs armC
 
 # All pairwise comparisons with p-value adjustment:
-pairwise.t.test(x = imp_all_data$data$vitd12, 
-                g = imp_all_data$data$arm,
+pairwise.t.test(x = imp_all_data_completed$vitd12, 
+                g = imp_all_data_completed$arm,
                 p.adjust.method = 'bonferroni')
 
 # Plot, e.g.:
 names(all_data)
-ggplot(imp_all_data$data, aes(x = arm, y = vitd12, fill = arm)) +
+ggplot(imp_all_data_completed, aes(x = arm, y = vitd12, fill = arm)) +
   geom_boxplot() +
   geom_jitter(position = position_jitter(0.2)) +
   theme_classic() +
@@ -870,8 +872,8 @@ summary(all_data[which(all_data$arm == 'C_4000IU'), 'vitd0'])
 kruskal.test(all_data$vitd0, all_data$arm)
 anova(lm(all_data$vitd0 ~ all_data$arm))
 summary(lm(all_data$vitd0 ~ all_data$arm))
-pairwise.t.test(x = imp_all_data$data$vitd0,
-                g = imp_all_data$data$arm,
+pairwise.t.test(x = imp_all_data_completed$vitd0,
+                g = imp_all_data_completed$arm,
                 p.adjust.method = 'bonferroni')
 
 summary(all_data[which(all_data$incident_resp_infection == 0), 'arm'])
@@ -891,8 +893,8 @@ summary(all_data[which(all_data$arm == 'C_4000IU'), 'bmi0'])
 kruskal.test(all_data$bmi0, all_data$arm)
 anova(lm(all_data$bmi0 ~ all_data$arm))
 summary(lm(all_data$bmi0 ~ all_data$arm))
-pairwise.t.test(x = imp_all_data$data$bmi0,
-                g = imp_all_data$data$arm,
+pairwise.t.test(x = imp_all_data_completed$bmi0,
+                g = imp_all_data_completed$arm,
                 p.adjust.method = 'bonferroni')
 
 # Marginal: diabetes, calendar_age_ra
@@ -945,8 +947,8 @@ covars
 for (i in cytokines_12) {
   print(i)
   print(
-    pairwise.t.test(x = imp_all_data$data[, i],
-                    g = imp_all_data$data$arm,
+    pairwise.t.test(x = imp_all_data_completed[, i],
+                    g = imp_all_data_completed$arm,
                     p.adjust.method = 'bonferroni')
   )
 }
@@ -957,7 +959,7 @@ for (i in cytokines_12) {
   pass_formula <- sprintf('%s ~ %s + arm', i, covars)
   print(pass_formula)
   print(
-    anova(lm(data = imp_all_data$data, formula = pass_formula))
+    anova(lm(data = imp_all_data_completed, formula = pass_formula))
   )
   }
 # None are significant for arm, some with age and disease variables
@@ -1116,26 +1118,89 @@ for (i in cytokines_12) {
 # Test with interaction term: y ~ + x + z * arm, e.g.
 pass_formula <- sprintf('Ln_IFNgamma12 ~ %s + arm + vitd12 * bmi0', covars)
 pass_formula
-lm_IFN12 <- lm(formula = pass_formula, imp_all_data$data)
+lm_IFN12 <- lm(formula = pass_formula, imp_all_data_completed)
 anova(lm_IFN12)
 summary(lm_IFN12)
 # Plots:
 par(mfrow=c(1,2))
-plot(Ln_IFNgamma12 ~ vitd12 + arm, data = imp_all_data$data)
+plot(Ln_IFNgamma12 ~ vitd12 + arm, data = imp_all_data_completed)
 dev.off()
+# Convert data frame into long format for time plot:
+imp_all_data_completed$pt_id <- rownames(imp_all_data_completed)
+imp_all_data_time <- imp_all_data_completed[, c('pt_id', 'Ln_IFNgamma0', 'Ln_IFNgamma12', 'arm')]
+head(imp_all_data_time)
+imp_all_data_time_melt <- melt(imp_all_data_time, id.vars = c('pt_id', 'arm'))
+dim(imp_all_data_time_melt)
+head(imp_all_data_time_melt)
+# Create column with 0 month and 12 month values:
+imp_all_data_time_melt$time <- ifelse(grepl(imp_all_data_time_melt$variable, 
+                                            pattern = '12') == TRUE,
+                                      '12',
+                                      ifelse(grepl(imp_all_data_time_melt$variable, 
+                                                   pattern = '0') == TRUE,
+                                             '0', NA)
+                                      )
+imp_all_data_time_melt$time <- factor(imp_all_data_time_melt$time, 
+                                      levels = c('0', '12'),
+                                      labels = c('Baseline', '12 months'))
+# Change response variable name:
+response <- 'Ln_IFNgamma'
+imp_all_data_time_melt$response <- ifelse(grepl(imp_all_data_time_melt$variable, 
+                                        pattern = response) == TRUE,
+                                  response, NA)
+names(imp_all_data_time_melt)
+plyr::count(imp_all_data_time_melt$time)
+plyr::count(imp_all_data_time_melt$variable)
+plyr::count(imp_all_data_time_melt$response)
+plyr::count(imp_all_data_time_melt$arm)
+str(imp_all_data_time_melt)
+head(imp_all_data_time_melt)
+anova(lm(value ~ time + arm, imp_all_data_time_melt))
+# Basic summaries:
+summary(imp_all_data_time_melt[which(imp_all_data_time_melt$arm == 'A_placebo'), 'value'])
+summary(imp_all_data_time_melt[which(imp_all_data_time_melt$arm == 'B_2000IU'), 'value'])
+summary(imp_all_data_time_melt[which(imp_all_data_time_melt$arm == 'C_4000IU'), 'value'])
+
+summary(imp_all_data_time_melt[which(imp_all_data_time_melt$time == 'Baseline'), 'value'])
+summary(imp_all_data_time_melt[which(imp_all_data_time_melt$time == '12 months'), 'value'])
+
+summary(imp_all_data_time_melt[which(imp_all_data_time_melt$time == '12 months' &
+                                   imp_all_data_time_melt$arm == 'A_placebo'), 'value'])
+summary(imp_all_data_time_melt[which(imp_all_data_time_melt$time == '12 months' &
+                                   imp_all_data_time_melt$arm == 'B_2000IU'), 'value'])
+summary(imp_all_data_time_melt[which(imp_all_data_time_melt$time == '12 months' &
+                                   imp_all_data_time_melt$arm == 'C_4000IU'), 'value'])
 # Interaction plot:
-# interaction.plot(response = imp_all_data$data$Ln_IFNgamma12,
-#                  imp_all_data$data$vitd12,
-#                  imp_all_data$data$diabetes)
+ggplot(imp_all_data_time_melt, aes(x = time, y = value)) +
+  geom_boxplot() +
+  facet_grid(. ~ arm)
+# Actual interaction plot, set na.rm = T, else no error and no plot:
+# TO DO: plot all cytokines in facets
+df <- with(imp_all_data_time_melt, aggregate(value, 
+                                         list(arm = arm, 
+                                              time = time), 
+                                         mean, na.rm = T))
+df$se <- with(imp_all_data_time_melt, aggregate(value, list(arm = arm, time = time), 
+                                      function(x) sd(x)/sqrt(10)))[, 3]
+df
+gp <- ggplot(df, aes(x = time, y = x, colour = arm, group = arm))
+gp + geom_line(aes(linetype = arm), size = 0.6, position = position_dodge(width = 0.2)) + 
+  geom_point(aes(shape = arm), size = 2, position = position_dodge(width = 0.2)) +
+  geom_errorbar(aes(ymax = x + se, ymin = x - se), width = 0.1,
+                position = position_dodge(width = 0.2)) +
+  expand_limits(y = c((df$x - 1), (df$x + 1))) +
+  labs(y = 'Cytokine levels (natural logarithm)', x = '')
+ggsave('interaction_plot.png')
+
 # Scatterplot:
-xyplot(Ln_IFNgamma12 ~ vitd12 | arm, all_data,
+xyplot(Ln_IFNgamma12 ~ vitd12 | arm, imp_all_data_completed,
        panel = function(x, y, ...) {
          panel.xyplot(x, y, ...)
          panel.lmline(x, y, ...)
        }
 )
 # Diagnostic plots:
-xyplot(resid(lm_IFN12) ~ fitted(lm_IFN12) | all_data$arm,
+xyplot(resid(lm_IFN12) ~ fitted(lm_IFN12) | imp_all_data_completed$arm,
        xlab = "Fitted Values",
        ylab = "Residuals",
        main = "Residual Diagnostic Plot",
@@ -1174,8 +1239,8 @@ pool(imp_fit)
 summary(pool(imp_fit))
 # IL6 and IFN are significant for 2000 IU vs placebo? Not significant without covariates:
 # Observed data only:
-anova(with(imp_all_data$data, lm(Ln_IL6_12 ~ vitd0 + arm)))
-anova(with(imp_all_data$data, lm(Ln_IL6_12 ~ arm)))
+anova(with(imp_all_data_completed, lm(Ln_IL6_12 ~ vitd0 + arm)))
+anova(with(imp_all_data_completed, lm(Ln_IL6_12 ~ arm)))
 # With imputed data:
 mi.anova(mi.res = imp_all_data, formula = 'Ln_IL6_12 ~ vitd0 + arm', type = 3)
 mi.anova(mi.res = imp_all_data, formula = 'Ln_IL6_12 ~ arm', type = 3)
