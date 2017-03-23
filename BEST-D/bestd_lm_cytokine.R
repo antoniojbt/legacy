@@ -685,7 +685,7 @@ sapply(imp_all_data_completed, function(x) sum(is.na(x)))
 # These should all be TRUE:
 identical(all_data$vitd12, all_data_interest$vitd12)
 identical(all_data_interest$vitd12, imp_all_data$data$vitd12)
-identical(imp_all_data$data$vitd12, imp_all_data_completed$vitd12.0) # 'xxx.0' is the original data
+# identical(imp_all_data$data$vitd12, imp_all_data_completed$vitd12.0) # 'xxx.0' is the original data
 
 # Next step: use mice and miceadds libraries to run regression models (bottom of script)
 # with imputed dataset and pooled values from multiple imputed datasets and observed data.
@@ -723,18 +723,18 @@ str(all_data$arm)
 # Code variables for easier referencing downstream:
 y <- 'vitd12'
 # Covars used in genotype regression analysis:
-covars <- c('male +
-            vitd0 +
+covars <- c('basemed_vitamind +
+            male +
+            calendar_age_ra +
+            season_randomisation_2 +
+            currsmoker +
+            copd_asthma +
+            heart_disease +
             incident_fracture +
             incident_resp_infection +
             diabetes +
-            heart_disease +
-            copd_asthma +
-            basemed_vitamind +
-            currsmoker +
             bmi0 +
-            calendar_age_ra +
-            season_randomisation_2') # Add arm at the end for ANOVA
+            vitd0') # Add arm at the end for ANOVA
 
 pass_formula <- sprintf('%s ~ %s', y, covars)
 pass_formula
@@ -862,7 +862,6 @@ ggplot(imp_all_data_completed, aes(x = arm, y = vitd12, fill = arm)) +
 
 #############################################
 ##########
-# TO DO: check
 # Sanity check significant cofactors:
 # Significant: arm, vitd0, incident_resp_infection, basemed_vitamind, bmi0
 plyr::count(all_data$arm)
@@ -902,6 +901,7 @@ summary(all_data[which(all_data$diabetes == 0), 'arm'])
 summary(all_data[which(all_data$diabetes == 1), 'arm'])
 table(all_data$diabetes, all_data$arm)
 chisq.test(all_data$diabetes, all_data$arm)
+kruskal.test(all_data$vitd12, all_data$diabetes)
 anova(lm(vitd12 ~ diabetes + arm, all_data))
 summary(lm(vitd12 ~ diabetes + arm, all_data))
 
@@ -922,6 +922,16 @@ cytokines_0
 cytokines_12
 covars
 plyr::count(all_data$arm)
+summary(lm(formula ='Ln_IFNgamma12 ~ vitd12', data = all_data))
+summary(lm(formula ='Ln_IFNgamma12 ~ vitd12', data = imp_all_data_completed))
+# Imputed and observed only give almost the same results
+cor.test(y = all_data$Ln_IFNgamma12, x = all_data$vitd12,
+         method = 'spearman', #'spearman', #'pearson',
+         use = 'pairwise.complete.obs')
+cor.test(y = imp_all_data_completed$Ln_IFNgamma12, x = imp_all_data_completed$vitd12,
+         method = 'spearman', #'spearman', #'pearson',
+         use = 'pairwise.complete.obs')
+plot(y = all_data$Ln_IFNgamma12, x = all_data$vitd12)
 
 # Simple scenario, does x interleukin correlate with vitamin D levels:
 for (i in cytokines_0) {
@@ -1175,7 +1185,7 @@ ggplot(imp_all_data_time_melt, aes(x = time, y = value)) +
   geom_boxplot() +
   facet_grid(. ~ arm)
 # Actual interaction plot, set na.rm = T, else no error and no plot:
-# TO DO: plot all cytokines in facets
+# TO DO: plot all cytokines in facets?
 df <- with(imp_all_data_time_melt, aggregate(value, 
                                          list(arm = arm, 
                                               time = time), 
@@ -1190,7 +1200,7 @@ gp + geom_line(aes(linetype = arm), size = 0.6, position = position_dodge(width 
                 position = position_dodge(width = 0.2)) +
   expand_limits(y = c((df$x - 1), (df$x + 1))) +
   labs(y = 'Cytokine levels (natural logarithm)', x = '')
-ggsave('interaction_plot.png')
+ggsave('interaction_plot.png', width = 7.3, height = 5, units = 'in')
 
 # Scatterplot:
 xyplot(Ln_IFNgamma12 ~ vitd12 | arm, imp_all_data_completed,
@@ -1401,7 +1411,7 @@ anova(lmm_vitd12, lmm_null)
 save.image(file = R_session_saved_image, compress='gzip')
 
 sessionInfo()
-q()
 
+q()
 # Next: run the script for xxx
 #############################
