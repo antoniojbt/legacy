@@ -107,6 +107,8 @@ library(mice)
 library(VIM)
 library(miceadds)
 # library(car)
+# library(gvlma)
+# library(biglm)
 #############################
 
 
@@ -500,9 +502,11 @@ ggsave('scatterplots_cytokines_and_VD.png', plots, height = 15, width = 15)
 ##########
 
 ##########
-# TO DO: plot for all cytokines? Make transparent, change labels
+# TO DO: plot for all cytokines? Make transparent dots, change labels
+# To DO: Needs to be separated by arm, or plot only Tx groups as placebo dilutes effect.
 # Boxplot and stripchart for pre/post and change in value
 # https://www.r-bloggers.com/visualizing-small-scale-paired-data-combining-boxplots-stripcharts-and-confidence-intervals-in-r/
+# Similar to line plots in BESTD results paper: fig2, fig3, table2 or 3.
 
 # Set data:
 pre <- imp_all_data_completed$Ln_IL6_0
@@ -534,6 +538,50 @@ arrows(1, res$conf.int[1], 1, res$conf.int[2], col = "red",
        code = 3, lwd = 3, angle = 90)
 abline(h = 0, lty = 2) # Zero-effectline
 dev.off()
+
+# TO DO: ggplot equivalent: cleanup, correct
+# # arm
+# # vitd12
+# # cytokines_0
+# # cytokines_12
+# # y is cytokine levels
+# # x is time
+# all_data_melt_i <- melt(data = all_data, measure.vars = c('Ln_IFNgamma0', 'Ln_IFNgamma12'))
+# all_data_melt_i$variable <- factor(all_data_melt_i$variable,
+#                                    levels = c('Ln_IFNgamma0',
+#                                               'Ln_IFNgamma12'
+#                                               ),
+#                                    labels = c('IFNg baseline',
+#                                               'IFNg 12 months'
+#                                               ))
+# plyr::count(all_data_melt_i$variable)
+# plyr::count(all_data_melt_i$arm2)
+# group <- factor(all_data_melt_i$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+#                 labels = c("Placebo", "2000 IU", "4000 IU"))
+# plyr::count(group)
+# ggplot(all_data_melt_i, aes(y = value, x = variable, fill = group)) +
+#   geom_boxplot()
+# 
+# group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+#                 labels = c("Placebo", "2000 IU", "4000 IU"))
+# 
+# all_data$Ln_IFNgamma_delta <- all_data$Ln_IFNgamma12 - all_data$Ln_IFNgamma0
+# summary(all_data$Ln_IFNgamma_delta)
+# 
+# ggplot(data = all_data, aes(x = vitd12, Ln_IFNgamma_delta, colour = group)) +
+#   geom_point(shape = 1) + # Hollow circles
+#   scale_colour_hue(l = 50) + # darker palette
+#   geom_smooth(method = lm,   # regression line
+#               se = FALSE    # exclude confidence region
+#   ) + # fullrange = TRUE # Extend regression line
+#   labs(title = '', x = 'Change in 25OHD levels', y = 'Change in cytokine levels') +
+#   theme_classic() +
+#   theme(text = element_text(size = 14), 
+#         legend.title = element_blank(),
+#         legend.position = 'bottom'
+#         # legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "pt")
+#         # plot.margin = margin(b = 0, unit = "pt")
+#   )
 ##########
 #############################################
 
@@ -812,6 +860,7 @@ sapply(all_data[, covars_list], class)
 
 ##########
 # TO DO: check and complete assumptions tests
+# See './BEST-D/eQTL_analysis/run_lm.R' script
 # Assumptions linear regression
 # Bivariate independent variables
 # Continuous dependent variable
@@ -961,6 +1010,9 @@ covars
 plyr::count(all_data$arm)
 summary(lm(formula ='Ln_IFNgamma12 ~ vitd12', data = all_data))
 summary(lm(formula ='Ln_IFNgamma12 ~ vitd12', data = imp_all_data_completed))
+# Polynomial regression example:
+poly_lm_cyto <- lm(formula ='Ln_IFNgamma12 ~ vitd12 + I(vitd12 ^ 2)', data = imp_all_data_completed)
+summary(poly_lm_cyto)
 # Imputed and observed only give almost the same results
 cor.test(y = all_data$Ln_IFNgamma12, x = all_data$vitd12,
          method = 'spearman', #'spearman', #'pearson',
@@ -1045,49 +1097,43 @@ for (i in cytokines_12) {
 #############################################
 ##########
 # # TO DO: Plot with corrected values after lm?
-# # line plots like VD in results paper: fig2, fig3, table2 or 3 ?
-# # arm
-# # vitd12
-# # cytokines_0
-# # cytokines_12
-# # y is cytokine levels
-# # x is time
-# all_data_melt_i <- melt(data = all_data, measure.vars = c('Ln_IFNgamma0', 'Ln_IFNgamma12'))
-# all_data_melt_i$variable <- factor(all_data_melt_i$variable,
-#                                    levels = c('Ln_IFNgamma0',
-#                                               'Ln_IFNgamma12'
-#                                               ),
-#                                    labels = c('IFNg baseline',
-#                                               'IFNg 12 months'
-#                                               ))
-# plyr::count(all_data_melt_i$variable)
-# plyr::count(all_data_melt_i$arm2)
-# group <- factor(all_data_melt_i$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
-#                 labels = c("Placebo", "2000 IU", "4000 IU"))
-# plyr::count(group)
-# ggplot(all_data_melt_i, aes(y = value, x = variable, fill = group)) +
-#   geom_boxplot()
+# e.g.: (from gex BESTD PC correction)
+
+# # Create dataframe with data (expression value plus PCs)
+# gex_1_matched_lm <- data.frame(cbind(gex_1_matched[, 1, with = F], pc_gex_1_matched_to_adjust))
+# # gex_2_matched_lm <- data.frame(cbind(gex_2_matched[, 1, with = F], pc_gex_2_matched_to_adjust))
+# gex_1_matched_lm[1:5, 1:5]
+# colnames(gex_1_matched_lm)[1] <- 'probe'
 # 
-# group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
-#                 labels = c("Placebo", "2000 IU", "4000 IU"))
+# # Linear regression corrected for PCs:
+# pass_formula <- as.formula(sprintf('%s ~ .', 'probe'))
+# pass_formula
+# lm_gex_1_matched <- lm(formula = pass_formula, data = gex_1_matched_lm)
+# # lm_gex_2_matched <- lm(formula = pass_formula, data = gex_2_matched_lm)
+# summary.lm(lm_gex_1_matched)
 # 
-# all_data$Ln_IFNgamma_delta <- all_data$Ln_IFNgamma12 - all_data$Ln_IFNgamma0
-# summary(all_data$Ln_IFNgamma_delta)
+# # Test assumptions:
+# gvmodel <- gvlma(lm_gex_1_matched)
+# summary(gvmodel)
 # 
-# ggplot(data = all_data, aes(x = vitd12, Ln_IFNgamma_delta, colour = group)) +
-#   geom_point(shape = 1) + # Hollow circles
-#   scale_colour_hue(l = 50) + # darker palette
-#   geom_smooth(method = lm,   # regression line
-#               se = FALSE    # exclude confidence region
-#   ) + # fullrange = TRUE # Extend regression line
-#   labs(title = '', x = 'Change in 25OHD levels', y = 'Change in cytokine levels') +
-#   theme_classic() +
-#   theme(text = element_text(size = 14), 
-#         legend.title = element_blank(),
-#         legend.position = 'bottom'
-#         # legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "pt")
-#         # plot.margin = margin(b = 0, unit = "pt")
-#   )
+# # Model comparison:
+# # AIC(lm_1, lm_2)
+# # anova(lm_1, lm_2)
+# 
+# # Get results:
+# coefficients(lm_gex_1_matched) # lm_fit_PCs$coefficients
+# str(lm_gex_1_matched)
+# # Get coefficients (estimate, t-stat, p-value) from lm:
+# lm_summary <- summary.lm(lm_gex_1_matched)
+# lm_summary$coefficients
+# lm_summary_coef <- as.data.frame(lm_summary$coefficients)
+# str(lm_summary_coef)
+# 
+# # Correct expression value:
+# gex_1_matched_lm[1:5, 1:5]
+# gex_corrected <- gex_1_matched_lm[, 'probe'] - rowSums(coef(lm_gex_1_matched)[c(-1)] * gex_1_matched_lm[, 2:ncol(gex_1_matched_lm)])
+# # gex_corrected_2 <- gex_2_matched_lm[, 'probe'] - rowSums(coef(lm_gex_2_matched)[c(-1)] * gex_2_matched_lm[, 2:ncol(gex_2_matched_lm)])
+# gex_corrected
 ##########
 #############################################
 
