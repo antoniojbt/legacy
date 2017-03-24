@@ -11,6 +11,7 @@
 
 # Working directory:
 # setwd("/ifs/projects/proj043/analysis.dir/gene_expression_2.dir")
+# setwd('~/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
@@ -31,10 +32,13 @@ print(paste('Working directory :', getwd()))
 # Load results from 02_microarrayxxx file, saved as RData object:
 # Re-load a previous R session, data and objects:
 load('R_session_saved_image_probe_filtering.RData', verbose=T)
+# For test without SNP filter:
+# load('R_session_saved_image_probe_filtering_full_noSNP_filter.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_pheno_file_check', '.RData', sep='')
-
+# For test without SNP filter:
+# R_session_saved_image <- paste('R_session_saved_image_pheno_file_check_noSNP_filter', '.RData', sep='')
 #############################
 
 

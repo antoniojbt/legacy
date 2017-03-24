@@ -30,15 +30,16 @@ print(paste('Working directory :', getwd()))
 
 # Read results from 01_microarrayxxx file (saved as RData object):
 # Load a previous R session, data and objects:
-load('R_session_saved_image_normalisation.RData', verbose=T)
+load('R_session_saved_image_normalisation_full.RData', verbose=T)
 # load('R_session_saved_image_normalisation_full_1ry_cells.RData', verbose=T)
 # load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_normalisation_full.RData')
 # load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_probe_filtering.RData')
 # load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_read_and_QC.RData')
 
 # Filename to save current R session, data and objects at the end:
-R_session_saved_image <- paste('R_session_saved_image_probe_filtering', '.RData', sep='')
+# R_session_saved_image <- paste('R_session_saved_image_probe_filtering', '.RData', sep='')
 R_session_saved_image <- paste('R_session_saved_image_probe_filtering_full', '.RData', sep='')
+# R_session_saved_image <- paste('R_session_saved_image_probe_filtering_full_noSNP_filter', '.RData', sep='')
 #############################
 
 
@@ -193,6 +194,7 @@ length(rownames(normalised_expressed_annotated_qual))
 ###################
 # Remove probes that overlap SNPs:
 # ?illuminaHumanv4OVERLAPPINGSNP
+# Skip for noSNP filter:
 probes_by_SNPs  <- !is.na(unlist(mget(as.character(rownames(normalised_expressed_annotated_qual)), 
                                       illuminaHumanv4OVERLAPPINGSNP, ifnotfound = NA)))
 head(probes_by_SNPs)
@@ -211,8 +213,11 @@ dim(normalised_expressed_annotated_qual)[1] - dim(normalised_expressed_annotated
 # Keep only probes that have Entrez IDs:
 ## Get ENTREZ ID mappings:
 dim(normalised_expressed_annotated_qual_noSNPs)
-probes_by_ENTREZID  <- unlist(mget(as.character(rownames(normalised_expressed_annotated_qual_noSNPs)), 
+probes_by_ENTREZID  <- unlist(mget(as.character(rownames(normalised_expressed_annotated_qual_noSNPs)),
                                    illuminaHumanv4ENTREZID, ifnotfound = NA))
+# If not filtering SNPs for testing, use:
+# probes_by_ENTREZID  <- unlist(mget(as.character(rownames(normalised_expressed_annotated_qual)),
+#                                    illuminaHumanv4ENTREZID, ifnotfound = NA))
 
 head(probes_by_ENTREZID)
 summary(probes_by_ENTREZID)
@@ -224,6 +229,8 @@ length(which(probes_without_ENTREZID))
 
 # Remove probes without Entrez IDs:
 normalised_expressed_annotated_qual_noSNPs_noID <- normalised_expressed_annotated_qual_noSNPs[!probes_without_ENTREZID, ]
+# If not filtering SNPs for test use (kept names the same downstream for ease though):
+# normalised_expressed_annotated_qual_noSNPs_noID <- normalised_expressed_annotated_qual[!probes_without_ENTREZID, ]
 dim(normalised_expressed_annotated_qual_noSNPs)
 dim(normalised_expressed_annotated_qual_noSNPs_noID)
 
@@ -471,7 +478,7 @@ head(normalised_filtered_annotated) # expression values plus annotations
 dim(normalised_filtered)
 dim(normalised_filtered_annotated)
 #head(membership_file_cleaned)
-
+# Skip if testing with without SNP filter:
 write.table(normalised_filtered_annotated, 'normalised_filtered_annotated.tab', sep='\t', 
             quote=FALSE, na='NA', col.names=NA, row.names=TRUE)
 write.table(normalised_filtered, 'normalised_filtered_expression_values.tab', sep='\t', 

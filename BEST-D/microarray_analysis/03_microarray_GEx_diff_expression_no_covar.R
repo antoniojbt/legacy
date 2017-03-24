@@ -36,8 +36,13 @@ load('R_session_saved_image_pheno_file_check.RData', verbose=T)
 #load('R_session_saved_image_diff_expression_3.RData', verbose=T)
 # load('R_session_saved_image_diff_expression.RData', verbose=T)
 
+# For test without SNP filter:
+# load('R_session_saved_image_pheno_file_check_noSNP_filter.RData', verbose=T)
+
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_diff_expression', '.RData', sep='')
+# For test without SNP filter:
+# R_session_saved_image <- paste('R_session_saved_image_diff_expression_noSNP_filter', '.RData', sep='')
 
 #############################
 
@@ -46,7 +51,6 @@ R_session_saved_image <- paste('R_session_saved_image_diff_expression', '.RData'
 ## Update packages if necessary and load them:
 #install.packages('ellipse')
 #install.packages("statmod")
-
 
 library(limma)
 library(ggplot2)
@@ -59,10 +63,10 @@ library(splines)
 library(statmod)
 
 # Get functions from other scripts (eg to add annotations to topTable results):
-# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/microarray_analysis/gene_expression_functions.R')
 source('/ifs/devel/antoniob/projects/BEST-D/gene_expression_functions.R')
 source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
-# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/moveme.R')
+# source('/Users/antoniob/Documents/github.dir/AntonioJBT/cgat_projects/BEST-D/microarray_analysis/gene_expression_functions.R')
+# source('/Users/antoniob/Documents/github.dir/AntonioJBT/cgat_projects/utility_tutorial_scripts//moveme.R')
 #############################
 
 
@@ -70,6 +74,11 @@ source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
 
 # Read in the file with the sample membership information (group membership, replicate number, 
 # treatment status, etc.) to be able to create a design and contrast (done above for PCA plots).
+
+# # For test without SNP filter, drop 'Status' column:
+# row.names(membership_file_cleaned)
+# colnames(normalised_filtered)
+# normalised_filtered$Status <- NULL
 
 # Sanity check:
 # TO DO: Raise error and stop if false:
@@ -183,6 +192,7 @@ results
 vennDiagram(results)
 
 # Interpretation: baseline samples do not differ from each other, as expected.
+# Without SNP filter there are no significant differences.
 # Write results to disk:
 write_topTable('b4000vsbplacebo', fit2)
 write_topTable('b2000vsbplacebo', fit2)
@@ -224,6 +234,7 @@ vennDiagram(results_final)
 
 # Interpretation: final samples (after treatment, eg final_2000 vs final_placebo) do not differ from each other,
 # there are no significant differences, not as expected.
+# Without SNP filter there are no significant differences.
 # Write to disk:
 write_topTable('f4000vsfplacebo', fit2_final)
 write_topTable('f2000vsfplacebo', fit2_final)
@@ -344,6 +355,7 @@ high_v_low_group_corr <- genas(fit2_groups_before_v_after, coef=c(2, 3))
 high_v_low_group_corr
 
 # Interpretation: before vs after comparison by groups (not individuals) do not show differences.
+# Without SNP filter there are no significant differences.
 # Write to disk:
 write_topTable('f4000vsb4000', fit2_groups_before_v_after)
 write_topTable('f2000vsb2000', fit2_groups_before_v_after)
@@ -509,6 +521,7 @@ write.table(x=topTable_fit2_UI2000minusplacebo, sep='\t', quote = FALSE, col.nam
 
 # Interpretation: Accounting for time (ie placebo before/after) shows no significant probes in treated samples. Genas function
 # for correlation between comparisons does not make sense though. It does for the group comparisons above (final treated vs baseline).
+# Without SNP filter there are no significant differences.
 # Write to disk:
 write_topTable('UI4000minusplacebo', fit2_groups_before_v_after_time)
 write_topTable('UI2000minusplacebo', fit2_groups_before_v_after_time)
@@ -546,6 +559,7 @@ head(fit_by_treatment_2$coefficients)
 
 topTable(fit_by_treatment_2, adjust = 'BH')
 # Interpretation: Broad treated vs untreated shows no differences, so straight up stimulated vs basal is negative.
+# Without SNP filter there are no significant differences.
 # Write to disk:
 write.table(topTable(fit_by_treatment_2, adjust="BH", number = Inf), sep='\t', quote = FALSE, 
             col.names = NA, row.names = TRUE, 
@@ -721,6 +735,7 @@ write.table(x=topTable_pairing_placebo, sep='\t', quote = FALSE,
             file='full_topTable_pairing_placebo.txt')
 
 # Interpretation: There are very few significant differences for paired tests (before vs after) for each condition (placebo, 2000, 4000).
+# Without SNP filter there are also very few significant differences.
 # Write to disk:
 write_topTable("treatmenttreated_4000", fit_all_pairs_2)
 write_topTable("treatmenttreated_2000", fit_all_pairs_2)
@@ -889,6 +904,7 @@ write.table(x=topTable_pairing_joint_placebo, sep='\t', quote = FALSE, col.names
 
 # Interpretation: There are significant differences for paired tests (before vs after) for each condition when joining
 # treatment groups (placebo and 2000 + 4000).
+# Without SNP filter there results seem similar, TO DO: check formally (but this analysis does not control for placebo).
 # Correlation between changes is similar across both groups though (see genas result).
 
 # TO DO: A ?barcodeplot (limma) can also be used to visualise DE genes.
