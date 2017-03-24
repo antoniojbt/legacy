@@ -634,7 +634,7 @@ covars_list <- c('vitd12',
                  'vitd0',
                  'incident_fracture',
                  'incident_resp_infection',
-                'diabetes',
+                 'diabetes',
                  'heart_disease',
                  'copd_asthma',
                  'basemed_vitamind',
@@ -1010,7 +1010,7 @@ covars
 plyr::count(all_data$arm)
 summary(lm(formula ='Ln_IFNgamma12 ~ vitd12', data = all_data))
 summary(lm(formula ='Ln_IFNgamma12 ~ vitd12', data = imp_all_data_completed))
-# Polynomial regression example:
+# TO DO: check: Polynomial regression example:
 poly_lm_cyto <- lm(formula ='Ln_IFNgamma12 ~ vitd12 + I(vitd12 ^ 2)', data = imp_all_data_completed)
 summary(poly_lm_cyto)
 # Imputed and observed only give almost the same results
@@ -1054,6 +1054,7 @@ for (i in cytokines_12) {
 # None are significant.
 
 # Anova:
+# TO DO: include cytokine at baseline in covariates, include all baseline in each regression?
 for (i in cytokines_12) {
   pass_formula <- sprintf('%s ~ %s + arm', i, covars)
   print(pass_formula)
