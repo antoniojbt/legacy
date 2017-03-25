@@ -831,9 +831,21 @@ pass_formula
 # In R, the ANOVA tests are sequential. To control for a confounder it must come first in the
 # order of the model formula. For the regression output it won't matter but for the ANOVA output
 # it does.
+# See: 
+# http://stats.stackexchange.com/questions/13241/the-order-of-variables-in-anova-matters-doesnt-it
+# http://stats.stackexchange.com/questions/212496/why-do-p-values-change-in-significance-when-changing-the-order-of-covariates-in?noredirect=1&lq=1
+
+# Order doesn't matter with type 2 or type 3 sum of squares (e.g. with car's Anova())
+# but it does when wrapping as anova(lm())
+# Order won't affect summary(lm()) p-values or coefficients as linear models test
+# all predictors 'at once' while correcting for all.
+# ANOVA requires residuals to be normally distributed
+# Use glm() for count variables for instance to take of other residual error distributions
+# With balanced designs order doesn't matter.
 # The proportion of explained variation attributed to a given variable 
 # is eta-squared (or r^2 [effect size] in lm)
 # anova is by default type II, for type III car's Anova() is needed
+# http://stats.stackexchange.com/questions/20452/how-to-interpret-type-i-type-ii-and-type-iii-anova-and-manova
 # Type III anova deals with unbalanced designs, e.g. experimental with randomisation
 # See e.g. tutorial:
 # https://ww2.coastal.edu/kingw/statistics/R-tutorials/unbalanced.html
