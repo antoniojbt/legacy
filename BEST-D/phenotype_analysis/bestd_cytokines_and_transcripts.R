@@ -54,7 +54,7 @@
 ##Set working directory and file locations and names of required inputs:
 
 # Working directory:
-# setwd('~/Desktop/BEST_D.DIR/mac_runs_to_upload/BEST-D_cytokines/')
+setwd('~/Desktop/BEST_D.DIR/mac_runs_to_upload/BEST-D_cytokines/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
