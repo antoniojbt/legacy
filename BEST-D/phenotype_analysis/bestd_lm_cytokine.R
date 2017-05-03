@@ -1051,7 +1051,7 @@ for (i in cytokines_12) {
 ##########
 
 ##########
-# Run anova and pairwise for each cytokine at 12 months:
+# Run ANOVA and pairwise for each cytokine at 12 months:
 covars_list
 covars
 # Pairwise t-tests with p-value adjustment:
@@ -1065,21 +1065,43 @@ for (i in cytokines_12) {
 }
 # None are significant.
 
-# Anova:
-# TO DO: include cytokine at baseline in covariates, include all baseline in each regression?
+# ANOVAs:
 for (i in cytokines_12) {
+  print(i)
   pass_formula <- sprintf('%s ~ %s + arm', i, covars)
   print(pass_formula)
   print(
     anova(lm(data = imp_all_data_completed, formula = pass_formula))
-  )
-  }
+    )
+}
 # None are significant for arm, some with age and disease variables
 
-# Run for 12 months with arm and adjusting for covariates:
+# Adjusting for baseline cytokine level:
 for (i in cytokines_12) {
   print(i)
-  pass_formula <- sprintf('%s ~ %s + arm', i, covars)
+  index <- match(i, cytokines_12)
+  print(cytokines_0[index])
+  basal <- cytokines_0[index]
+  pass_formula <- sprintf('%s ~ %s + %s + arm', i, covars, basal)
+  print(pass_formula)
+  print(
+    anova(lm(data = imp_all_data_completed, formula = pass_formula))
+  )
+}
+# None are significant for arm, some with age and disease variables
+# IL6 and IFNg are borderline or significant for vitD0
+##########
+
+##########
+# ANCOVAs:
+# Run for 12 months with arm and adjusting for covariates:
+# Include cytokine at baseline in covariates:
+for (i in cytokines_12) {
+  print(i)
+  index <- match(i, cytokines_12)
+  print(cytokines_0[index])
+  basal <- cytokines_0[index]
+  pass_formula <- sprintf('%s ~ %s + %s + arm', i, covars, basal)
   print(pass_formula)
   df <- all_data
   print(summary(lm(formula = pass_formula, data = df)))
@@ -1103,6 +1125,7 @@ for (i in cytokines_12) {
 
 # Other 12 month cytokines are associated with age, disease, etc but not arm or
 # vitd variables.
+# IFNg and IL6 are borderline (0.08) non-significant for armB_2000IU
 ##########
 #############################################
 
@@ -1203,7 +1226,11 @@ mi.anova(mi.res = imp_all_data, formula = pass_formula, type = 3)
 # pass_formula <- sprintf('%s ~ %s + vitd12', i, covars)
 
 for (i in cytokines_12) {
-  pass_formula <- sprintf('%s ~ %s + arm', i, covars)
+  print(i)
+  index <- match(i, cytokines_12)
+  print(cytokines_0[index])
+  basal <- cytokines_0[index]
+  pass_formula <- sprintf('%s ~ %s + %s + arm', i, covars, basal)
   print(pass_formula)
   print(
     mi.anova(mi.res = imp_all_data, formula = pass_formula, type = 3)
@@ -1432,7 +1459,7 @@ summary(lm_delta)
 
 
 #############################################
-# # TO DO: run mixed effects?
+# Run mixed effects?
 # # See: http://stackoverflow.com/questions/1169539/linear-regression-and-group-by-in-r
 library(lme4)
 # library(nlme)
@@ -1478,6 +1505,8 @@ lmm_vitd12 <- lmer(formula = vitd12 ~ vitd0 +
 lmm_null <- lmer(formula = vitd12 ~ (1 | arm),
                      data = all_data)
 anova(lmm_vitd12, lmm_null)
+
+summary(lmm_vitd12)
 #############################################
 
 
@@ -1507,7 +1536,8 @@ anova(lmm_vitd12, lmm_null)
 save.image(file = R_session_saved_image, compress='gzip')
 
 sessionInfo()
-
+citation()
+citation("ggplot2")
 q()
 # Next: run the script for xxx
 #############################
