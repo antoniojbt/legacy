@@ -13,6 +13,8 @@
 # All are measured at 0 and 12 months (variable suffix 0 or 12). Units for all are Ln pg/ml.
 
 # All null from CTSU analysis
+# Basic ANCOVA review:
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1121605/pdf/1123.pdf
 #############################################
 
 
@@ -87,10 +89,7 @@ args <- commandArgs(trailingOnly = TRUE)
 
 # TO DO:
 # Check 'normal' levels and ln interpretation, missing lab method.
-# Join info with geno, expr, VD, pheno:
-# Create one file with pt_id, kit_id, candidate geno, candidate expr, pheno and VD
 # This file has pt_id with 0 and 12 months for each variable
-# Association with genotype, SNPs tested only?
 
 #############################
 # Import libraries:
@@ -500,89 +499,6 @@ plots <- arrangeGrob(grobs = all_plots, ncol = length(cytokines_0))
 # plots <- arrangeGrob(grid.arrange(grobs = all_plots, ncol = length(cytokines_0)), legend, nrow = 2)
 ggsave('scatterplots_cytokines_and_VD.png', plots, height = 15, width = 15)
 ##########
-
-##########
-# TO DO: plot for all cytokines? Make transparent dots, change labels
-# To DO: Needs to be separated by arm, or plot only Tx groups as placebo dilutes effect.
-# Boxplot and stripchart for pre/post and change in value
-# https://www.r-bloggers.com/visualizing-small-scale-paired-data-combining-boxplots-stripcharts-and-confidence-intervals-in-r/
-# Similar to line plots in BESTD results paper: fig2, fig3, table2 or 3.
-
-# Set data:
-pre <- imp_all_data_completed$Ln_IL6_0
-post <- imp_all_data_completed$Ln_IL6_12
-
-# Plot:
-png('boxplot_scatterplot_pre_post.png', width = 7.3, height = 5, units = 'in', res = 600)
-par(mfrow = c(1, 2))
-# First graph
-s <- seq(length(pre))
-par(bty = "l")
-boxplot(pre, post, main = "Raw data", 
-        xlab = "Time", ylab = "Measure", 
-        names=c("pre", "post"), col = c("lightblue", "lightgreen"))
-stripchart(list(pre, post), vertical = T, 
-           pch = 16, method = "jitter", 
-           cex = 0.5, add = T)
-segments(rep(0.95, length(pre))[s], pre[s], rep(2, length(pre))[s],
-         post[s], col = 1, lwd = 0.5)
-# Second graph
-# Confidence intervals:
-res <- t.test(post, pre, paired = T, conf.int = T)
-# res <- wilcox.test(post, pre, paired = T, conf.int = T)
-stripchart(post-pre, vertical = T, pch = 16, 
-           method = "jitter", main = "Difference", 
-           ylab = "Difference: Post – Pre", xlab = "Median +/- 95% CI")
-points(1, res$estimate, col = "red", pch = 16, cex = 2)
-arrows(1, res$conf.int[1], 1, res$conf.int[2], col = "red",
-       code = 3, lwd = 3, angle = 90)
-abline(h = 0, lty = 2) # Zero-effectline
-dev.off()
-
-# TO DO: ggplot equivalent: cleanup, correct
-# # arm
-# # vitd12
-# # cytokines_0
-# # cytokines_12
-# # y is cytokine levels
-# # x is time
-# all_data_melt_i <- melt(data = all_data, measure.vars = c('Ln_IFNgamma0', 'Ln_IFNgamma12'))
-# all_data_melt_i$variable <- factor(all_data_melt_i$variable,
-#                                    levels = c('Ln_IFNgamma0',
-#                                               'Ln_IFNgamma12'
-#                                               ),
-#                                    labels = c('IFNg baseline',
-#                                               'IFNg 12 months'
-#                                               ))
-# plyr::count(all_data_melt_i$variable)
-# plyr::count(all_data_melt_i$arm2)
-# group <- factor(all_data_melt_i$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
-#                 labels = c("Placebo", "2000 IU", "4000 IU"))
-# plyr::count(group)
-# ggplot(all_data_melt_i, aes(y = value, x = variable, fill = group)) +
-#   geom_boxplot()
-# 
-# group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
-#                 labels = c("Placebo", "2000 IU", "4000 IU"))
-# 
-# all_data$Ln_IFNgamma_delta <- all_data$Ln_IFNgamma12 - all_data$Ln_IFNgamma0
-# summary(all_data$Ln_IFNgamma_delta)
-# 
-# ggplot(data = all_data, aes(x = vitd12, Ln_IFNgamma_delta, colour = group)) +
-#   geom_point(shape = 1) + # Hollow circles
-#   scale_colour_hue(l = 50) + # darker palette
-#   geom_smooth(method = lm,   # regression line
-#               se = FALSE    # exclude confidence region
-#   ) + # fullrange = TRUE # Extend regression line
-#   labs(title = '', x = 'Change in 25OHD levels', y = 'Change in cytokine levels') +
-#   theme_classic() +
-#   theme(text = element_text(size = 14), 
-#         legend.title = element_blank(),
-#         legend.position = 'bottom'
-#         # legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "pt")
-#         # plot.margin = margin(b = 0, unit = "pt")
-#   )
-##########
 #############################################
 
 
@@ -774,6 +690,90 @@ identical(all_data_interest$vitd12, imp_all_data$data$vitd12)
 
 # Next step: use mice and miceadds libraries to run regression models (bottom of script)
 # with imputed dataset and pooled values from multiple imputed datasets and observed data.
+##########
+
+##########
+# Basic scatterplots of changes in each group with imputed data (see above for more plots)
+# TO DO: plot for all cytokines? Make transparent dots, change labels
+# To DO: Needs to be separated by arm, or plot only Tx groups as placebo dilutes effect.
+# Boxplot and stripchart for pre/post and change in value
+# https://www.r-bloggers.com/visualizing-small-scale-paired-data-combining-boxplots-stripcharts-and-confidence-intervals-in-r/
+# Similar to line plots in BESTD results paper: fig2, fig3, table2 or 3.
+
+# Set data:
+pre <- imp_all_data_completed$Ln_IL6_0
+post <- imp_all_data_completed$Ln_IL6_12
+
+# Plot:
+png('boxplot_scatterplot_pre_post.png', width = 7.3, height = 5, units = 'in', res = 600)
+par(mfrow = c(1, 2))
+# First graph
+s <- seq(length(pre))
+par(bty = "l")
+boxplot(pre, post, main = "Raw data", 
+        xlab = "Time", ylab = "Measure", 
+        names=c("pre", "post"), col = c("lightblue", "lightgreen"))
+stripchart(list(pre, post), vertical = T, 
+           pch = 16, method = "jitter", 
+           cex = 0.5, add = T)
+segments(rep(0.95, length(pre))[s], pre[s], rep(2, length(pre))[s],
+         post[s], col = 1, lwd = 0.5)
+# Second graph
+# Confidence intervals:
+res <- t.test(post, pre, paired = T, conf.int = T)
+# res <- wilcox.test(post, pre, paired = T, conf.int = T)
+stripchart(post-pre, vertical = T, pch = 16, 
+           method = "jitter", main = "Difference", 
+           ylab = "Difference: Post – Pre", xlab = "Median +/- 95% CI")
+points(1, res$estimate, col = "red", pch = 16, cex = 2)
+arrows(1, res$conf.int[1], 1, res$conf.int[2], col = "red",
+       code = 3, lwd = 3, angle = 90)
+abline(h = 0, lty = 2) # Zero-effectline
+dev.off()
+
+# TO DO: ggplot equivalent: cleanup, correct
+# # arm
+# # vitd12
+# # cytokines_0
+# # cytokines_12
+# # y is cytokine levels
+# # x is time
+# all_data_melt_i <- melt(data = all_data, measure.vars = c('Ln_IFNgamma0', 'Ln_IFNgamma12'))
+# all_data_melt_i$variable <- factor(all_data_melt_i$variable,
+#                                    levels = c('Ln_IFNgamma0',
+#                                               'Ln_IFNgamma12'
+#                                               ),
+#                                    labels = c('IFNg baseline',
+#                                               'IFNg 12 months'
+#                                               ))
+# plyr::count(all_data_melt_i$variable)
+# plyr::count(all_data_melt_i$arm2)
+# group <- factor(all_data_melt_i$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+#                 labels = c("Placebo", "2000 IU", "4000 IU"))
+# plyr::count(group)
+# ggplot(all_data_melt_i, aes(y = value, x = variable, fill = group)) +
+#   geom_boxplot()
+# 
+# group <- factor(all_data$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
+#                 labels = c("Placebo", "2000 IU", "4000 IU"))
+# 
+# all_data$Ln_IFNgamma_delta <- all_data$Ln_IFNgamma12 - all_data$Ln_IFNgamma0
+# summary(all_data$Ln_IFNgamma_delta)
+# 
+# ggplot(data = all_data, aes(x = vitd12, Ln_IFNgamma_delta, colour = group)) +
+#   geom_point(shape = 1) + # Hollow circles
+#   scale_colour_hue(l = 50) + # darker palette
+#   geom_smooth(method = lm,   # regression line
+#               se = FALSE    # exclude confidence region
+#   ) + # fullrange = TRUE # Extend regression line
+#   labs(title = '', x = 'Change in 25OHD levels', y = 'Change in cytokine levels') +
+#   theme_classic() +
+#   theme(text = element_text(size = 14), 
+#         legend.title = element_blank(),
+#         legend.position = 'bottom'
+#         # legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "pt")
+#         # plot.margin = margin(b = 0, unit = "pt")
+#   )
 ##########
 
 ###########
@@ -1094,6 +1094,10 @@ for (i in cytokines_12) {
 
 ##########
 # ANCOVAs:
+# Some discussion of tests in trials:
+# https://stats.stackexchange.com/questions/3466/best-practice-when-analysing-pre-post-treatment-control-designs?noredirect=1&lq=1
+# http://www.sciencedirect.com/science/article/pii/S0895435606000813
+
 # Run for 12 months with arm and adjusting for covariates:
 # Include cytokine at baseline in covariates:
 for (i in cytokines_12) {
@@ -1103,19 +1107,23 @@ for (i in cytokines_12) {
   basal <- cytokines_0[index]
   pass_formula <- sprintf('%s ~ %s + %s + arm', i, covars, basal)
   print(pass_formula)
-  df <- all_data
-  print(summary(lm(formula = pass_formula, data = df)))
-  # # TO DO: Check results and diagnostic plots:
-  # fitted(lm_cyto)
-  # residuals(lm_cyto)
-  # plot(all_data$vitd12, all_data$Ln_IL10_12)
-  # abline(lm_cyto)
-  # # Plot diagnostics
-  # # Normality, Independence, Linearity, Homoscedasticity, Residual versus Leverage graph (outliers, high leverage values and
-  # # influential observation's (Cook's D))
-  # par(mfrow=c(2,2)) 
-  # plot(lm_cyto)
+  df <- imp_all_data_completed
+  lm_cyto <- lm(formula = pass_formula, data = df)
+  print(summary(lm_cyto))
+  # Plot diagnostics:
+  # Normality, Independence, Linearity, Homoscedasticity, 
+  # Residual versus Leverage graph (outliers, high leverage values and
+  # influential observation's (Cook's D))
+  svg(sprintf('%s_lm.svg', i))#, width = 7.3, height = 5)
+  par(mfrow=c(2,2))
+  plot(lm_cyto)
+  dev.off()
 }
+
+# Diagnostic plots:
+# See:
+# http://condor.depaul.edu/sjost/it223/documents/resid-plots.gif
+# http://rcompanion.org/rcompanion/e_04.html
 
 # Interpretation:
 # Running a basic lm adjusted for basic covariates in all data 
@@ -1126,6 +1134,8 @@ for (i in cytokines_12) {
 # Other 12 month cytokines are associated with age, disease, etc but not arm or
 # vitd variables.
 # IFNg and IL6 are borderline (0.08) non-significant for armB_2000IU
+# Diagnostic plots look like the distribution of residuals is normal 
+# and fitted vs residuals show residuals look homoscedastic and unbiased.
 ##########
 #############################################
 
@@ -1494,7 +1504,8 @@ library(lme4)
   # par(mfrow=c(2,2)) 
   # plot(lm_cyto)
 
-# 
+# TO DO: Run with imp_all_data_completed (single imputed, complete dataset)
+# Mixed effects model:
 lmm_vitd12 <- lmer(formula = vitd12 ~ vitd0 +
                male +
                bmi0 +
