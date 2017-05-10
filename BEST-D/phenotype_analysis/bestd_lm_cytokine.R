@@ -1110,6 +1110,7 @@ for (i in cytokines_12) {
   df <- imp_all_data_completed
   lm_cyto <- lm(formula = pass_formula, data = df)
   print(summary(lm_cyto))
+  assign(sprintf('lm_%s', i), lm_cyto)
   # Plot diagnostics:
   # Normality, Independence, Linearity, Homoscedasticity, 
   # Residual versus Leverage graph (outliers, high leverage values and
@@ -1242,9 +1243,10 @@ for (i in cytokines_12) {
   basal <- cytokines_0[index]
   pass_formula <- sprintf('%s ~ %s + %s + arm', i, covars, basal)
   print(pass_formula)
-  print(
-    mi.anova(mi.res = imp_all_data, formula = pass_formula, type = 3)
-  )
+  # print(
+    run_lm <- mi.anova(mi.res = imp_all_data, formula = pass_formula, type = 3)
+  # )
+  assign(sprintf('anova_%s', i), run_lm)
 }
 
 # type II and III seem to give very similar results

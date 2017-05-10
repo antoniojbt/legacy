@@ -478,7 +478,7 @@ head(normalised_filtered_annotated) # expression values plus annotations
 dim(normalised_filtered)
 dim(normalised_filtered_annotated)
 #head(membership_file_cleaned)
-# Skip if testing with without SNP filter:
+# Skip if testing without SNP filter:
 write.table(normalised_filtered_annotated, 'normalised_filtered_annotated.tab', sep='\t', 
             quote=FALSE, na='NA', col.names=NA, row.names=TRUE)
 write.table(normalised_filtered, 'normalised_filtered_expression_values.tab', sep='\t', 

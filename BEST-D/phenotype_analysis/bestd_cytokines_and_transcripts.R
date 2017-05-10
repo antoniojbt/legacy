@@ -54,7 +54,7 @@
 ##Set working directory and file locations and names of required inputs:
 
 # Working directory:
-setwd('~/Desktop/BEST_D.DIR/mac_runs_to_upload/BEST-D_cytokines/')
+# setwd('~/Desktop/BEST_D.DIR/mac_runs_to_upload/BEST-D_cytokines/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
@@ -257,18 +257,24 @@ for (i in transcript_info$Probe_Id)
 # normalised[, 'V1']
 # which(transcript_info$Probe_Id %in% normalised$V1)
 # # All transcripts were present pre-filtering.
+########
 
-
-# # Check probe filtering script steps in:
-# # '02a_microarray_GEx_normalisation_probe_filtering_sex.R'
-# load('../data.dir/R_session_saved_image_normalisation.RData', verbose=T)
+########
+# Run the following in order to include cytokine transcripts in plots:
+# Check probe filtering script steps in:
+# '02a_microarray_GEx_normalisation_probe_filtering_sex.R'
+# The object 'normalised_filtered_annotated' contains all probes without the SNP filter from this RData file"
+load('../data.dir/R_session_saved_image_probe_filtering_full_noSNP_filter.RData', verbose=T)
+# TO DO: setup properly to run without SNP filter.
+# which(transcript_info$Probe_Id %in% rownames(normalised_filtered_annotated))
+# # If loading normalised_full run:
 # which(transcript_info$Probe_Id %in% rownames(normalised_expressed$E))
 # which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated$E))
 # which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual$E))
-# transcript_info[c(1,5), ] # Lost due to low quality illuminaHumanv4.db 'Bad' or 'No match'
-# which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual_noSNPs$E))
-# transcript_info[2, ]
-# transcript_info[-c(1, 2, 5) ] # Lost all but IL10 due to probes matching a SNP
+transcript_info[c(1,5), ] # Lost due to low quality illuminaHumanv4.db 'Bad' or 'No match'
+which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual_noSNPs$E))
+transcript_info[2, ]
+transcript_info[-c(1, 2, 5) ] # Lost all but IL10 due to probes matching a SNP
 ########
 
 
@@ -282,19 +288,19 @@ transcripts_present[, 1:10]
 ########
 # # Check how pre-filtered transcripts look like (requires loading
 # # normalised_expressed_annotated_qual$E (above from normalisation script, step before SNPs):
-# pre_SNP_filter_transcripts <- as.data.frame(normalised_expressed_annotated_qual)
-# dim(pre_SNP_filter_transcripts)
-# head(pre_SNP_filter_transcripts)[1:5, 1:5]
-# colnames(pre_SNP_filter_transcripts)
-# pre_SNP_filter_transcripts$Probe_Id <- rownames(pre_SNP_filter_transcripts)
-# # Subset all cytokines in gene expression file:
-# transcripts_all <- pre_SNP_filter_transcripts[which(pre_SNP_filter_transcripts$Probe_Id %in% transcript_info$Probe_Id), ]
-# transcripts_all
-# dim(transcripts_all)
-# # Overwrite object name for downstream processing only:
-# transcripts_present <- transcripts_all
-# dim(transcripts_present)
-# transcripts_present[, 1:10]
+pre_SNP_filter_transcripts <- as.data.frame(normalised_expressed_annotated_qual)
+dim(pre_SNP_filter_transcripts)
+head(pre_SNP_filter_transcripts)[1:5, 1:5]
+colnames(pre_SNP_filter_transcripts)
+pre_SNP_filter_transcripts$Probe_Id <- rownames(pre_SNP_filter_transcripts)
+# Subset all cytokines in gene expression file:
+transcripts_all <- pre_SNP_filter_transcripts[which(pre_SNP_filter_transcripts$Probe_Id %in% transcript_info$Probe_Id), ]
+transcripts_all
+dim(transcripts_all)
+# Overwrite object name for downstream processing only:
+transcripts_present <- transcripts_all
+dim(transcripts_present)
+transcripts_present[, 1:10]
 ########
 
 ########
@@ -676,7 +682,8 @@ ggsave('IL10_transcripts_boxplots.png')
 #save(list=objects_to_save, file=R_session_saved_image, compress='gzip')
 
 # To save R workspace with all objects to use at a later time:
-save.image(file=R_session_saved_image, compress='gzip')
+# Too heavy as loadin normalisation_full RData file
+# save.image(file=R_session_saved_image, compress='gzip')
 
 sessionInfo()
 q()

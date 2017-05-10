@@ -35,9 +35,8 @@ print(paste('Working directory :', getwd()))
 # load('R_session_saved_image_normalisation.RData', verbose=T)
 # load('R_session_saved_image_normalisation_full_1ry_cells.RData', verbose=T)
 # load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_normalisation_full.RData')
-load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_read_and_QC.RData')
-load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_probe_filtering.RData')
-
+# load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_read_and_QC.RData')
+# load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_probe_filtering.RData')
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_PCA', '.RData', sep='')
@@ -56,9 +55,9 @@ library(grid)
 library(cowplot)
 
 source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
-# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/moveme.R')
+# source('/Users/antoniob/Documents/github.dir/AntonioJBT/cgat_projects/utility_tutorial_scripts/moveme.R')
 source('/ifs/devel/antoniob/projects/BEST-D/microarray_analysis/gene_expression_functions.R')
-# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/microarray_analysis/gene_expression_functions.R')
+# source('/Users/antoniob/Documents/github.dir/AntonioJBT/cgat_projects/BEST-D/microarray_analysis/gene_expression_functions.R')
 #############################
 
 
