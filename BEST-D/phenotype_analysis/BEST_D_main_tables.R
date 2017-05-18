@@ -42,17 +42,6 @@
 
 #############################################
 
-# TO DO:
-# Define variables of interest
-# Present main summary for cytokines and transcripts (main):
-# Mean and SE for cytokine and transcript per group with VD0, 12 and delta values
-
-# Present main summary for baseline characteristics (supplementary):
-# By arm: age, gender, VD0, VD12, ?
-# Refer to main paper.
-
-
-
 
 #############################################
 # Logging
@@ -85,19 +74,19 @@ getwd()
 # load('../data.dir/R_session_saved_image_cytokines_lm.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
-R_session_saved_image <- paste('R_session_saved_image__main_tables','.RData', sep='')
+R_session_saved_image <- paste('R_session_saved_image_main_tables','.RData', sep='')
 R_session_saved_image
 
 # Run with cmd arguments:
 args <- commandArgs(trailingOnly = TRUE)
 #############################################
 
-# TO DO:
-# Check 'normal' levels and ln interpretation, missing lab method.
-# This file has pt_id with 0 and 12 months for each variable
 
 #############################
 # Import libraries:
+# source("https://bioconductor.org/biocLite.R")
+# biocLite()
+library(xtable)
 library(data.table)
 library(reshape2)
 library(plyr)
@@ -112,6 +101,10 @@ cyto_file <- '../../data.dir/bestd_cytokines.csv'
 
 pheno_file <- as.character(args[4])
 pheno_file <- '../../data.dir/BEST-D_phenotype_file_final.tsv'
+
+# TO DO: Read in subset of cytokine transcripts created with 'bestd_cytokines_and_trancripts.R'
+# expr_file <- as.character(args[3])
+# expr_file <- '../../data.dir/normalised_filtered_annotated.tab'
 #############################################
 
 
@@ -131,10 +124,11 @@ head(pheno_file)
 dim(pheno_file)
 tail(pheno_file)
 summary(pheno_file)
+
+# TO DO: Add expr file:
 #############################################
 
 #############################################
-# Create one file with pt_id, kit_id, candidate geno, candidate expr, pheno and VD
 # Join files, these are data.table
 
 # Join pheno and cyto:
@@ -236,56 +230,94 @@ str(all_data[, as.character(vars_convert)])
 dim(all_data)
 #############################################
 
+# TO DO:
+# Define variables of interest
+# Present main summary for cytokines and transcripts (main):
+# Mean and SE for cytokine and transcript per group with VD0, 12 and delta values
+
+# Present main summary for baseline characteristics (supplementary):
+# By arm: age, gender, VD0, VD12, ?
+# Refer to main paper.
 
 #############################################
-# Explore cytokine data, descriptive analysis
-
-# Rename groups for better plotting:
-all_data$arm2[all_data$arm == 0] <- '4000_IU'
-all_data$arm2[all_data$arm == 1] <- '2000_IU'
-all_data$arm2[all_data$arm == 2] <- 'Placebo'
-plyr::count(all_data$arm2)
-
 # Get variables of interest:
 colnames(all_data)
-all_data_melt <- melt(all_data, measure.vars = c(29, 42, 88:97))
-all_data_melt
-head(all_data_melt)[1:5, 1:5]
-dim(all_data_melt)
-colnames(all_data_melt)
-plyr::count(all_data_melt$variable)
-all_data_melt[1:10, c('value', 'variable')]
-all_data_melt$variable <- factor(all_data_melt$variable, 
-                                 levels = c('vitd0',
-                                            'vitd12',
-                                            'Ln_IFNgamma0',
-                                            'Ln_IFNgamma12',
-                                            'Ln_IL10_0',
-                                            'Ln_IL10_12',
-                                            'Ln_IL6_0',
-                                            'Ln_IL6_12',
-                                            'Ln_IL8_0',
-                                            'Ln_IL8_12',
-                                            'Ln_TNFalpha0',
-                                            'Ln_TNFalpha12'),
-                                 labels = c('25OHD baseline',
-                                            '25OHD 12 months',
-                                            'IFNg baseline',
-                                            'IFNg 12 months',
-                                            'IL10 baseline',
-                                            'IL10 12 months',
-                                            'IL6 baseline',
-                                            'IL6 12 months',
-                                            'IL8 baseline',
-                                            'IL8 12 months',
-                                            'TNFa baseline',
-                                            'TNFa 12 months')
-)
-plyr::count(all_data_melt$variable)
-plyr::count(all_data_melt$arm2)
-group <- factor(all_data_melt$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
-                labels = c("Placebo", "2000 IU", "4000 IU"))
-plyr::count(group)
+colnames(all_data[, c(2, 29, 42, 51, 76, 88:97)])
+vars_interest <- c(2, 29, 42, 51, 76, 88:97)
+main_table_cyto <- all_data[, vars_interest]
+head(main_table_cyto)
+
+# Rename groups for better plotting:
+main_table_cyto$arm <- factor(main_table_cyto$arm, levels = c(2, 1, 0),
+                              labels = c('Placebo', '2000 IU', '4000 IU'))
+plyr::count(main_table_cyto$arm)
+main_table_cyto$male <- factor(main_table_cyto$male, levels = c(0, 1),
+                               labels = c('Female', 'Male'))
+plyr::count(main_table_cyto$male)
+
+# TO DO: Continue here:
+# Generate summaries:
+options(digits = 2)
+# browseVignettes(package = "dplyr")
+dplyr::summarise(group_by(main_table_cyto, arm),
+                 Mean = mean(vitd0, na.rm = TRUE),
+                 SD = sd(vitd0, na.rm = TRUE))
+
+dplyr::summarise(group_by(main_table_cyto, arm),
+                 Mean = mean(Ln_TNFalpha12, na.rm = TRUE),
+                 SD = sd(Ln_TNFalpha12, na.rm = TRUE))
+
+# Do baseline and 12 months for each, transpose:
+main_table_cyto %>%
+  group_by(arm) %>%
+  select(vitd0, vitd12) %>%
+  summarise(
+    VD0 = mean(vitd0, na.rm = TRUE),
+    VD12 = mean(vitd12, na.rm = TRUE)
+    )
+
+###########
+# all_data_melt <- melt(all_data, id.vars = vars_interest)
+# all_data_melt
+# head(all_data_melt)[1:5, 1:5]
+# dim(all_data_melt)
+# colnames(all_data_melt)
+# plyr::count(all_data_melt$variable)
+# all_data_melt[1:10, c('value', 'variable')]
+# all_data_melt$variable <- factor(all_data_melt$variable, 
+#                                  levels = c('arm',
+#                                             'vitd0',
+#                                             'vitd12',
+#                                             'male',
+#                                             "calendar_age_ra",
+#                                             'Ln_IFNgamma0',
+#                                             'Ln_IFNgamma12',
+#                                             'Ln_IL10_0',
+#                                             'Ln_IL10_12',
+#                                             'Ln_IL6_0',
+#                                             'Ln_IL6_12',
+#                                             'Ln_IL8_0',
+#                                             'Ln_IL8_12',
+#                                             'Ln_TNFalpha0',
+#                                             'Ln_TNFalpha12'),
+#                                  labels = c('Randomisation arm',
+#                                             '25OHD baseline',
+#                                             '25OHD 12 months',
+#                                             'Sex',
+#                                             'Age at randomisation',
+#                                             'IFNg baseline',
+#                                             'IFNg 12 months',
+#                                             'IL10 baseline',
+#                                             'IL10 12 months',
+#                                             'IL6 baseline',
+#                                             'IL6 12 months',
+#                                             'IL8 baseline',
+#                                             'IL8 12 months',
+#                                             'TNFa baseline',
+#                                             'TNFa 12 months')
+# )
+# plyr::count(all_data_melt$variable)
+# plyr::count(all_data_melt$arm)
 #############################################
 
 
@@ -302,69 +334,28 @@ colnames(all_data)
 # Sanity check treatment groups and vitamin D levels:
 str(all_data$arm)
 all_data[1:20, c('arm', 'vitd12')]
-summary(all_data[which(all_data$arm == 0), 'vitd12']) # 4000IU
-summary(all_data[which(all_data$arm == 1), 'vitd12']) # 2000IU
-summary(all_data[which(all_data$arm == 2), 'vitd12']) # Placebo
+summary(all_data[which(all_data$arm == '4000 IU'), 'vitd12']) # 4000IU
+summary(all_data[which(all_data$arm == '2000 IU'), 'vitd12']) # 2000IU
+summary(all_data[which(all_data$arm == 'Placebo'), 'vitd12']) # Placebo
 
-summary(all_data[which(all_data$arm == 0), 'vitd0'])
-summary(all_data[which(all_data$arm == 1), 'vitd0'])
-summary(all_data[which(all_data$arm == 2), 'vitd0'])
 #############################################
 
 
 #############################################
-# Convert data frame into long format for time plot:
-all_data$pt_id <- rownames(all_data)
-all_data_time <- all_data[, c('pt_id', 'Ln_IFNgamma0', 'Ln_IFNgamma12', 'arm')]
-head(all_data_time)
-all_data_time_melt <- melt(all_data_time, id.vars = c('pt_id', 'arm'))
-dim(all_data_time_melt)
-head(all_data_time_melt)
-# Create column with 0 month and 12 month values:
-all_data_time_melt$time <- ifelse(grepl(all_data_time_melt$variable, 
-                                            pattern = '12') == TRUE,
-                                      '12',
-                                      ifelse(grepl(all_data_time_melt$variable, 
-                                                   pattern = '0') == TRUE,
-                                             '0', NA)
-)
-all_data_time_melt$time <- factor(all_data_time_melt$time, 
-                                      levels = c('0', '12'),
-                                      labels = c('Baseline', '12 months'))
-# Change response variable name:
-response <- 'Ln_IFNgamma'
-all_data_time_melt$response <- ifelse(grepl(all_data_time_melt$variable, 
-                                                pattern = response) == TRUE,
-                                          response, NA)
-names(all_data_time_melt)
-plyr::count(all_data_time_melt$time)
-plyr::count(all_data_time_melt$variable)
-plyr::count(all_data_time_melt$response)
-plyr::count(all_data_time_melt$arm)
-str(all_data_time_melt)
-head(all_data_time_melt)
-anova(lm(value ~ time + arm, all_data_time_melt))
-# Basic summaries:
-summary(all_data_time_melt$arm)
-summary(all_data_time_melt[which(all_data_time_melt$arm == '2'), 'value'])
-summary(all_data_time_melt[which(all_data_time_melt$arm == '1'), 'value'])
-summary(all_data_time_melt[which(all_data_time_melt$arm == '0'), 'value'])
 
-summary(all_data_time_melt[which(all_data_time_melt$time == 'Baseline'), 'value'])
-summary(all_data_time_melt[which(all_data_time_melt$time == '12 months'), 'value'])
-
-summary(all_data_time_melt[which(all_data_time_melt$time == '12 months' &
-                                       all_data_time_melt$arm == '2'), 'value'])
-summary(all_data_time_melt[which(all_data_time_melt$time == '12 months' &
-                                       all_data_time_melt$arm == '1'), 'value'])
-summary(all_data_time_melt[which(all_data_time_melt$time == '12 months' &
-                                       all_data_time_melt$arm == '0'), 'value'])
 #############################################
 
 
 #############################################
-## Save some text:
+# Save some text:
 # cat(file = 'xxx.txt', xxx_var, "\t", xxx_var, '\n', append = TRUE)
+# Print/save pretty tables with xtable
+# http://blog.revolutionanalytics.com/2010/02/making-publicationready-tables-with-xtable.html
+# https://cran.r-project.org/web/packages/xtable/vignettes/xtableGallery.pdf
+
+print(xtable(summary(lm(value ~ time + arm, all_data_time_melt))), type = "html", file = 'test_xtable.html')
+# Arithmetic mean (SE) shown. Means and SEs are adjusted for baseline values, with missing data imputed using multiple imputation.
+
 #############################################
 
 

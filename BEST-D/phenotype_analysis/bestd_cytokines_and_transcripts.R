@@ -86,7 +86,7 @@ args <- commandArgs(trailingOnly = TRUE)
 #############################################
 
 # TO DO:
-# Check 'normal' levels and ln interpretation, missing lab method.
+# Check 'normal' levels and ln interpretation
 # Join info with geno, expr, VD, pheno:
 # Create one file with pt_id, kit_id, candidate geno, candidate expr, pheno and VD
 # This file has pt_id with 0 and 12 months for each variable
@@ -670,6 +670,10 @@ ggsave('IL10_transcripts_boxplots.png')
 #########
 #############################################
 
+#############################################
+# TO DO: Print csv file with transcripts info to merge later with pheno and cyto data
+
+#############################################
 
 #############################################
 # The end:
