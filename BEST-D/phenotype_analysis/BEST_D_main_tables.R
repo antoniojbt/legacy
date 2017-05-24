@@ -99,7 +99,7 @@ library(dplyr)
 cyto_file <- as.character(args[1])
 cyto_file <- '../../data.dir/bestd_cytokines.csv'
 
-pheno_file <- as.character(args[4])
+pheno_file <- as.character(args[2])
 pheno_file <- '../../data.dir/BEST-D_phenotype_file_final.tsv'
 
 # TO DO: Read in subset of cytokine transcripts created with 'bestd_cytokines_and_trancripts.R'
@@ -230,132 +230,157 @@ str(all_data[, as.character(vars_convert)])
 dim(all_data)
 #############################################
 
-# TO DO:
-# Define variables of interest
-# Present main summary for cytokines and transcripts (main):
-# Mean and SE for cytokine and transcript per group with VD0, 12 and delta values
-
-# Present main summary for baseline characteristics (supplementary):
-# By arm: age, gender, VD0, VD12, ?
-# Refer to main paper.
 
 #############################################
 # Get variables of interest:
 colnames(all_data)
-colnames(all_data[, c(2, 29, 42, 51, 76, 88:97)])
-vars_interest <- c(2, 29, 42, 51, 76, 88:97)
-main_table_cyto <- all_data[, vars_interest]
-head(main_table_cyto)
+colnames(all_data[, c(2, 29, 42, 51, 52, 76, 88:97)])
+vars_interest <- c(2, 29, 42, 51, 52, 76, 88:97)
+all_data_reduced <- all_data[, vars_interest]
+head(all_data_reduced)
+summary(all_data_reduced)
+
 
 # Rename groups for better plotting:
-main_table_cyto$arm <- factor(main_table_cyto$arm, levels = c(2, 1, 0),
+all_data_reduced$arm <- factor(all_data_reduced$arm, levels = c(2, 1, 0),
                               labels = c('Placebo', '2000 IU', '4000 IU'))
-plyr::count(main_table_cyto$arm)
-main_table_cyto$male <- factor(main_table_cyto$male, levels = c(0, 1),
+plyr::count(all_data_reduced$arm)
+all_data_reduced$male <- factor(all_data_reduced$male, levels = c(0, 1),
                                labels = c('Female', 'Male'))
-plyr::count(main_table_cyto$male)
+plyr::count(all_data_reduced$male)
 
-# TO DO: Continue here:
+
 # Generate summaries:
-options(digits = 2)
+options(digits = 4)
 # browseVignettes(package = "dplyr")
-dplyr::summarise(group_by(main_table_cyto, arm),
+dplyr::summarise(group_by(all_data_reduced, arm),
                  Mean = mean(vitd0, na.rm = TRUE),
                  SD = sd(vitd0, na.rm = TRUE))
 
-dplyr::summarise(group_by(main_table_cyto, arm),
+dplyr::summarise(group_by(all_data_reduced, arm),
                  Mean = mean(Ln_TNFalpha12, na.rm = TRUE),
                  SD = sd(Ln_TNFalpha12, na.rm = TRUE))
 
-# Do baseline and 12 months for each, transpose:
-main_table_cyto %>%
-  group_by(arm) %>%
-  select(vitd0, vitd12) %>%
-  summarise(
-    VD0 = mean(vitd0, na.rm = TRUE),
-    VD12 = mean(vitd12, na.rm = TRUE)
-    )
+# by_arm <- all_data_reduced %>% group_by(arm)
+# main_table <- by_arm %>% summarise_if(is.numeric, funs(mean = mean, SD = sd), na.rm = TRUE)
+# 
+# # Transpose table for better viewing:
+# colnames(main_table)
+# rownames(main_table) <- main_table$arm
+# main_table_t <- t(main_table)[-1, ]
+# main_table_t
 
-###########
-# all_data_melt <- melt(all_data, id.vars = vars_interest)
-# all_data_melt
-# head(all_data_melt)[1:5, 1:5]
-# dim(all_data_melt)
-# colnames(all_data_melt)
-# plyr::count(all_data_melt$variable)
-# all_data_melt[1:10, c('value', 'variable')]
-# all_data_melt$variable <- factor(all_data_melt$variable, 
-#                                  levels = c('arm',
-#                                             'vitd0',
-#                                             'vitd12',
-#                                             'male',
-#                                             "calendar_age_ra",
-#                                             'Ln_IFNgamma0',
-#                                             'Ln_IFNgamma12',
-#                                             'Ln_IL10_0',
-#                                             'Ln_IL10_12',
-#                                             'Ln_IL6_0',
-#                                             'Ln_IL6_12',
-#                                             'Ln_IL8_0',
-#                                             'Ln_IL8_12',
-#                                             'Ln_TNFalpha0',
-#                                             'Ln_TNFalpha12'),
-#                                  labels = c('Randomisation arm',
-#                                             '25OHD baseline',
-#                                             '25OHD 12 months',
-#                                             'Sex',
-#                                             'Age at randomisation',
-#                                             'IFNg baseline',
-#                                             'IFNg 12 months',
-#                                             'IL10 baseline',
-#                                             'IL10 12 months',
-#                                             'IL6 baseline',
-#                                             'IL6 12 months',
-#                                             'IL8 baseline',
-#                                             'IL8 12 months',
-#                                             'TNFa baseline',
-#                                             'TNFa 12 months')
-# )
-# plyr::count(all_data_melt$variable)
-# plyr::count(all_data_melt$arm)
-#############################################
-
-
-#############################################
-# Basic sanity check, see thresholds, basic comparisons between 0, 12 and groups
-# Extract variables of interest, assign groups, run lm correcting for baseline 
-# and other groups
-class(all_data_melt)
-colnames(all_data_melt)
-class(all_data)
+# Get total counts:
 head(all_data)
-colnames(all_data)
+dim(all_data)
+counts_by_arm <- plyr::count(all_data_reduced$arm)
+rownames(counts_by_arm) <- counts_by_arm$x
+counts_by_arm <- t(counts_by_arm)
+counts_by_arm <- as.data.frame(counts_by_arm)
+counts_by_arm <- counts_by_arm[-1, ]
+rownames(counts_by_arm)[1] <- 'Total n'
+counts_by_arm
 
-# Sanity check treatment groups and vitamin D levels:
-str(all_data$arm)
-all_data[1:20, c('arm', 'vitd12')]
-summary(all_data[which(all_data$arm == '4000 IU'), 'vitd12']) # 4000IU
-summary(all_data[which(all_data$arm == '2000 IU'), 'vitd12']) # 2000IU
-summary(all_data[which(all_data$arm == 'Placebo'), 'vitd12']) # Placebo
 
+# Get gender counts, drop males and gender column:
+gender_table <- plyr::count(all_data_reduced, vars = c('male', 'arm'))
+gender_table$proportion <- (gender_table$freq / sum(gender_table$freq)) * 100
+gender_table <- gender_table[-c(4:6), -1]
+rownames(gender_table) <- gender_table$arm
+gender_table <- t(gender_table)[-1, ]
+rownames(gender_table)[1] <- 'Female n'
+rownames(gender_table)[2] <- 'Female %'
+
+
+# Merge tables:
+head(main_table_t)
+gender_table
+# With gender counts:
+main_table_t <- rbind(gender_table, main_table_t)
+# With total counts:
+main_table_t <- rbind(counts_by_arm, main_table_t)
+
+# Save table to file:
+print(xtable(main_table_t), type = "html", file = 'BESTD_main_xtable.html')
+
+# TO DO: add transcripts:
+# Second version of the same:
+main_table_2 <-
+  all_data_reduced %>%
+  group_by(arm) %>%
+  summarise(
+    'Age' = mean(calendar_age_ra, na.rm = TRUE),
+    'Age (SD)' = sd(calendar_age_ra, na.rm = TRUE),
+    'BMI' = mean(bmi0, na.rm = TRUE),
+    'BMI (SD)' = sd(bmi0, na.rm = TRUE),
+    '25OHD baseline' = mean(vitd0, na.rm = TRUE),
+    '25OHD baseline (SD)' = sd(vitd0, na.rm = TRUE),
+    '25OHD 12 months' = mean(vitd12, na.rm = TRUE),
+    '25OHD 12 months (SD)' = sd(vitd12, na.rm = TRUE),
+    'IFNg baseline' = mean(Ln_IFNgamma0, na.rm = TRUE),
+    'IFNg baseline (SD)' = sd(Ln_IFNgamma0, na.rm = TRUE),
+    'IFNg 12m' = mean(Ln_IFNgamma12, na.rm = TRUE),
+    'IFNg 12m (SD)' = sd(Ln_IFNgamma12, na.rm = TRUE),
+    'IL10 baseline' = mean(Ln_IL10_0, na.rm = TRUE),
+    'IL10 baseline (SD)' = sd(Ln_IL10_0, na.rm = TRUE),
+    'IL10 12m' = mean(Ln_IL10_12, na.rm = TRUE),
+    'IL10 12m (SD)' = sd(Ln_IL10_12, na.rm = TRUE),
+    'IL6 baseline' = mean(Ln_IL6_0, na.rm = TRUE),
+    'IL6 baseline (SD)' = sd(Ln_IL6_0, na.rm = TRUE),
+    'IL6 12m' = mean(Ln_IL6_12, na.rm = TRUE),
+    'IL6 12m (SD)' = sd(Ln_IL6_12, na.rm = TRUE),
+    'IL8 baseline' = mean(Ln_IL8_0, na.rm = TRUE),
+    'IL8 baseline (SD)' = sd(Ln_IL8_0, na.rm = TRUE),
+    'IL8 12m' = mean(Ln_IL8_12, na.rm = TRUE),
+    'IL8 12m (SD)' = sd(Ln_IL8_12, na.rm = TRUE),
+    'TNFa baseline' = mean(Ln_TNFalpha0, na.rm = TRUE),
+    'TNFa baseline (SD)' = sd(Ln_TNFalpha0, na.rm = TRUE),
+    'TNFa 12m' = mean(Ln_TNFalpha12, na.rm = TRUE),
+    'TNFa 12m (SD)' = sd(Ln_TNFalpha12, na.rm = TRUE)
+    )
+# Transpose table for better viewing:
+colnames(main_table_2)
+rownames(main_table_2) <- main_table_2$arm
+main_table_2_t <- t(main_table_2)[-1, ]
+
+# Merge tables:
+head(main_table_2_t)
+gender_table
+# With gender counts:
+main_table_2_t <- rbind(gender_table, main_table_2_t)
+# With total counts:
+main_table_2_t <- rbind(counts_by_arm, main_table_2_t)
+
+# Add deltas:
+main_table_2_t$`Delta 2000` <- round(as.numeric(as.character(main_table_2_t$`2000 IU`)) - 
+                                     as.numeric(as.character(main_table_2_t$Placebo)),
+                                   2)
+main_table_2_t$`Delta 4000` <- round(as.numeric(as.character(main_table_2_t$`4000 IU`)) - 
+                                     as.numeric(as.character(main_table_2_t$Placebo)),
+                                   2)
+main_table_2_t$`Delta regimens` <- round(as.numeric(as.character(main_table_2_t$`4000 IU`)) - 
+                                       as.numeric(as.character(main_table_2_t$`2000 IU`)),
+                                     2)
+# View(main_table_2_t)
+
+# TO DO: add p-values?
+
+# Save table to file:
+print(xtable(main_table_2_t), type = "html", file = 'BESTD_main_xtable_v2.html')
 #############################################
 
-
-#############################################
-
-#############################################
 
 
 #############################################
 # Save some text:
 # cat(file = 'xxx.txt', xxx_var, "\t", xxx_var, '\n', append = TRUE)
+# Arithmetic mean (SE) shown. Means and SEs are adjusted for baseline values, with missing data imputed using multiple imputation.
+
 # Print/save pretty tables with xtable
 # http://blog.revolutionanalytics.com/2010/02/making-publicationready-tables-with-xtable.html
 # https://cran.r-project.org/web/packages/xtable/vignettes/xtableGallery.pdf
 
-print(xtable(summary(lm(value ~ time + arm, all_data_time_melt))), type = "html", file = 'test_xtable.html')
-# Arithmetic mean (SE) shown. Means and SEs are adjusted for baseline values, with missing data imputed using multiple imputation.
-
+print(xtable(summary(lm(vitd12 ~ vitd0 + . , all_data_reduced))), type = "html", file = 'test_xtable.html')
 #############################################
 
 
