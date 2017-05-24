@@ -351,6 +351,7 @@ main_table_2_t <- rbind(gender_table, main_table_2_t)
 # With total counts:
 main_table_2_t <- rbind(counts_by_arm, main_table_2_t)
 
+# TO DO: this should be by complete pairs, then avegared and added to table
 # Add deltas:
 main_table_2_t$`Delta 2000` <- round(as.numeric(as.character(main_table_2_t$`2000 IU`)) - 
                                      as.numeric(as.character(main_table_2_t$Placebo)),
@@ -363,7 +364,35 @@ main_table_2_t$`Delta regimens` <- round(as.numeric(as.character(main_table_2_t$
                                      2)
 # View(main_table_2_t)
 
-# TO DO: add p-values?
+# TO DO: add SEM
+# Assumes data have normal distribution
+# Calculate standard error of the mean, with sample size to infinity sem approaches 0:
+i <- all_data$vitd12
+i <- i[!is.na(i)]
+sem <- sd(i) / sqrt(length(i))
+# 95% CIs of the mean:
+CI95 <- c(mean(i) - 2 * sem, mean(i) + 2 * sem)
+sem
+CI95
+head(main_table_2_t)
+
+############
+# Use bootstrapping (re-sampling technique) for non-normal distributions:
+# https://datascienceplus.com/introduction-to-bootstrap-with-applications-to-mixed-effect-models/
+# Resample observed data with replacement and compute statistic of interest many times to get a distribution.
+# e.g.:
+# set.seed(20151101)
+# height <- rnorm(100, 175, 6)
+# t0 <- median(height)
+# t <- sapply(1:1000, function(x) median(sample(x = height, size = 100, replace = TRUE)))
+# hist(t)
+# abline(v = t0, col = "orange", lwd = 3)
+
+# Use library(boot) for more methods
+############
+
+# Add SEM and 95CIs to table:
+main_table_2_t$SEM <- 
 
 # Save table to file:
 print(xtable(main_table_2_t), type = "html", file = 'BESTD_main_xtable_v2.html')
