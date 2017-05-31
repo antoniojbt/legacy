@@ -232,6 +232,7 @@ dim(all_data)
 
 
 #############################################
+###########
 # Get variables of interest:
 colnames(all_data)
 colnames(all_data[, c(2, 29, 42, 51, 52, 76, 88:97)])
@@ -240,46 +241,17 @@ all_data_reduced <- all_data[, vars_interest]
 head(all_data_reduced)
 summary(all_data_reduced)
 
-
 # Rename groups for better plotting:
 all_data_reduced$arm <- factor(all_data_reduced$arm, levels = c(2, 1, 0),
-                              labels = c('Placebo', '2000 IU', '4000 IU'))
+                               labels = c('Placebo', '2000 IU', '4000 IU'))
 plyr::count(all_data_reduced$arm)
 all_data_reduced$male <- factor(all_data_reduced$male, levels = c(0, 1),
-                               labels = c('Female', 'Male'))
+                                labels = c('Female', 'Male'))
 plyr::count(all_data_reduced$male)
+###########
 
-
-# Generate summaries:
-# browseVignettes(package = "dplyr")
-dplyr::summarise(group_by(all_data_reduced, arm),
-                 Mean = mean(vitd0, na.rm = TRUE),
-                 SD = sd(vitd0, na.rm = TRUE))
-
-dplyr::summarise(group_by(all_data_reduced, arm),
-                 Mean = mean(Ln_TNFalpha12, na.rm = TRUE),
-                 SD = sd(Ln_TNFalpha12, na.rm = TRUE))
-
-main_table <- all_data_reduced %>%
-  group_by(arm) %>%
-  summarise_if(is.numeric, funs(mean = mean, SD = sd), na.rm = TRUE)
-main_table
-# Transpose table for better viewing:
-colnames(main_table)
-rownames(main_table) <- main_table$arm
-main_table_t <- t(main_table)[-1, ]
-head(main_table_t)
-class(main_table_t)
-main_table_t <- as.data.frame(main_table_t)
-rownames(main_table_t)
-colnames(main_table_t)
-# Convert to numeric:
-for (i in colnames(main_table_t)) {
-  print(i)
-  main_table_t[, i] <- as.numeric(as.character(main_table_t[, i]))
-}
-# View(main_table_t)
-
+###########
+# Generate summaries
 # Get total counts:
 head(all_data)
 dim(all_data)
@@ -297,8 +269,9 @@ for (i in colnames(df)) {
 counts_by_arm <- df
 str(counts_by_arm)
 counts_by_arm
+###########
 
-
+###########
 # Get gender counts, drop males and gender column:
 gender_table <- plyr::count(all_data_reduced, vars = c('male', 'arm'))
 gender_table$proportion <- (gender_table$freq / sum(gender_table$freq)) * 100
@@ -315,91 +288,79 @@ for (i in colnames(df)) {
 }
 gender_table <- df
 str(gender_table)
+# Gender proportions are when counting each arm per gender, this doesn't make sense when cutting out 'male' rows
+# Leaving for now though.
 gender_table
+###########
 
-# Merge tables:
-head(main_table_t)
-gender_table
-# With gender counts:
-main_table_t <- rbind(gender_table, main_table_t)
-# With total counts:
-main_table_t <- rbind(counts_by_arm, main_table_t)
-# View(main_table_t)
+###########
+# TO DO: add transcripts:
+# Main variables
+# Functions for mean and SD for main table:
+get_mean <- function(i) round(mean(i, na.rm = TRUE), 2)
+get_sd <- function(i) round(sd(i, na.rm = TRUE), 2)
 
-# Convert to numeric and round to 2 digits:
-for (i in colnames(main_table_t)) {
-  print(i)
-  main_table_t[, i] <- as.numeric(as.character(main_table_t[, i]))
-  main_table_t[, i] <- round(main_table_t[, i], 2)
+a_mean <- get_mean(all_data_reduced$vitd0)
+an_sd <- get_sd(all_data_reduced$vitd0)
+
+nice_print <- sprintf('%s (%s)', a_mean, an_sd)
+nice_print
+
+get_mean_sd <- function(i) {
+  a_mean <- get_mean(i)
+  an_sd <- get_sd(i)
+  nice_print <- sprintf('%s (%s)', a_mean, an_sd)
+  return(nice_print)
+}
+get_mean_sd(all_data_reduced$vitd0)
+############
+
+############
+# Get all means and SDs:
+get_all_means <- function(df) {
+  col_name <- c(
+    'Age' = get_mean_sd(df$calendar_age_ra),
+    'BMI' = get_mean_sd(df$bmi0),
+    '25OHD baseline' = get_mean_sd(df$vitd0),
+    '25OHD 12 months' = get_mean_sd(df$vitd12),
+    'IFNg baseline' = get_mean_sd(df$Ln_IFNgamma0),
+    'IFNg 12 months' = get_mean_sd(df$Ln_IFNgamma12),
+    'IL10 baseline' = get_mean_sd(df$Ln_IL10_0),
+    'IL10 12 months' = get_mean_sd(df$Ln_IL10_12),
+    'IL6 baseline' = get_mean_sd(df$Ln_IL6_0),
+    'IL6 12 months' = get_mean_sd(df$Ln_IL6_12),
+    'IL8 baseline' = get_mean_sd(df$Ln_IL8_0),
+    'IL8 12 months' = get_mean_sd(df$Ln_IL8_12),
+    'TNFa baseline' = get_mean_sd(df$Ln_TNFalpha0),
+    'TNFa 12 months' = get_mean_sd(df$Ln_TNFalpha12)
+  )
+  as_df <- as.data.frame(col_name)
+  return(as_df)
 }
 
-str(main_table_t)
-# View(main_table_t)
+main_table_2 <- data.frame(get_all_means(all_data_reduced[which(all_data_reduced$arm == 'Placebo'), ]),
+                           get_all_means(all_data_reduced[which(all_data_reduced$arm == '2000 IU'), ]),
+                           get_all_means(all_data_reduced[which(all_data_reduced$arm == '4000 IU'), ])
+)
+colnames(main_table_2) <- c('Placebo', '2000 IU', '4000 IU')
+# View(main_table_2)
 
 # Save table to file:
-print(xtable(main_table_t), type = "html", file = 'BESTD_main_xtable.html')
+print(xtable(main_table_2), type = "html", file = 'BESTD_table_mean_SD.html')
+############
 
-# TO DO: add transcripts:
-# Second version of the same:
-main_table_2 <-
-  all_data_reduced %>%
-  group_by(arm) %>%
-  summarise(
-    'Age' = mean(calendar_age_ra, na.rm = TRUE),
-    'Age (SD)' = sd(calendar_age_ra, na.rm = TRUE),
-    'BMI' = mean(bmi0, na.rm = TRUE),
-    'BMI (SD)' = sd(bmi0, na.rm = TRUE),
-    '25OHD baseline' = mean(vitd0, na.rm = TRUE),
-    '25OHD baseline (SD)' = sd(vitd0, na.rm = TRUE),
-    '25OHD 12 months' = mean(vitd12, na.rm = TRUE),
-    '25OHD 12 months (SD)' = sd(vitd12, na.rm = TRUE),
-    'IFNg baseline' = mean(Ln_IFNgamma0, na.rm = TRUE),
-    'IFNg baseline (SD)' = sd(Ln_IFNgamma0, na.rm = TRUE),
-    'IFNg 12 months' = mean(Ln_IFNgamma12, na.rm = TRUE),
-    'IFNg 12 months (SD)' = sd(Ln_IFNgamma12, na.rm = TRUE),
-    'IL10 baseline' = mean(Ln_IL10_0, na.rm = TRUE),
-    'IL10 baseline (SD)' = sd(Ln_IL10_0, na.rm = TRUE),
-    'IL10 12 months' = mean(Ln_IL10_12, na.rm = TRUE),
-    'IL10 12 months (SD)' = sd(Ln_IL10_12, na.rm = TRUE),
-    'IL6 baseline' = mean(Ln_IL6_0, na.rm = TRUE),
-    'IL6 baseline (SD)' = sd(Ln_IL6_0, na.rm = TRUE),
-    'IL6 12 months' = mean(Ln_IL6_12, na.rm = TRUE),
-    'IL6 12 months (SD)' = sd(Ln_IL6_12, na.rm = TRUE),
-    'IL8 baseline' = mean(Ln_IL8_0, na.rm = TRUE),
-    'IL8 baseline (SD)' = sd(Ln_IL8_0, na.rm = TRUE),
-    'IL8 12 months' = mean(Ln_IL8_12, na.rm = TRUE),
-    'IL8 12 months (SD)' = sd(Ln_IL8_12, na.rm = TRUE),
-    'TNFa baseline' = mean(Ln_TNFalpha0, na.rm = TRUE),
-    'TNFa baseline (SD)' = sd(Ln_TNFalpha0, na.rm = TRUE),
-    'TNFa 12 months' = mean(Ln_TNFalpha12, na.rm = TRUE),
-    'TNFa 12 months (SD)' = sd(Ln_TNFalpha12, na.rm = TRUE)
-    )
-# Transpose table for better viewing:
-colnames(main_table_2)
-rownames(main_table_2) <- main_table_2$arm
-main_table_2_t <- t(main_table_2)[-1, ]
-
-# Merge tables:
-head(main_table_2_t)
-gender_table
-# With gender counts:
-main_table_2_t <- rbind(gender_table, main_table_2_t)
-# With total counts:
-main_table_2_t <- rbind(counts_by_arm, main_table_2_t)
-str(main_table_2_t)
-# View(main_table_2_t)
-
+###########
 # TO DO: this should be by complete pairs, then avegared and added to table
 # Add deltas:
 main_table_2_t$`Delta 2000` <- round(as.numeric(as.character(main_table_2_t$`2000 IU`)) - 
-                                     as.numeric(as.character(main_table_2_t$Placebo)),
-                                   2)
-main_table_2_t$`Delta 4000` <- round(as.numeric(as.character(main_table_2_t$`4000 IU`)) - 
-                                     as.numeric(as.character(main_table_2_t$Placebo)),
-                                   2)
-main_table_2_t$`Delta regimens` <- round(as.numeric(as.character(main_table_2_t$`4000 IU`)) - 
-                                       as.numeric(as.character(main_table_2_t$`2000 IU`)),
+                                       as.numeric(as.character(main_table_2_t$Placebo)),
                                      2)
+main_table_2_t$`Delta 4000` <- round(as.numeric(as.character(main_table_2_t$`4000 IU`)) - 
+                                       as.numeric(as.character(main_table_2_t$Placebo)),
+                                     2)
+main_table_2_t$`Delta regimens` <- round(as.numeric(as.character(main_table_2_t$`4000 IU`)) - 
+                                           as.numeric(as.character(main_table_2_t$`2000 IU`)),
+                                         2)
 str(main_table_2_t)
 # Convert to numeric and round to 2 digits:
 df <- main_table_2_t
@@ -407,11 +368,15 @@ for (i in colnames(df)) {
   print(i)
   df[, i] <- as.numeric(as.character(df[, i]))
   df[, i] <- round(df[, i], 2)
-  }
+}
 main_table_2_t <- df
-
+head(main_table_2_t)
 # View(main_table_2_t)
-############
+
+# Save table to file:
+# print(xtable(main_table_2_t), type = "html", file = 'BESTD_main_table.html')
+###########
+
 
 ############
 # Add SEM in separate table
@@ -461,15 +426,15 @@ get_all_sems <- function(df) {
     'IL8 12 months' = get_sem_ci95(df$Ln_IL8_12),
     'TNFa baseline' = get_sem_ci95(df$Ln_TNFalpha0),
     'TNFa 12 months' = get_sem_ci95(df$Ln_TNFalpha12)
-    )
+  )
   as_df <- as.data.frame(col_name)
   return(as_df)
-  }
+}
 
 main_table_2_sem <- data.frame(get_all_sems(all_data_reduced[which(all_data_reduced$arm == 'Placebo'), ]),
-                          get_all_sems(all_data_reduced[which(all_data_reduced$arm == '2000 IU'), ]),
-                          get_all_sems(all_data_reduced[which(all_data_reduced$arm == '4000 IU'), ])
-                          )
+                               get_all_sems(all_data_reduced[which(all_data_reduced$arm == '2000 IU'), ]),
+                               get_all_sems(all_data_reduced[which(all_data_reduced$arm == '4000 IU'), ])
+)
 colnames(main_table_2_sem) <- c('Placebo', '2000 IU', '4000 IU')
 # View(main_table_2_sem)
 
@@ -504,7 +469,7 @@ print(xtable(main_table_2_sem), type = "html", file = 'BESTD_table_sem_CI95.html
 # http://blog.revolutionanalytics.com/2010/02/making-publicationready-tables-with-xtable.html
 # https://cran.r-project.org/web/packages/xtable/vignettes/xtableGallery.pdf
 
-print(xtable(summary(lm(vitd12 ~ vitd0 + . , all_data_reduced))), type = "html", file = 'test_xtable.html')
+# print(xtable(summary(lm(vitd12 ~ vitd0 + . , all_data_reduced))), type = "html", file = 'test_xtable.html')
 #############################################
 
 
