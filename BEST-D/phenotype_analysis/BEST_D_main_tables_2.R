@@ -252,6 +252,82 @@ plyr::count(all_data_reduced$male)
 
 ###########
 # Generate summaries
+# TO DO: add transcripts:
+# Main variables
+# Functions for mean and SD for main table:
+get_mean <- function(i) round(mean(i, na.rm = TRUE), 2)
+get_sd <- function(i) round(sd(i, na.rm = TRUE), 2)
+
+a_mean <- get_mean(all_data_reduced$vitd0)
+an_sd <- get_sd(all_data_reduced$vitd0)
+
+nice_print <- sprintf('%s (%s)', a_mean, an_sd)
+nice_print
+
+get_mean_sd <- function(i) {
+  a_mean <- get_mean(i)
+  an_sd <- get_sd(i)
+  nice_print <- sprintf('%s (%s)', a_mean, an_sd)
+  return(nice_print)
+}
+get_mean_sd(all_data_reduced$vitd0)
+
+# Get all means and SDs:
+get_all_means <- function(df) {
+  col_name <- c(
+    'Age' = get_mean_sd(df$calendar_age_ra),
+    'BMI' = get_mean_sd(df$bmi0),
+    '25OHD baseline' = get_mean_sd(df$vitd0),
+    '25OHD 12 months' = get_mean_sd(df$vitd12),
+    'IFNg baseline' = get_mean_sd(df$Ln_IFNgamma0),
+    'IFNg 12 months' = get_mean_sd(df$Ln_IFNgamma12),
+    'IL10 baseline' = get_mean_sd(df$Ln_IL10_0),
+    'IL10 12 months' = get_mean_sd(df$Ln_IL10_12),
+    'IL6 baseline' = get_mean_sd(df$Ln_IL6_0),
+    'IL6 12 months' = get_mean_sd(df$Ln_IL6_12),
+    'IL8 baseline' = get_mean_sd(df$Ln_IL8_0),
+    'IL8 12 months' = get_mean_sd(df$Ln_IL8_12),
+    'TNFa baseline' = get_mean_sd(df$Ln_TNFalpha0),
+    'TNFa 12 months' = get_mean_sd(df$Ln_TNFalpha12)
+  )
+  as_df <- as.data.frame(col_name)
+  return(as_df)
+}
+
+main_table_2 <- data.frame(get_all_means(all_data_reduced[which(all_data_reduced$arm == 'Placebo'), ]),
+                           get_all_means(all_data_reduced[which(all_data_reduced$arm == '2000 IU'), ]),
+                           get_all_means(all_data_reduced[which(all_data_reduced$arm == '4000 IU'), ])
+)
+colnames(main_table_2) <- c('Placebo', '2000 IU', '4000 IU')
+# View(main_table_2)
+###########
+
+###########
+# TO DO: this should be by complete pairs, then avegared and added to table
+# Will error as passing text after calculating values above
+# Add deltas:
+# main_table_2$`Delta 2000` <- round(as.numeric(as.character(main_table_2$`2000 IU`)) - 
+#                                        as.numeric(as.character(main_table_2$Placebo)),
+#                                      2)
+# main_table_2$`Delta 4000` <- round(as.numeric(as.character(main_table_2$`4000 IU`)) - 
+#                                        as.numeric(as.character(main_table_2$Placebo)),
+#                                      2)
+# main_table_2$`Delta regimens` <- round(as.numeric(as.character(main_table_2$`4000 IU`)) - 
+#                                            as.numeric(as.character(main_table_2$`2000 IU`)),
+#                                          2)
+# # Convert to numeric and round to 2 digits:
+# df <- main_table_2
+# for (i in colnames(df)) {
+#   print(i)
+#   df[, i] <- as.numeric(as.character(df[, i]))
+#   df[, i] <- round(df[, i], 2)
+# }
+# main_table_2 <- df
+# head(main_table_2)
+# # View(main_table_2)
+###########
+
+###########
 # Get total counts:
 head(all_data)
 dim(all_data)
@@ -294,88 +370,20 @@ gender_table
 ###########
 
 ###########
-# TO DO: add transcripts:
-# Main variables
-# Functions for mean and SD for main table:
-get_mean <- function(i) round(mean(i, na.rm = TRUE), 2)
-get_sd <- function(i) round(sd(i, na.rm = TRUE), 2)
-
-a_mean <- get_mean(all_data_reduced$vitd0)
-an_sd <- get_sd(all_data_reduced$vitd0)
-
-nice_print <- sprintf('%s (%s)', a_mean, an_sd)
-nice_print
-
-get_mean_sd <- function(i) {
-  a_mean <- get_mean(i)
-  an_sd <- get_sd(i)
-  nice_print <- sprintf('%s (%s)', a_mean, an_sd)
-  return(nice_print)
-}
-get_mean_sd(all_data_reduced$vitd0)
-############
-
-############
-# Get all means and SDs:
-get_all_means <- function(df) {
-  col_name <- c(
-    'Age' = get_mean_sd(df$calendar_age_ra),
-    'BMI' = get_mean_sd(df$bmi0),
-    '25OHD baseline' = get_mean_sd(df$vitd0),
-    '25OHD 12 months' = get_mean_sd(df$vitd12),
-    'IFNg baseline' = get_mean_sd(df$Ln_IFNgamma0),
-    'IFNg 12 months' = get_mean_sd(df$Ln_IFNgamma12),
-    'IL10 baseline' = get_mean_sd(df$Ln_IL10_0),
-    'IL10 12 months' = get_mean_sd(df$Ln_IL10_12),
-    'IL6 baseline' = get_mean_sd(df$Ln_IL6_0),
-    'IL6 12 months' = get_mean_sd(df$Ln_IL6_12),
-    'IL8 baseline' = get_mean_sd(df$Ln_IL8_0),
-    'IL8 12 months' = get_mean_sd(df$Ln_IL8_12),
-    'TNFa baseline' = get_mean_sd(df$Ln_TNFalpha0),
-    'TNFa 12 months' = get_mean_sd(df$Ln_TNFalpha12)
-  )
-  as_df <- as.data.frame(col_name)
-  return(as_df)
-}
-
-main_table_2 <- data.frame(get_all_means(all_data_reduced[which(all_data_reduced$arm == 'Placebo'), ]),
-                           get_all_means(all_data_reduced[which(all_data_reduced$arm == '2000 IU'), ]),
-                           get_all_means(all_data_reduced[which(all_data_reduced$arm == '4000 IU'), ])
-)
-colnames(main_table_2) <- c('Placebo', '2000 IU', '4000 IU')
+# Merge tables
+head(main_table_2)
+gender_table
+# With gender counts:
+main_table_2 <- rbind(gender_table, main_table_2)
+# With total counts:
+main_table_2 <- rbind(counts_by_arm, main_table_2)
+# Remove Female %, not useful:
+main_table_2 <- main_table_2[-3, ]
 # View(main_table_2)
 
 # Save table to file:
 print(xtable(main_table_2), type = "html", file = 'BESTD_table_mean_SD.html')
 ############
-
-###########
-# TO DO: this should be by complete pairs, then avegared and added to table
-# Add deltas:
-main_table_2_t$`Delta 2000` <- round(as.numeric(as.character(main_table_2_t$`2000 IU`)) - 
-                                       as.numeric(as.character(main_table_2_t$Placebo)),
-                                     2)
-main_table_2_t$`Delta 4000` <- round(as.numeric(as.character(main_table_2_t$`4000 IU`)) - 
-                                       as.numeric(as.character(main_table_2_t$Placebo)),
-                                     2)
-main_table_2_t$`Delta regimens` <- round(as.numeric(as.character(main_table_2_t$`4000 IU`)) - 
-                                           as.numeric(as.character(main_table_2_t$`2000 IU`)),
-                                         2)
-str(main_table_2_t)
-# Convert to numeric and round to 2 digits:
-df <- main_table_2_t
-for (i in colnames(df)) {
-  print(i)
-  df[, i] <- as.numeric(as.character(df[, i]))
-  df[, i] <- round(df[, i], 2)
-}
-main_table_2_t <- df
-head(main_table_2_t)
-# View(main_table_2_t)
-
-# Save table to file:
-# print(xtable(main_table_2_t), type = "html", file = 'BESTD_main_table.html')
-###########
 
 
 ############
@@ -417,6 +425,7 @@ get_all_sems <- function(df) {
   col_name <- c(
     '25OHD baseline' = get_sem_ci95(df$vitd0),
     '25OHD 12 months' = get_sem_ci95(df$vitd12),
+    'IFNg baseline' = get_sem_ci95(df$Ln_IFNgamma0),
     'IFNg 12 months' = get_sem_ci95(df$Ln_IFNgamma12),
     'IL10 baseline' = get_sem_ci95(df$Ln_IL10_0),
     'IL10 12 months' = get_sem_ci95(df$Ln_IL10_12),
