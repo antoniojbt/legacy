@@ -113,7 +113,7 @@ library(dplyr)
 # Set-up arguments:
 
 cyto_file <- as.character(args[1])
-cyto_file <- 'bestd_cytokines.csv'
+cyto_file <- '../data.dir/bestd_cytokines.csv'
 
 # See script 
 # /cgat_projects/BEST-D/genotype_analysis/plink_output_processing.R
@@ -191,7 +191,8 @@ genes
 colnames(cyto_file)
 
 # Corresponding Illumina transcripts:
-head(illumina_info)
+illumina_info[100:105, c(4:5, 14)]
+dim(illumina_info)
 colnames(illumina_info)
 
 # Check how one gene looks like:
@@ -227,22 +228,29 @@ which(transcript_info$Probe_Id %in% expr_file$Probe_Id)
 which(expr_file$Probe_Id %in% transcript_info$Probe_Id)
 as.character(transcript_info$Probe_Id) %in% as.character(expr_file$Probe_Id)
 
-for (i in transcript_info$Probe_Id)
-{
+for (i in transcript_info$Probe_Id) {
   print(i)
   print(as.character(i) %in% as.character(expr_file$Probe_Id))
-}
-# There is only one cytokine transcript which passed QC
+  }
+# There is only one cytokine transcript which passed QC: ILMN_1674167 IL10
 ########
 
 ########
-# # Check raw, non-QC expression file (before probe filtering, these is individuals QC):
+# # Check raw, non-QC expression file (before probe filtering, which has individual samples QC'd but not probes):
 # # Load saved RData analysis from QC stage:
 # load('../data.dir/R_session_saved_image_read_and_QC_full.RData', verbose=T)
-# head(raw_cleaned_as_matrix)[1:5, 1:5]
-# rownames(raw_cleaned_as_matrix)
-# which(transcript_info$Probe_Id %in% rownames(raw_cleaned_as_matrix))
+# # head(raw_cleaned_as_matrix)[1:5, 1:5]
+# # dim(raw_as_matrix)
+# # dim(raw_as_matrix_dedup)
+# # dim(raw_cleaned_as_matrix)
+# dim(raw_cleaned_as_matrix_dedup) # Use this one
+# # dim(raw_minimal_eset)
+# # dim(raw_cleaned_minimal_eset)
+# 
+# rownames(raw_cleaned_as_matrix_dedup)
+# which(transcript_info$Probe_Id %in% rownames(raw_cleaned_as_matrix_dedup))
 # # All transcripts were initially present.
+# rm(list = ls())
 ########
 
 ########
@@ -250,14 +258,21 @@ for (i in transcript_info$Probe_Id)
 # # Load RData file from pre probe-filtering stage:
 # # load('../data.dir/R_session_saved_image_normalisation_full.RData', verbose=T)
 # # If loading RData file normalised$E (limma format), otherwise read saved file in disk as here:
-# normalised <- fread('../data.dir/normalised.csv', sep = ',', header = TRUE, stringsAsFactors = FALSE)
+# # normalised <- fread('../data.dir/normalised.csv', sep = ',', header = TRUE, stringsAsFactors = FALSE)
 # dim(normalised)
-# head(normalised)[1:5, 1:5]
-# tail(normalised)[1:5, (ncol(normalised)-10):ncol(normalised)]
-# normalised[, 'V1']
-# which(transcript_info$Probe_Id %in% normalised$V1)
+# dim(normalised_as_matrix)
+# dim(normalised_as_matrix_dedup)
+# head(normalised_as_matrix_dedup)[1:5, 1:5]
+# dim(normalised_minimal_eset)
+# 
+# head(normalised$E)[1:5, 1:5]
+# tail(normalised$E)[1:5, (ncol(normalised$E)-10):ncol(normalised$E)]
+# which(transcript_info$Probe_Id %in% rownames(normalised$E))
+# which(as.character(transcript_info$Probe_Id) %in% as.character(rownames(normalised_as_matrix_dedup)))
+# transcript_info
 # # All transcripts were present pre-filtering.
 ########
+
 
 ########
 # Run the following in order to include cytokine transcripts in plots:
@@ -265,16 +280,13 @@ for (i in transcript_info$Probe_Id)
 # '02a_microarray_GEx_normalisation_probe_filtering_sex.R'
 # The object 'normalised_filtered_annotated' contains all probes without the SNP filter from this RData file"
 load('../data.dir/R_session_saved_image_probe_filtering_full_noSNP_filter.RData', verbose=T)
-# TO DO: setup properly to run without SNP filter.
-# which(transcript_info$Probe_Id %in% rownames(normalised_filtered_annotated))
-# # If loading normalised_full run:
-# which(transcript_info$Probe_Id %in% rownames(normalised_expressed$E))
-# which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated$E))
-# which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual$E))
-transcript_info[c(1,5), ] # Lost due to low quality illuminaHumanv4.db 'Bad' or 'No match'
-which(transcript_info$Probe_Id %in% rownames(normalised_expressed_annotated_qual_noSNPs$E))
-transcript_info[2, ]
-transcript_info[-c(1, 2, 5) ] # Lost all but IL10 due to probes matching a SNP
+
+which(transcript_info$Probe_Id %in% rownames(normalised_filtered_annotated))
+transcript_info
+transcript_info[c(3, 5), ] # Lost due to low quality illuminaHumanv4.db 'Bad' or 'No match'
+# IL8 ILMN_1666733 ILMN_179575
+# IL10 ILMN_2073307   ILMN_9173
+transcript_info[-c(3, 5), ] # Lost all but IL10 due to probes matching a SNP
 ########
 
 
@@ -286,9 +298,11 @@ transcripts_present[, 1:10]
 ########
 
 ########
-# # Check how pre-filtered transcripts look like (requires loading
-# # normalised_expressed_annotated_qual$E (above from normalisation script, step before SNPs):
-pre_SNP_filter_transcripts <- as.data.frame(normalised_expressed_annotated_qual)
+# Check how pre-filtered transcripts look like
+# normalised_filtered_annotated HAS to be from the RData image 
+# R_session_saved_image_probe_filtering_full_noSNP_filter.RData
+# as loaded above.
+pre_SNP_filter_transcripts <- as.data.frame(normalised_filtered_annotated)
 dim(pre_SNP_filter_transcripts)
 head(pre_SNP_filter_transcripts)[1:5, 1:5]
 colnames(pre_SNP_filter_transcripts)
@@ -410,7 +424,21 @@ as.data.frame(summary(all_data[, (ncol(all_data) - 10):(ncol(all_data)-1)]))
 
 # Sanity check:
 colnames(all_data)
-summary(all_data[, c(99, 104)]) # IL10
+summary(all_data[, c(99, 104)]) # IL6
+
+# Check variable types:
+str(all_data)
+vars_convert <- c(5:10, 14:52, 54:56, 78, 88:107)
+# Assign correct types to variables:
+class(all_data)
+all_data <- as.data.frame(all_data)
+for (i in vars_convert){
+  # print(i)
+  # all_data[, i, with = F] <- as.numeric(as.character(all_data[, i, with = F]))
+  all_data[, i] <- as.numeric(as.character(all_data[, i]))
+}
+str(all_data)
+head(all_data)
 #############################################
 
 
@@ -421,7 +449,9 @@ summary(all_data[, c(99, 104)]) # IL10
 all_data$arm2[all_data$arm == 0] <- '4000_IU'
 all_data$arm2[all_data$arm == 1] <- '2000_IU'
 all_data$arm2[all_data$arm == 2] <- 'Placebo'
-count(all_data$arm2)
+all_data$arm2 <- factor(all_data$arm2, levels = c('Placebo', '2000_IU', '4000_IU'),
+                           labels = c('Placebo', '2000_IU', '4000_IU'))
+summary(all_data$arm2)
 
 #########
 # Get variables of interest for circulating cytokines:
@@ -486,8 +516,8 @@ cormat_melted <- melt(cormat)
 head(cormat_melted)
 str(cormat_melted)
 summary(cormat_melted)
-count(cormat_melted$X1)
-count(cormat_melted$X2)
+plyr::count(cormat_melted$Var1)
+plyr::count(cormat_melted$Var2)
 class(cormat_melted)
 # Plot:
 # Improve with: 
@@ -503,8 +533,9 @@ ggsave('cytokines_heatmap.png')
 # Add vitamin D levels:
 # Plot correlations between cytokines:
 colnames(all_data)
-str(as.data.frame(all_data[, c(29, 42, 88:97)]))
-cormat <- round(cor(as.data.frame(all_data[, c(29, 42, 88:97)]), 
+head(all_data)
+str(as.data.frame(all_data[, c(31, 44, 88:97)]))
+cormat <- round(cor(as.data.frame(all_data[, c(31, 44, 88:97)]), 
                     use = "pairwise.complete.obs", 
                     method = 'spearman'), 2)
 class(cormat)
@@ -629,13 +660,13 @@ colnames(all_data)
 all_data_IL10 <- melt(all_data, measure.vars = c(89, 94))
 all_data_IL10$variable <- factor(all_data_IL10$variable, levels = c('Ln_IL10_0', 'Ln_IL10_12'),
                                  labels = c('IL10 baseline', 'IL10 12 months'))
-count(all_data_IL10$variable)
+plyr::count(all_data_IL10$variable)
 group <- factor(all_data_IL10$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
                 labels = c("Placebo", "2000 IU", "4000 IU"))
-count(group)
+plyr::count(group)
 # Plot:
 boxplot(all_data$Ln_IL10_0, all_data$Ln_IL10_12)
-boxplot(all_data$transcript_IL10.x, all_data$transcript_IL10.y)
+boxplot(all_data$transcript_IL10_baseline, all_data$transcript_IL10_12months)
 ggplot(data = as.data.frame(all_data_IL10),
        aes(x = variable, y = value, fill = group)) + 
   geom_boxplot(position = position_dodge(1), outlier.alpha = 0.7) +
@@ -650,16 +681,17 @@ ggsave('IL10_boxplots.png')
 #########
 # Plot IL10 transcript levels only:
 colnames(all_data)
-all_data_gex <- melt(all_data, measure.vars = c(98, 99))
-all_data_gex$variable <- factor(all_data_gex$variable, levels = c('transcript_IL10.x', 'transcript_IL10.y'),
+summary(all_data[, c(98, 103)])
+all_data_gex <- melt(all_data, measure.vars = c(98, 103))
+all_data_gex$variable <- factor(all_data_gex$variable, levels = c('transcript_IL10_baseline', 'transcript_IL10_12months'),
                                  labels = c('IL10 baseline', 'IL10 12 months'))
-count(all_data_gex$variable)
-group <- factor(all_data_gex$arm2, levels=c("Placebo", "2000_IU", "4000_IU"), 
-                labels = c("Placebo", "2000 IU", "4000 IU"))
-count(group)
+plyr::count(all_data_gex$variable)
+all_data_gex[, c(107, 108)]
+summary(all_data_gex[, 108])
+
 # Plot:
 ggplot(data = as.data.frame(all_data_gex),
-       aes(x = variable, y = value, fill = group)) + 
+       aes(x = variable, y = value, fill = arm2)) + 
   geom_boxplot(position = position_dodge(1), outlier.alpha = 0.7) +
   labs(title = '', y = 'VSN normalised gene expression levels', x = '') +
   scale_color_brewer(palette = "Dark2") +
@@ -671,8 +703,8 @@ ggsave('IL10_transcripts_boxplots.png')
 #############################################
 
 #############################################
-# TO DO: Print csv file with transcripts info to merge later with pheno and cyto data
-
+# Save csv file with transcripts info to merge later with pheno and cyto data:
+write.csv(all_data, '../data.dir/BEST-D_phenotype_file_final_cytokines_and_transcripts.csv', quote = FALSE, na = 'NA')
 #############################################
 
 #############################################

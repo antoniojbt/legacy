@@ -87,6 +87,10 @@ args <- commandArgs(trailingOnly = TRUE)
 # source("https://bioconductor.org/biocLite.R")
 # biocLite()
 library(xtable)
+# Print/save pretty tables with xtable
+# http://blog.revolutionanalytics.com/2010/02/making-publicationready-tables-with-xtable.html
+# https://cran.r-project.org/web/packages/xtable/vignettes/xtableGallery.pdf
+
 library(data.table)
 library(reshape2)
 library(plyr)
@@ -102,139 +106,55 @@ library(dplyr)
 # pheno_file <- as.character(args[2])
 # pheno_file <- '../../data.dir/BEST-D_phenotype_file_final.tsv'
 
-full_pheno_file <- '../data.dir/BEST-D_phenotype_file_final_cytokines_and_transcripts.csv'
+full_pheno_file <- '../../data.dir/BEST-D_phenotype_file_final_cytokines_and_transcripts.csv'
 #############################################
 
 
 #############################################
 # Read files:
-cyto_file <- fread(cyto_file, sep = ',', header = TRUE, stringsAsFactors = FALSE)
-cyto_file
-head(cyto_file)
-dim(cyto_file)
-tail(cyto_file)
-summary(cyto_file)
-
-pheno_file <- fread(pheno_file, sep = '\t', header = TRUE, stringsAsFactors = FALSE,
-                    na.strings = '-99999')
-pheno_file
-head(pheno_file)
-dim(pheno_file)
-tail(pheno_file)
-summary(pheno_file)
-
-# TO DO: Add expr file:
-#############################################
-
-#############################################
-# Join files, these are data.table
-
-# Join pheno and cyto:
-pheno_file[, 'pt_id', with = F]
-cyto_file[, 'pt_id', with = F]
-setkey(pheno_file, 'pt_id')
-setkey(cyto_file, 'pt_id')
-
-all_data <- merge(pheno_file, cyto_file, all=TRUE)
-all_data
-dim(cyto_file)
-dim(pheno_file)
-dim(all_data)
-head(all_data)[, 1:10]
-head(all_data)[, (ncol(all_data) - 10):ncol(all_data)]
-summary(all_data[, (ncol(all_data) - 10):ncol(all_data)])
-
-# Sanity check:
-str(all_data)
-all_data$vitd12 <- as.numeric(all_data$vitd12)
-summary(all_data$vitd12)
-
-# Correct variable types:
-str(all_data$pt_id)
-all_data$pt_id <- as.character(all_data$pt_id)
-plyr::count(all_data$pt_id)
-# 12:41 are ptr_si0 to phosphate12:
-str(all_data[, 12:41])
-colnames(all_data[, 12:41])
-vars_convert <- list('vitd12',
-                     'BMI_DEXA12',
-                     'grip_strength12',
-                     'egfr0',
-                     'joint_severity12',
-                     'muscle_severity12',
-                     'physical_activity12',
-                     'corrected_calcium12',
-                     'corrected_calcium0',
-                     'creatinine0',
-                     'creatinine12',
-                     "ptr_si0",
-                     "ptr_ri0",
-                     "ptr_si12",
-                     "ptr_ri12",
-                     "art_pwv0",
-                     "art_AI_aortic0",
-                     "art_sbp0",
-                     "art_dbp0",
-                     "art_hr0",
-                     "art_pwv12",
-                     "art_AI_aortic12",
-                     "art_sbp12",
-                     "art_dbp12",
-                     "art_hr12",
-                     "albumin0",
-                     "alk_phosphatase0",
-                     "phosphate0",  
-                     "vitd0",      
-                     "apo_a10",
-                     "apo_b0",
-                     "tchol0",
-                     "ldlc0",
-                     "ipth0",
-                     "trig0",
-                     "hdlc0",
-                     "crp0",
-                     "vitd6",
-                     "albumin12",
-                     "alk_phosphatase12",
-                     "phosphate12")
-vars_convert
-all_data <- as.data.frame(all_data)
-class(all_data)
-
-# Assign correct types to variables:
-for (i in vars_convert){
-  print(i)
-  # all_data[, i, with = F] <- as.numeric(as.character(all_data[, i, with = F]))
-  all_data[, i] <- as.numeric(as.character(all_data[, i]))
-}
-
-vars_categorical <- list("male",
-                         "incident_fracture",
-                         "incident_resp_infection",
-                         "diabetes",
-                         "heart_disease",
-                         "copd_asthma",
-                         "basemed_vitamind",
-                         "currsmoker",
-                         "season_randomisation_2",
-                         "arm")
-for (i in vars_categorical){
-  print(i)
-  # all_data[, i, with = F] <- as.numeric(as.character(all_data[, i, with = F]))
-  all_data[, i] <- as.factor(as.character(all_data[, i]))
-}
-str(all_data[, as.character(vars_categorical)])
-str(all_data[, as.character(vars_convert)])
+full_pheno <- fread(full_pheno_file, sep = ',', header = TRUE, stringsAsFactors = FALSE)
+full_pheno
+head(full_pheno)
+dim(full_pheno)
+tail(full_pheno)
+summary(full_pheno)
+str(full_pheno)
+full_pheno <- as.data.frame(full_pheno)
+all_data <- full_pheno[, -1]
 dim(all_data)
 #############################################
-
 
 #############################################
 ###########
 # Get variables of interest:
-colnames(all_data)
-colnames(all_data[, c(2, 29, 42, 51, 52, 76, 88:97)])
-vars_interest <- c(2, 29, 42, 51, 52, 76, 88:97)
+colnames(all_data)[c(3,4,31,44,53,54,78,88:107)]
+vars_interest <- c("pt_id",
+                   "arm",
+                   "vitd0",
+                   "vitd12",
+                   "male",
+                   "bmi0",
+                   "calendar_age_ra",
+                   "Ln_IFNgamma0",
+                   "Ln_IL10_0",
+                   "Ln_IL6_0",
+                   "Ln_IL8_0",
+                   "Ln_TNFalpha0",
+                   "Ln_IFNgamma12",
+                   "Ln_IL10_12",
+                   "Ln_IL6_12",
+                   "Ln_IL8_12",
+                   "Ln_TNFalpha12",
+                   "transcript_IL10_baseline",
+                   "transcript_IL6_baseline",
+                   "transcript_TNF_baseline",
+                   "transcript_IL8_baseline",
+                   "transcript_IFNG_baseline",
+                   "transcript_IL10_12months",
+                   "transcript_IL6_12months",
+                   "transcript_TNF_12months",
+                   "transcript_IL8_12months",
+                   "transcript_IFNG_12months")
 all_data_reduced <- all_data[, vars_interest]
 head(all_data_reduced)
 summary(all_data_reduced)
@@ -250,7 +170,6 @@ plyr::count(all_data_reduced$male)
 
 ###########
 # Generate summaries
-# TO DO: add transcripts:
 # Main variables
 # Functions for mean and SD for main table:
 get_mean <- function(i) round(mean(i, na.rm = TRUE), 2)
@@ -269,14 +188,15 @@ get_mean_sd <- function(i) {
   return(nice_print)
 }
 get_mean_sd(all_data_reduced$vitd0)
+get_mean_sd(all_data_reduced$delta_vitd12)
 
 # Get all means and SDs:
 get_all_means <- function(df) {
   col_name <- c(
     'Age' = get_mean_sd(df$calendar_age_ra),
     'BMI' = get_mean_sd(df$bmi0),
-    '25OHD baseline' = get_mean_sd(df$vitd0),
-    '25OHD 12 months' = get_mean_sd(df$vitd12),
+    '25(OH)D baseline' = get_mean_sd(df$vitd0),
+    '25(OH)D 12 months' = get_mean_sd(df$vitd12),
     'IFNg baseline' = get_mean_sd(df$Ln_IFNgamma0),
     'IFNg 12 months' = get_mean_sd(df$Ln_IFNgamma12),
     'IL10 baseline' = get_mean_sd(df$Ln_IL10_0),
@@ -286,8 +206,18 @@ get_all_means <- function(df) {
     'IL8 baseline' = get_mean_sd(df$Ln_IL8_0),
     'IL8 12 months' = get_mean_sd(df$Ln_IL8_12),
     'TNFa baseline' = get_mean_sd(df$Ln_TNFalpha0),
-    'TNFa 12 months' = get_mean_sd(df$Ln_TNFalpha12)
-  )
+    'TNFa 12 months' = get_mean_sd(df$Ln_TNFalpha12),
+    'IFNg baseline (mRNA)' = get_mean_sd(df$transcript_IFNG_baseline),
+    'IFNg 12 months (mRNA)' = get_mean_sd(df$transcript_IFNG_12months),
+    'IL10 baseline (mRNA)' = get_mean_sd(df$transcript_IL10_baseline),
+    'IL10 12 months (mRNA)' = get_mean_sd(df$transcript_IL10_12months),
+    'IL6 baseline (mRNA)' = get_mean_sd(df$transcript_IL6_baseline),
+    'IL6 12 months (mRNA)' = get_mean_sd(df$transcript_IL6_12months),
+    'IL8 baseline (mRNA)' = get_mean_sd(df$transcript_IL8_baseline),
+    'IL8 12 months (mRNA)' = get_mean_sd(df$transcript_IL8_12months),
+    'TNFa baseline (mRNA)' = get_mean_sd(df$transcript_TNF_baseline),
+    'TNFa 12 months (mRNA)' = get_mean_sd(df$transcript_TNF_12months)
+    )
   as_df <- as.data.frame(col_name)
   return(as_df)
 }
@@ -296,34 +226,11 @@ main_table_2 <- data.frame(get_all_means(all_data_reduced[which(all_data_reduced
                            get_all_means(all_data_reduced[which(all_data_reduced$arm == '2000 IU'), ]),
                            get_all_means(all_data_reduced[which(all_data_reduced$arm == '4000 IU'), ])
 )
-colnames(main_table_2) <- c('Placebo', '2000 IU', '4000 IU')
+colnames(main_table_2) <- c('Placebo (mean, SD)', '2000 IU (mean, SD)', '4000 IU (mean, SD)')
+# colnames(main_table_2) <- c('Placebo', '2000 IU', '4000 IU')
 # View(main_table_2)
 ###########
 
-###########
-# TO DO: this should be by complete pairs, then avegared and added to table
-# Will error as passing text after calculating values above
-# Add deltas:
-# main_table_2$`Delta 2000` <- round(as.numeric(as.character(main_table_2$`2000 IU`)) - 
-#                                        as.numeric(as.character(main_table_2$Placebo)),
-#                                      2)
-# main_table_2$`Delta 4000` <- round(as.numeric(as.character(main_table_2$`4000 IU`)) - 
-#                                        as.numeric(as.character(main_table_2$Placebo)),
-#                                      2)
-# main_table_2$`Delta regimens` <- round(as.numeric(as.character(main_table_2$`4000 IU`)) - 
-#                                            as.numeric(as.character(main_table_2$`2000 IU`)),
-#                                          2)
-# # Convert to numeric and round to 2 digits:
-# df <- main_table_2
-# for (i in colnames(df)) {
-#   print(i)
-#   df[, i] <- as.numeric(as.character(df[, i]))
-#   df[, i] <- round(df[, i], 2)
-# }
-# main_table_2 <- df
-# head(main_table_2)
-# # View(main_table_2)
-###########
 
 ###########
 # Get total counts:
@@ -342,6 +249,8 @@ for (i in colnames(df)) {
 }
 counts_by_arm <- df
 str(counts_by_arm)
+# Change col names for binding later:
+colnames(counts_by_arm) <- c('Placebo (mean, SD)', '2000 IU (mean, SD)', '4000 IU (mean, SD)')
 counts_by_arm
 ###########
 
@@ -364,6 +273,8 @@ gender_table <- df
 str(gender_table)
 # Gender proportions are when counting each arm per gender, this doesn't make sense when cutting out 'male' rows
 # Leaving for now though.
+# Change col names for binding later:
+colnames(gender_table) <- c('Placebo (mean, SD)', '2000 IU (mean, SD)', '4000 IU (mean, SD)')
 gender_table
 ###########
 
@@ -383,6 +294,81 @@ main_table_2 <- main_table_2[-3, ]
 print(xtable(main_table_2), type = "html", file = 'BESTD_table_mean_SD.html')
 ############
 
+###########
+# Add deltas in separate table
+# By complete pairs, then avegared and added to table
+vars_delta_0 <- c("vitd0",
+                  "Ln_IFNgamma0",
+                  "Ln_IL10_0",
+                  "Ln_IL6_0",
+                  "Ln_IL8_0",
+                  "Ln_TNFalpha0",
+                  "transcript_IFNG_baseline",
+                  "transcript_IL10_baseline",
+                  "transcript_IL6_baseline",
+                  "transcript_IL8_baseline",
+                  "transcript_TNF_baseline"
+)
+vars_delta_12 <- c("vitd12",
+                   "Ln_IFNgamma12",
+                   "Ln_IL10_12",
+                   "Ln_IL6_12",
+                   "Ln_IL8_12",
+                   "Ln_TNFalpha12",
+                   "transcript_IFNG_12months",
+                   "transcript_IL10_12months",
+                   "transcript_IL6_12months",
+                   "transcript_IL8_12months",
+                   "transcript_TNF_12months"
+)
+
+for (i in vars_delta_12) {
+  print(i)
+  index <- match(i, vars_delta_12)
+  print(vars_delta_0[index])
+  basal <- vars_delta_0[index]
+  delta_i <- sprintf('delta_%s', i)
+  print(delta_i)
+  all_data_reduced[, delta_i] <- as.numeric(as.character(all_data_reduced[, i])) -
+    as.numeric(as.character(all_data_reduced[, basal]))
+}
+
+colnames(all_data_reduced)
+summary(all_data_reduced[, c(28:38)])
+str(all_data_reduced[, c(28:38)])
+# View(all_data_reduced[, c(2, 28:38)])
+
+# Use functions from above for means and SDs:
+get_mean_sd(all_data_reduced$delta_Ln_IFNgamma12)
+
+get_all_deltas <- function(df) {
+  col_name <- c(
+    '25(OH)D 12 months' = get_mean_sd(df$delta_vitd12),
+    'IFNg 12 months' = get_mean_sd(df$delta_Ln_IFNgamma12),
+    'IL10 12 months' = get_mean_sd(df$delta_Ln_IL10_12),
+    'IL6 12 months' = get_mean_sd(df$delta_Ln_IL6_12),
+    'IL8 12 months' = get_mean_sd(df$delta_Ln_IL8_12),
+    'TNFa 12 months' = get_mean_sd(df$delta_Ln_TNFalpha12),
+    'IFNg 12 months (mRNA)' = get_mean_sd(df$delta_transcript_IFNG_12months),
+    'IL10 12 months (mRNA)' = get_mean_sd(df$delta_transcript_IL10_12months),
+    'IL6 12 months (mRNA)' = get_mean_sd(df$delta_transcript_IL6_12months),
+    'IL8 12 months (mRNA)' = get_mean_sd(df$delta_transcript_IL8_12months),
+    'TNFa 12 months (mRNA)' = get_mean_sd(df$delta_transcript_TNF_12months)
+  )
+  as_df <- as.data.frame(col_name)
+  return(as_df)
+  }
+
+main_table_deltas <- data.frame(get_all_deltas(all_data_reduced[which(all_data_reduced$arm == 'Placebo'), ]),
+                           get_all_deltas(all_data_reduced[which(all_data_reduced$arm == '2000 IU'), ]),
+                           get_all_deltas(all_data_reduced[which(all_data_reduced$arm == '4000 IU'), ])
+)
+colnames(main_table_deltas) <- c('Placebo (delta)', '2000 IU (delta)', '4000 IU (delta)')
+# View(main_table_deltas)
+
+# Save table to file:
+print(xtable(main_table_deltas), type = "html", file = 'BESTD_table_deltas.html')
+###########
 
 ############
 # Add SEM in separate table
@@ -421,8 +407,8 @@ get_sem_ci95(all_data_reduced$vitd0)
 ############
 get_all_sems <- function(df) {
   col_name <- c(
-    '25OHD baseline' = get_sem_ci95(df$vitd0),
-    '25OHD 12 months' = get_sem_ci95(df$vitd12),
+    '25(OH)D baseline' = get_sem_ci95(df$vitd0),
+    '25(OH)D 12 months' = get_sem_ci95(df$vitd12),
     'IFNg baseline' = get_sem_ci95(df$Ln_IFNgamma0),
     'IFNg 12 months' = get_sem_ci95(df$Ln_IFNgamma12),
     'IL10 baseline' = get_sem_ci95(df$Ln_IL10_0),
@@ -432,7 +418,17 @@ get_all_sems <- function(df) {
     'IL8 baseline' = get_sem_ci95(df$Ln_IL8_0),
     'IL8 12 months' = get_sem_ci95(df$Ln_IL8_12),
     'TNFa baseline' = get_sem_ci95(df$Ln_TNFalpha0),
-    'TNFa 12 months' = get_sem_ci95(df$Ln_TNFalpha12)
+    'TNFa 12 months' = get_sem_ci95(df$Ln_TNFalpha12),
+    'IFNg baseline (mRNA)' = get_sem_ci95(df$transcript_IFNG_baseline),
+    'IFNg 12 months (mRNA)' = get_sem_ci95(df$transcript_IFNG_12months),
+    'IL10 baseline (mRNA)' = get_sem_ci95(df$transcript_IL10_baseline),
+    'IL10 12 months (mRNA)' = get_sem_ci95(df$transcript_IL10_12months),
+    'IL6 baseline (mRNA)' = get_sem_ci95(df$transcript_IL6_baseline),
+    'IL6 12 months (mRNA)' = get_sem_ci95(df$transcript_IL6_12months),
+    'IL8 baseline (mRNA)' = get_sem_ci95(df$transcript_IL8_baseline),
+    'IL8 12 months (mRNA)' = get_sem_ci95(df$transcript_IL8_12months),
+    'TNFa baseline (mRNA)' = get_sem_ci95(df$transcript_TNF_baseline),
+    'TNFa 12 months (mRNA)' = get_sem_ci95(df$transcript_TNF_12months)
   )
   as_df <- as.data.frame(col_name)
   return(as_df)
@@ -442,11 +438,34 @@ main_table_2_sem <- data.frame(get_all_sems(all_data_reduced[which(all_data_redu
                                get_all_sems(all_data_reduced[which(all_data_reduced$arm == '2000 IU'), ]),
                                get_all_sems(all_data_reduced[which(all_data_reduced$arm == '4000 IU'), ])
 )
-colnames(main_table_2_sem) <- c('Placebo', '2000 IU', '4000 IU')
+colnames(main_table_2_sem) <- c('Placebo (SEM, CI95)', '2000 IU (SEM, CI95)', '4000 IU (SEM, CI95)')
 # View(main_table_2_sem)
 
 # Save table to file:
 print(xtable(main_table_2_sem), type = "html", file = 'BESTD_table_sem_CI95.html')
+############
+
+############
+# Merge three tables
+# Numeric ID for re-ordering (even with merge(sort = FALSE)):
+main_table_2$ID  <- 1:nrow(main_table_2)
+# Set common column name:
+main_table_2$variable <- rownames(main_table_2)
+main_table_2_sem$variable <- rownames(main_table_2_sem)
+main_table_deltas$variable <- rownames(main_table_deltas)
+main_table_merged <- merge(main_table_2, main_table_2_sem, by = 'variable', all = TRUE, sort = FALSE)
+main_table_merged <- merge(main_table_merged, main_table_deltas, by = 'variable', all = TRUE, sort = FALSE)
+# Original order:
+main_table_merged <- main_table_merged[order(main_table_merged$ID), ]
+main_table_merged$ID <- NULL
+# View(main_table_merged)
+
+# Save table to file:
+print(xtable(main_table_merged),
+      type = "html",
+      file = 'BESTD_table_merged.html',
+      include.rownames = FALSE,
+      NA.string = '-')
 ############
 
 ############
@@ -471,12 +490,6 @@ print(xtable(main_table_2_sem), type = "html", file = 'BESTD_table_sem_CI95.html
 # Save some text:
 # cat(file = 'xxx.txt', xxx_var, "\t", xxx_var, '\n', append = TRUE)
 # Arithmetic mean (SE) shown. Means and SEs are adjusted for baseline values, with missing data imputed using multiple imputation.
-
-# Print/save pretty tables with xtable
-# http://blog.revolutionanalytics.com/2010/02/making-publicationready-tables-with-xtable.html
-# https://cran.r-project.org/web/packages/xtable/vignettes/xtableGallery.pdf
-
-# print(xtable(summary(lm(vitd12 ~ vitd0 + . , all_data_reduced))), type = "html", file = 'test_xtable.html')
 #############################################
 
 
@@ -491,7 +504,7 @@ print(xtable(main_table_2_sem), type = "html", file = 'BESTD_table_sem_CI95.html
 #save(list=objects_to_save, file=R_session_saved_image, compress='gzip')
 
 # To save R workspace with all objects to use at a later time:
-save.image(file = R_session_saved_image, compress='gzip')
+save.image(file = R_session_saved_image, compress = 'gzip')
 
 sessionInfo()
 

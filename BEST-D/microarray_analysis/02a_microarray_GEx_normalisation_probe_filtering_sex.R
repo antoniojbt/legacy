@@ -194,7 +194,7 @@ length(rownames(normalised_expressed_annotated_qual))
 ###################
 # Remove probes that overlap SNPs:
 # ?illuminaHumanv4OVERLAPPINGSNP
-# Skip for noSNP filter:
+# Skip if running without the SNP filter (noSNP):
 probes_by_SNPs  <- !is.na(unlist(mget(as.character(rownames(normalised_expressed_annotated_qual)), 
                                       illuminaHumanv4OVERLAPPINGSNP, ifnotfound = NA)))
 head(probes_by_SNPs)
