@@ -407,6 +407,8 @@ get_sem_ci95(all_data_reduced$vitd0)
 ############
 get_all_sems <- function(df) {
   col_name <- c(
+    'Age' = get_sem_ci95(df$calendar_age_ra),
+    'BMI' = get_sem_ci95(df$bmi0),
     '25(OH)D baseline' = get_sem_ci95(df$vitd0),
     '25(OH)D 12 months' = get_sem_ci95(df$vitd12),
     'IFNg baseline' = get_sem_ci95(df$Ln_IFNgamma0),
@@ -446,26 +448,81 @@ print(xtable(main_table_2_sem), type = "html", file = 'BESTD_table_sem_CI95.html
 ############
 
 ############
-# Merge three tables
+# Add univariate t-tests
+get_t_test <- function(i_basal, i_final) {
+  i <- t.test(x = i_basal, y = i_final, paired = T)
+  return(i$p.value)
+}
+t.test(all_data_reduced$vitd0, all_data_reduced$vitd12, paired = T)
+get_t_test(all_data_reduced$vitd0, all_data_reduced$vitd12)
+
+get_all_pvalues <- function(df) {
+  col_name <- c(
+    '25(OH)D 12 months' = get_t_test(df$vitd0, df$vitd12),
+    'IFNg 12 months' = get_t_test(df$Ln_IFNgamma0, df$Ln_IFNgamma12),
+    'IL10 12 months' = get_t_test(df$Ln_IL10_0, df$Ln_IL10_12),
+    'IL6 12 months' = get_t_test(df$Ln_IL6_0, df$Ln_IL6_12),
+    'IL8 12 months' = get_t_test(df$Ln_IL8_0, df$Ln_IL8_12),
+    'TNFa 12 months' = get_t_test(df$Ln_TNFalpha0, df$Ln_TNFalpha12),
+    'IFNg 12 months (mRNA)' = get_t_test(df$transcript_IFNG_baseline, df$transcript_IFNG_12months),
+    'IL10 12 months (mRNA)' = get_t_test(df$transcript_IL10_baseline, df$transcript_IL10_12months),
+    'IL6 12 months (mRNA)' = get_t_test(df$transcript_IL6_baseline, df$transcript_IL6_12months),
+    'IL8 12 months (mRNA)' = get_t_test(df$transcript_IL8_baseline, df$transcript_IL8_12months),
+    'TNFa 12 months (mRNA)' = get_t_test(df$transcript_TNF_baseline, df$transcript_TNF_12months)
+  )
+  as_df <- as.data.frame(col_name)
+  return(as_df)
+}
+
+main_table_2_pvalues <- data.frame(get_all_pvalues(all_data_reduced[which(all_data_reduced$arm == 'Placebo'), ]),
+                                   get_all_pvalues(all_data_reduced[which(all_data_reduced$arm == '2000 IU'), ]),
+                                   get_all_pvalues(all_data_reduced[which(all_data_reduced$arm == '4000 IU'), ])
+                                   )
+colnames(main_table_2_pvalues) <- c('Placebo (p-value)', '2000 IU (p-value)', '4000 IU (p-value)')
+# View(main_table_2_pvalues)
+
+t.test(all_data_reduced[which(all_data_reduced$arm == 'Placebo'), 'vitd0'],
+       all_data_reduced[which(all_data_reduced$arm == 'Placebo'), 'vitd12'],
+       paired = T)
+
+mean(all_data_reduced[which(all_data_reduced$arm == 'Placebo'), 'vitd0'], na.rm = T)
+mean(all_data_reduced[which(all_data_reduced$arm == 'Placebo'), 'vitd12'], na.rm = T)
+
+# Save table to file:
+# print(xtable(main_table_2_pvalues), type = "html", file = 'BESTD_table_pvalues.html')
+write.csv(main_table_2_pvalues, 'BESTD_table_pvalues.csv', quote = FALSE, na = 'NA')
+############
+
+############
+# Merge tables
 # Numeric ID for re-ordering (even with merge(sort = FALSE)):
 main_table_2$ID  <- 1:nrow(main_table_2)
 # Set common column name:
 main_table_2$variable <- rownames(main_table_2)
 main_table_2_sem$variable <- rownames(main_table_2_sem)
 main_table_deltas$variable <- rownames(main_table_deltas)
+main_table_2_pvalues$variable <- rownames(main_table_2_pvalues)
 main_table_merged <- merge(main_table_2, main_table_2_sem, by = 'variable', all = TRUE, sort = FALSE)
 main_table_merged <- merge(main_table_merged, main_table_deltas, by = 'variable', all = TRUE, sort = FALSE)
+main_table_merged <- merge(main_table_merged, main_table_2_pvalues, by = 'variable', all = TRUE, sort = FALSE)
+
 # Original order:
 main_table_merged <- main_table_merged[order(main_table_merged$ID), ]
 main_table_merged$ID <- NULL
 # View(main_table_merged)
 
 # Save table to file:
-print(xtable(main_table_merged),
-      type = "html",
-      file = 'BESTD_table_merged.html',
-      include.rownames = FALSE,
-      NA.string = '-')
+# print(xtable(main_table_merged),
+#       type = "html",
+#       file = 'BESTD_table_merged.html',
+#       include.rownames = FALSE,
+#       NA.string = '-')
+write.table(main_table_merged,
+          'BESTD_table_merged.tsv',
+          sep = '\t',
+          quote = F,
+          row.names = F,
+          na = '-')
 ############
 
 ############
