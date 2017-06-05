@@ -114,7 +114,7 @@ library(miceadds)
 #############################################
 # Set-up arguments:
 cyto_file <- as.character(args[1])
-cyto_file <- 'bestd_cytokines.csv'
+cyto_file <- '../data.dir/bestd_cytokines.csv'
 
 pheno_file <- as.character(args[4])
 pheno_file <- '../data.dir/BEST-D_phenotype_file_final.tsv'
@@ -676,7 +676,8 @@ length(complete.cases(imp_all_data_completed) == TRUE)
 complete.cases(all_data_interest)
 complete.cases(imp_all_data$data)
 complete.cases(imp_all_data_completed)
-# If mice::complete(action = 'repeat') then this should be TRUE:
+# If mice::complete(action = 'repeat') then this should be TRUE, else FALSE like here:
+# action returns the first completed imputed dataset
 identical(complete.cases(all_data_interest), complete.cases(imp_all_data_completed))
 
 sapply(all_data_interest, function(x) sum(is.na(x)))
@@ -954,6 +955,7 @@ ggplot(imp_all_data_completed, aes(x = arm, y = vitd12, fill = arm)) +
   theme(legend.position = 'none') +
   labs(x = '')
   # theme(axis.text.x = element_blank())
+dev.off()
 ##########
 #############################################
 
@@ -1093,10 +1095,23 @@ for (i in cytokines_12) {
 ##########
 
 ##########
-# ANCOVAs:
+# Final results presented are these:
+# ANCOVAs
 # Some discussion of tests in trials:
 # https://stats.stackexchange.com/questions/3466/best-practice-when-analysing-pre-post-treatment-control-designs?noredirect=1&lq=1
 # http://www.sciencedirect.com/science/article/pii/S0895435606000813
+# BEST-D paper:
+# "Comparisons of mean follow-up values between treatment arms involved analysis of 
+# covariance (ANCOVA) adjusted, where possible, for the baseline value 
+# (with multiple imputation used to impute the few missing data). 
+# ANCOVA provides a more powerful test of the null hypothesis than either a comparison 
+# of mean follow-up values in isolation or a comparison of mean changes 
+# from baseline [38].
+# [38] = 
+# Borm GF, Fransen J, Lemmens WA (2007) 
+# A simple sample size formula for analysis of covariance in randomized clinical trials. 
+# J Clin Epidemiol 60(12):1234–1238
+# PMID  17998077
 
 # Run for 12 months with arm and adjusting for covariates:
 # Include cytokine at baseline in covariates:
@@ -1522,17 +1537,6 @@ anova(lmm_vitd12, lmm_null)
 summary(lmm_vitd12)
 #############################################
 
-
-#############################################
-# Association with genotype, SNPs tested only
-
-#############################################
-
-
-#############################################
-## Save some text:
-# cat(file = 'xxx.txt', xxx_var, "\t", xxx_var, '\n', append = TRUE)
-#############################################
 
 
 #############################################

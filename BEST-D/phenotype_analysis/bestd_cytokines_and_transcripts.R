@@ -75,7 +75,7 @@ getwd()
 ##TO DO extract parameters:
 
 # Re-load a previous R session, data and objects:
-# load('../data.dir/R_session_saved_image_cytokines.RData', verbose=T)
+load('../data.dir/R_session_saved_image_cytokines.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_cytokines','.RData', sep='')
@@ -443,6 +443,7 @@ head(all_data)
 
 
 #############################################
+#########
 # Explore cytokine data, descriptive analysis
 
 # Rename groups for better plotting:
@@ -452,6 +453,7 @@ all_data$arm2[all_data$arm == 2] <- 'Placebo'
 all_data$arm2 <- factor(all_data$arm2, levels = c('Placebo', '2000_IU', '4000_IU'),
                            labels = c('Placebo', '2000_IU', '4000_IU'))
 summary(all_data$arm2)
+#########
 
 #########
 # Get variables of interest for circulating cytokines:
@@ -463,7 +465,7 @@ dim(all_data_melt_cyto)
 colnames(all_data_melt_cyto)
 
 all_data_melt_cyto[1:10, c('value', 'variable')]
-all_data_melt_cyto$variable <- factor(all_data_melt_cyto$variable, 
+all_data_melt_cyto$variable <-  factor(all_data_melt_cyto$variable, 
                                    levels = c('Ln_IFNgamma0',
                                               'Ln_IFNgamma12',
                                               'Ln_IL10_0',
@@ -526,8 +528,9 @@ ggplot(data = cormat_melted, aes(x = Var1, y = Var2, fill = value)) +
   geom_tile() +
   labs(title = 'Circulating cytokines', y = '', x = '') +
   theme(axis.text.x = element_text(angle=90, vjust = 0.5),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text('Spearman rho'))
+        plot.title = element_text(hjust = 0.5)
+        # legend.title = element_text('Spearman rho')
+        )
 ggsave('cytokines_heatmap.png')
 
 # Add vitamin D levels:
@@ -537,12 +540,45 @@ head(all_data)
 str(as.data.frame(all_data[, c(31, 44, 88:97)]))
 cormat <- round(cor(as.data.frame(all_data[, c(31, 44, 88:97)]), 
                     use = "pairwise.complete.obs", 
-                    method = 'spearman'), 2)
+                    method = 'pearson'), 2)
 class(cormat)
 cormat
 cormat_melted <- melt(cormat)
 head(cormat_melted)
 str(cormat_melted)
+class(cormat_melted)
+# Rename variables:
+vars_to_label <- c('vitd0',
+                   'vitd12',
+                   'Ln_IFNgamma0',
+                   'Ln_IFNgamma12',
+                   'Ln_IL10_0',
+                   'Ln_IL10_12',
+                   'Ln_IL6_0',
+                   'Ln_IL6_12',
+                   'Ln_IL8_0',
+                   'Ln_IL8_12',
+                   'Ln_TNFalpha0',
+                   'Ln_TNFalpha12')
+
+vars_labels <- c('25(OH)D baseline',
+                 '25(OH)D 12m',
+                 'IFNg baseline',
+                 'IFNg 12m',
+                 'IL10 baseline',
+                 'IL10 12m',
+                 'IL6 baseline',
+                 'IL6 12m',
+                 'IL8 baseline',
+                 'IL8 12m',
+                 'TNFa baseline',
+                 'TNFa 12m')
+
+df <- cormat_melted
+df$Var1 <- factor(df$Var1, levels = vars_to_label, labels = vars_labels)
+df$Var2 <- factor(df$Var2, levels = vars_to_label, labels = vars_labels)
+summary(df)
+cormat_melted <- df
 summary(cormat_melted)
 plyr::count(cormat_melted$Var1)
 plyr::count(cormat_melted$Var2)

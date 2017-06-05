@@ -523,6 +523,39 @@ write.table(main_table_merged,
           quote = F,
           row.names = F,
           na = '-')
+
+#############################################
+# Save some text:
+title_main_table_merged <- paste(
+  'Table 1. Baseline and 12 month values following vitamin D supplementation.',
+                                 sep = ''
+  )
+cat(file = 'title_BESTD_table_merged.tsv', title_main_table_merged, 
+    # "\t", xxx_var, '\n', 
+    append = FALSE)
+
+legend_main_table_merged <- paste('Arithmetic mean, standard deviation (SD), ',
+                                  'standard error of the mean (sem), 95% confidence intervals (CI95%) and two-sided, ',
+                                  'univariate, paired t-test p-values shown (baseline versus 12 months within each arm). ',
+                                  '\n',
+                                  'Values are for observed data only. ',
+                                  'Values presented are age in years, ',
+                                  'body mass index (BMI) in kg/m^2, 25(OH)D in nmol/L. ',
+                                  '\n',
+                                  'Circulating cytokine values are natural ',
+                                  'logarithm transformed. mRNA values are VSN normalised.',
+                                  '\n',
+                                  'P-values are shown for completeness and are not adjusted for confounding, ',
+                                  'baseline values or multiple testing. ',
+                                  '\n',
+                                  'Adjusted regression models are shown in supplementary tables with multiple, ',
+                                  'imputation for missing data.',
+                                  sep = '')
+legend_main_table_merged
+cat(file = 'legend_BESTD_table_merged.tsv', legend_main_table_merged, 
+    # "\t", xxx_var, '\n', 
+    append = FALSE)
+#############################################
 ############
 
 ############
@@ -539,14 +572,6 @@ write.table(main_table_merged,
 
 # Use library(boot) for more methods
 ############
-#############################################
-
-
-
-#############################################
-# Save some text:
-# cat(file = 'xxx.txt', xxx_var, "\t", xxx_var, '\n', append = TRUE)
-# Arithmetic mean (SE) shown. Means and SEs are adjusted for baseline values, with missing data imputed using multiple imputation.
 #############################################
 
 
