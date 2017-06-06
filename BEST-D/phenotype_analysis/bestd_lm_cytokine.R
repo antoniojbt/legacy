@@ -365,7 +365,8 @@ a1 <- ggplot(data = all_data, aes(x = vitd0, Ln_IL10_0, colour = group)) +
   ) + # fullrange = TRUE # Extend regression line
   labs(title = '', x = '') +
   theme_classic() +
-  theme(text = element_text(size = 14), 
+  theme(text = element_text(size = 16),
+        axis.text = element_text(size = 16),
         legend.title = element_blank(),
         legend.position = 'none'
   )
@@ -377,7 +378,9 @@ a2 <- ggplot(data = all_data, aes(x = vitd12, Ln_IL10_12, colour = group)) +
   ) + # fullrange = TRUE # Extend regression line
   labs(title = '', x = '25OHD levels') +
   theme_classic() +
-  theme(text = element_text(size = 14), 
+  theme(text = element_text(size = 20),
+        axis.text = element_text(size = 20),
+        legend.text = element_text(size = 24),
         legend.title = element_blank(),
         legend.position = 'bottom'
         # legend.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "pt")
@@ -406,7 +409,9 @@ scatter_plot_cyto <- function(df, y_base, y_final,
     ) + # fullrange = TRUE # Extend regression line
     labs(title = a1_title, x = x_label_base, y = y_label_base) +
     theme_classic() +
-    theme(text = element_text(size = 14), 
+    theme(text = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          legend.text = element_text(size = 22),
           legend.title = element_blank(),
           plot.title = element_text(hjust = 0.5), # centre title
           legend.position="none"
@@ -420,7 +425,9 @@ scatter_plot_cyto <- function(df, y_base, y_final,
     ) + # fullrange = TRUE # Extend regression line
     labs(title = '', x = x_label_final, y = y_label_final) +
     theme_classic() +
-    theme(text = element_text(size = 14), 
+    theme(text = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          legend.text = element_text(size = 24),
           legend.title = element_blank(),
           plot.title = element_text(hjust = 0.5), # centre title
           legend.position="none",
@@ -481,7 +488,7 @@ class(all_plots)
 all_plots
 # Create legend separately to insert later:
 # See: http://stackoverflow.com/questions/12041042/how-to-plot-just-the-legends-in-ggplot2
-my_plot <- a2 # Created above for IL10
+my_plot <- a2 # Created above for IL10, only used for legend extraction here:
 # Extract legend:
 g_legend <- function(a.gplot) {
   tmp <- ggplot_gtable(ggplot_build(a.gplot)) 
@@ -490,14 +497,21 @@ g_legend <- function(a.gplot) {
   return(legend)
   }
 legend <- g_legend(my_plot)
-# Plot and save in one figure, check:
+# Plot in one figure:
 grid.arrange(grobs = all_plots, ncol = length(cytokines_0)) # Pass explicitely as a 'grob'
-# # TO DO: Add legend: messes the margins:
-plots <- arrangeGrob(grobs = all_plots, ncol = length(cytokines_0))
-# grid.arrange(plots, legend, nrow = 2)
+# https://stackoverflow.com/questions/38867430/add-labels-to-a-plot-made-by-grid-arrange-from-multiple-plots
+# Plot legend, y-axis:
+plots_y_axis <- arrangeGrob(grobs = all_plots,
+                     ncol = length(cytokines_0),
+                     left = textGrob("Circulating protein levels (natural logarithm)",
+                                     rot = 90, vjust = 1, gp = gpar(fontsize = 30)))
+plots_legend <- grid.arrange(plots_y_axis, legend,
+                             nrow = 2,
+                             heights = c(5, 0.2))
+
+# grid.newpage()
 # Save to file:
-# plots <- arrangeGrob(grid.arrange(grobs = all_plots, ncol = length(cytokines_0)), legend, nrow = 2)
-ggsave('scatterplots_cytokines_and_VD.png', plots, height = 15, width = 15)
+ggsave('scatterplots_cytokines_and_VD.png', plots_legend, height = 15, width = 24)
 ##########
 #############################################
 
