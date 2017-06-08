@@ -13,7 +13,6 @@
 # Working directory:
 # setwd("/ifs/projects/proj043/analysis.dir/gene_expression_3.dir")
 # setwd('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/tables_and_plots_for_draft/final_draft_BEST-D/tables/all_GEx_tables/individual_tables_all_GEx_comparisons/')
-# setwd('/Users/antoniob/Desktop/Downloads_to_delete/mePipe_runs_2.dir/')
 
 #Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). 
 #Input is not echoed to the output file either.
@@ -49,10 +48,10 @@ library(illuminaHumanv4.db)
 library(plyr)
 
 # Get functions from other scripts (eg to add annotations to topTable results):
-# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/microarray_analysis/gene_expression_functions.R')
+# source('/Users/antoniob/Documents/github.dir/AntonioJBT/cgat_projects/BEST-D/microarray_analysis/gene_expression_functions.R')
 source('/ifs/devel/antoniob/projects/BEST-D/gene_expression_functions.R')
 source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
-# source('/Users/antoniob/Documents/github.dir/cgat_projects/BEST-D/moveme.R')
+# source('/Users/antoniob/Documents/github.dir/AntonioJBT/cgat_projects/utility_tutorial_scripts//moveme.R')
 #############################
 
 #############################
@@ -67,8 +66,10 @@ dir(pattern = pattern)[1]
 file_name <- dir(pattern = pattern)[1]
 initialise_df <- read.csv(file_name, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
 names(initialise_df)
+head(initialise_df)
 all_GEx_comparisons <- as.data.frame(initialise_df[, 1])
-# names(all_GEx_comparisons)[1] <- 'X'
+names(all_GEx_comparisons)[1] <- 'X'
+names(all_GEx_comparisons)
 all_GEx_comparisons <- data.frame(all_GEx_comparisons, logFC = "logFC", AveExpr = "AveExpr", 
                                   t = "t", P.Value = "P.Value", adj.P.Val = "adj.P.Val", B = "B")
 dim(all_GEx_comparisons)
@@ -76,10 +77,13 @@ class(all_GEx_comparisons)
 head(all_GEx_comparisons)
 head(initialise_df)
 all_GEx_comparisons <- merge(all_GEx_comparisons, initialise_df, by = 'X')
-# head(all_GEx_comparisons)
+head(all_GEx_comparisons)
+dim(all_GEx_comparisons)
+# This file now has 13 columns (probe ID once, the rest twice). All but probe ID (here 'X') are dummy columns
+# to be deleted later.
 
 for (i in dir(pattern = pattern)) {
-  # print(i)
+  print(i)
   df_in <- read.csv(i, header = TRUE, stringsAsFactors = FALSE, sep = '\t')
   i <- strsplit(i, '[.]')
   i <- as.character(i[[1]][1])
@@ -90,15 +94,39 @@ for (i in dir(pattern = pattern)) {
 }
 names(all_GEx_comparisons)
 head(all_GEx_comparisons)
-
-# Delete dummy columns:
-all_GEx_comparisons <- all_GEx_comparisons[, -c(2:7)]
-
+dim(all_GEx_comparisons)
+# This object now has the 13 initial columns plus 6 additional for each file read
 # Columns to expect plus 1 (ID column):
 length(dir(pattern = pattern)) * 6
 dim(all_GEx_comparisons)
+dim(all_GEx_comparisons) - length(dir(pattern = pattern)) * 6 # Should give 13
 head(all_GEx_comparisons)
+head(all_GEx_comparisons)[, 1:10]
 # View(all_GEx_comparisons)
+
+# Delete dummy columns, these are from the dummy variables first created (2 to 7):
+head(all_GEx_comparisons[, c(1:8)])
+head(all_GEx_comparisons[, c(9:16)])
+head(all_GEx_comparisons[, c(17:24)])
+head(all_GEx_comparisons[, c(25:32)])
+all_GEx_comparisons <- all_GEx_comparisons[, -c(2:7)]
+head(all_GEx_comparisons[, c(1:7)]) # To delete still, these are the extra VDdef25 from first file read
+head(all_GEx_comparisons[, c(8:13)]) # These now correspond to VDdef25, see:
+grep(pattern = 'VDdef25', colnames(all_GEx_comparisons))
+grep(pattern = '-0.102632226534278', all_GEx_comparisons[, 2]) # Should give 1188, ILMN_1664922
+grep(pattern = '-0.102632226534278', all_GEx_comparisons[, 8]) # Should also give 1188, ILMN_1664922
+head(all_GEx_comparisons[, c(14:19)]) # These now correspond to VDdef50
+# Delete second set of dummy variables:
+colnames(all_GEx_comparisons)[1:20]
+all_GEx_comparisons <- all_GEx_comparisons[, -c(2:7)]
+# Rename first column set back to all_baseline_VDdef25
+colnames(all_GEx_comparisons)[2] <- "logFC.all_baseline_VDdef25"
+colnames(all_GEx_comparisons)[3] <- "AveExpr.all_baseline_VDdef25"
+colnames(all_GEx_comparisons)[4] <- "t.all_baseline_VDdef25"
+colnames(all_GEx_comparisons)[5] <- "P.Value.all_baseline_VDdef25"
+colnames(all_GEx_comparisons)[6] <- "adj.P.Val.all_baseline_VDdef25"
+colnames(all_GEx_comparisons)[7] <- "B.all_baseline_VDdef25"
+colnames(all_GEx_comparisons)[1:20]
 
 # Add gene symbols and FC to each column
 names(all_GEx_comparisons)[1] <- 'probe_ID'
@@ -130,9 +158,26 @@ names(all_GEx_comparisons)
 # Sanity check, placebo paired analyses was run twice, these columns should be the same to 2 or 3 decimals:
 # View(all_GEx_comparisons[, c('probe_ID', 'P.Value.joint_pairedtreated_placebo', 'P.Value.pairedtreated_placebo')])
 
+# Delete columns which are not needed
+# All ave. exp. columns
+dim(all_GEx_comparisons)
+pattern <- 'AveExpr'
+ave_expr_cols <- grep(pattern = pattern, colnames(all_GEx_comparisons))
+colnames(all_GEx_comparisons)
+colnames(all_GEx_comparisons)[ave_expr_cols]
+head(all_GEx_comparisons[, c(ave_expr_cols)])
+all_GEx_comparisons <- all_GEx_comparisons[, -c(ave_expr_cols)]
+dim(all_GEx_comparisons)
+colnames(all_GEx_comparisons)
+head(all_GEx_comparisons)
+grep(pattern = pattern, colnames(all_GEx_comparisons))
+
+# TO DO:
+# Calculate average expression per gene per arm and place in the first columns:
+
 
 # Write to disk:
-write.table(all_GEx_comparisons, 'all_GEx_comparisons.tsv', sep='\t', 
+write.table(all_GEx_comparisons, '../all_GEx_comparisons.tsv', sep='\t', 
             quote=F, na='NA', col.names=NA, row.names=TRUE)
 #############################
 
