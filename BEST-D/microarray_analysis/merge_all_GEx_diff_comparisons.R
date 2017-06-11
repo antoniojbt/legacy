@@ -46,6 +46,7 @@ R_session_saved_image <- paste('R_session_saved_image_diff_expression_merge_tabl
 
 library(illuminaHumanv4.db)
 library(plyr)
+library(limma)
 
 # Get functions from other scripts (eg to add annotations to topTable results):
 # source('/Users/antoniob/Documents/github.dir/AntonioJBT/cgat_projects/BEST-D/microarray_analysis/gene_expression_functions.R')
@@ -53,6 +54,7 @@ source('/ifs/devel/antoniob/projects/BEST-D/gene_expression_functions.R')
 source('/ifs/devel/antoniob/projects/BEST-D/moveme.R')
 # source('/Users/antoniob/Documents/github.dir/AntonioJBT/cgat_projects/utility_tutorial_scripts//moveme.R')
 #############################
+
 
 #############################
 # Read and merge all comparisons into one table:
@@ -171,15 +173,143 @@ dim(all_GEx_comparisons)
 colnames(all_GEx_comparisons)
 head(all_GEx_comparisons)
 grep(pattern = pattern, colnames(all_GEx_comparisons))
+#############################
 
-# TO DO:
+
+#############################
 # Calculate average expression per gene per arm and place in the first columns:
 
+############
+# This is from '03c_microarray_GEx_diff_expression_VD_def_all_no_covar.R'
 
+# Load results from 02_microarrayxxx file, saved as RData object:
+# Re-load a previous R session, data and objects:
+load('/Users/antoniob/Desktop/BEST_D.DIR/mac_runs_to_upload/data.dir/R_session_saved_image_pheno_file_check.RData', verbose=T)
+# load('R_session_saved_image_diff_expression.RData', verbose=T) # Has subsetted objects for array data.
+
+# Read in the file with the sample membership information (group membership, replicate number, 
+# treatment status, etc.) to be able to create a design and contrast (done above for PCA plots).
+
+#Check dimensions between annotation file with meta-data (must have the same number of rows, otherwise
+#errors downstream):
+#TO DO: Raise error if not the same.
+
+dim(membership_file_cleaned)
+str(membership_file_cleaned)
+head(membership_file_cleaned)
+tail(membership_file_cleaned)
+head(normalised_filtered)
+dim(normalised_filtered)
+str(normalised_filtered)
+dim(normalised_filtered_annotated)
+
+# Sanity check:
+# TO DO: Raise error and stop if false:
+identical(row.names(membership_file_cleaned), colnames(normalised_filtered))
+length(which(row.names(membership_file_cleaned) %in% colnames(normalised_filtered)))
+############
+
+
+############
+# Check GEx and cross match file (membership_file), then merge membership_file with GEx (normalised_filtered)
+dim(membership_file_cleaned)
+head(membership_file_cleaned)
+dim(normalised_filtered)
+head(normalised_filtered)
+plyr::count(membership_file_cleaned$arm)
+plyr::count(membership_file_cleaned$group_membership)
+
+# New table to hold summary stats per probe, per arm, per timepoint:
+by_group_GEx <- list()
+
+# Subset kit_id array file for placebo at baseline:
+by_group_GEx$placebo_baseline <- normalised_filtered[,
+                                                             which(colnames(normalised_filtered) 
+                                                                   %in% row.names(
+                                                                     membership_file_cleaned[which(
+                                                                       membership_file_cleaned$group_membership == 'baseline_placebo'),
+                                                                       ])
+                                                                   )
+                                                             ]
+# For placebo at 12 months:
+by_group_GEx$placebo_final <- normalised_filtered[,
+                                                             which(colnames(normalised_filtered) 
+                                                                   %in% row.names(
+                                                                     membership_file_cleaned[which(
+                                                                       membership_file_cleaned$group_membership == 'final_placebo'),
+                                                                       ])
+                                                             )
+                                                             ]
+# Subset kit_id array file for 2000 IU at baseline:
+by_group_GEx$baseline_2000 <- normalised_filtered[,
+                                                          which(colnames(normalised_filtered) 
+                                                                %in% row.names(
+                                                                  membership_file_cleaned[which(
+                                                                    membership_file_cleaned$group_membership == 'baseline_2000'),
+                                                                    ])
+                                                          )
+                                                          ]
+# Subset kit_id array file for 2000 IU at 12 months:
+by_group_GEx$final_2000 <- normalised_filtered[,
+                                                          which(colnames(normalised_filtered) 
+                                                                %in% row.names(
+                                                                  membership_file_cleaned[which(
+                                                                    membership_file_cleaned$group_membership == 'final_2000'),
+                                                                    ])
+                                                          )
+                                                          ]
+# Subset kit_id array file for 4000 IU at baseline:
+by_group_GEx$baseline_4000 <- normalised_filtered[,
+                                                       which(colnames(normalised_filtered) 
+                                                             %in% row.names(
+                                                               membership_file_cleaned[which(
+                                                                 membership_file_cleaned$group_membership == 'baseline_4000'),
+                                                                 ])
+                                                       )
+                                                       ]
+# Subset kit_id array file for 4000 IU at 12 months:
+by_group_GEx$final_4000 <- normalised_filtered[,
+                                                       which(colnames(normalised_filtered) 
+                                                             %in% row.names(
+                                                               membership_file_cleaned[which(
+                                                                 membership_file_cleaned$group_membership == 'final_4000'),
+                                                                 ])
+                                                       )
+                                                       ]
+# Check subsets:
+sapply(by_group_GEx, dim)
+plyr::count(membership_file_cleaned$group_membership)
+dim(normalised_filtered)
+
+# TO DO: continue from here
+# Get mean and SD for each probe
+summary_by_group_GEx <- data.frame()
+summary_by_group_GEx$baseline_placebo_mean
+dim(summary_by_group_GEx)
+head(summary_by_group_GEx)
+summary_by_group_GEx <- data.frame('baseline_placebo_mean' = rowMeans(by_group_GEx$placebo_baseline))
+
+summary_by_group_GEx$baseline_placebo_mean <- as.data.frame('baseline_placebo_mean' = ,
+                                                            rowMeans(by_group_GEx$placebo_baseline))
+summary_by_group_GEx$final_placebo_mean
+summary_by_group_GEx$baseline_2000_mean
+summary_by_group_GEx$final_2000_mean
+summary_by_group_GEx$baseline_4000_mean
+summary_by_group_GEx$final_4000_mean
+  
+# Basic distribution plots for a few
+
+
+
+############
+#############################
+
+#############################
 # Write to disk:
 write.table(all_GEx_comparisons, '../all_GEx_comparisons.tsv', sep='\t', 
             quote=F, na='NA', col.names=NA, row.names=TRUE)
 #############################
+
 
 #############################
 #The end:
