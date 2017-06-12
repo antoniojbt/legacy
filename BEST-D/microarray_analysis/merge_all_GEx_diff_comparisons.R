@@ -294,21 +294,27 @@ summary_by_group_GEx <- data.frame()
 
 summary_by_group_GEx <- data.frame('baseline_placebo_mean' = rowMeans(by_group_GEx$placebo_baseline))
 summary_by_group_GEx$baseline_placebo_SD <- apply(by_group_GEx$placebo_baseline, 1, sd, na.rm = FALSE)
+summary_by_group_GEx$baseline_placebo_var <- apply(by_group_GEx$placebo_baseline, 1, var, na.rm = FALSE)
 
 summary_by_group_GEx$final_placebo_mean <- rowMeans(by_group_GEx$placebo_final)
 summary_by_group_GEx$final_placebo_SD <- apply(by_group_GEx$placebo_final, 1, sd, na.rm = FALSE)
+summary_by_group_GEx$final_placebo_var <- apply(by_group_GEx$placebo_final, 1, var, na.rm = FALSE)
 
 summary_by_group_GEx$baseline_2000_mean <- rowMeans(by_group_GEx$baseline_2000)
 summary_by_group_GEx$baseline_2000_SD <- apply(by_group_GEx$baseline_2000, 1, sd, na.rm = FALSE)
+summary_by_group_GEx$baseline_2000_var <- apply(by_group_GEx$baseline_2000, 1, var, na.rm = FALSE)
 
 summary_by_group_GEx$final_2000_mean <- rowMeans(by_group_GEx$final_2000)
 summary_by_group_GEx$final_2000_SD <- apply(by_group_GEx$final_2000, 1, sd, na.rm = FALSE)
+summary_by_group_GEx$final_2000_var <- apply(by_group_GEx$final_2000, 1, var, na.rm = FALSE)
 
 summary_by_group_GEx$baseline_4000_mean <- rowMeans(by_group_GEx$baseline_4000)
 summary_by_group_GEx$baseline_4000_SD <- apply(by_group_GEx$baseline_4000, 1, sd, na.rm = FALSE)
+summary_by_group_GEx$baseline_4000_var <- apply(by_group_GEx$baseline_4000, 1, var, na.rm = FALSE)
 
 summary_by_group_GEx$final_4000_mean <- rowMeans(by_group_GEx$final_4000)
 summary_by_group_GEx$final_4000_SD <- apply(by_group_GEx$final_4000, 1, sd, na.rm = FALSE)
+summary_by_group_GEx$final_4000_var <- apply(by_group_GEx$final_4000, 1, var, na.rm = FALSE)
 
 dim(summary_by_group_GEx)
 head(summary_by_group_GEx)
@@ -324,6 +330,7 @@ hist(as.numeric(by_group_GEx$placebo_baseline[1, ]))
 hist(as.numeric(by_group_GEx$placebo_baseline[2, ]))
 hist(summary_by_group_GEx$baseline_placebo_mean)
 hist(summary_by_group_GEx$baseline_placebo_SD)
+hist(summary_by_group_GEx$baseline_placebo_var)
 ############
 
 ############
@@ -347,7 +354,6 @@ summary_by_group_GEx$probe_ID <- row.names(summary_by_group_GEx)
 identical(row.names(all_GEx_comparisons), row.names(summary_by_group_GEx))
 identical(as.character(all_GEx_comparisons$probe_ID), as.character(summary_by_group_GEx$probe_ID))
 
-# TO DO: continue from here
 # Merge to get final table
 # Sort out variable types and column to merge by:
 head(summary_by_group_GEx$probe_ID)
