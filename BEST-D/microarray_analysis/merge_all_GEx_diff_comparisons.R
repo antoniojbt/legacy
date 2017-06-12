@@ -281,33 +281,144 @@ sapply(by_group_GEx, dim)
 plyr::count(membership_file_cleaned$group_membership)
 dim(normalised_filtered)
 
-# TO DO: continue from here
-# Get mean and SD for each probe
+# Sanity:
+identical(row.names(by_group_GEx$placebo_baseline), row.names(by_group_GEx$placebo_final))
+identical(row.names(by_group_GEx$placebo_baseline), row.names(by_group_GEx$baseline_2000))
+identical(row.names(by_group_GEx$placebo_baseline), row.names(by_group_GEx$final_2000))
+identical(row.names(by_group_GEx$placebo_baseline), row.names(by_group_GEx$baseline_4000))
+identical(row.names(by_group_GEx$placebo_baseline), row.names(by_group_GEx$final_4000))
+
+
+# Get means and SD for each probe:
 summary_by_group_GEx <- data.frame()
-summary_by_group_GEx$baseline_placebo_mean
+
+summary_by_group_GEx <- data.frame('baseline_placebo_mean' = rowMeans(by_group_GEx$placebo_baseline))
+summary_by_group_GEx$baseline_placebo_SD <- apply(by_group_GEx$placebo_baseline, 1, sd, na.rm = FALSE)
+
+summary_by_group_GEx$final_placebo_mean <- rowMeans(by_group_GEx$placebo_final)
+summary_by_group_GEx$final_placebo_SD <- apply(by_group_GEx$placebo_final, 1, sd, na.rm = FALSE)
+
+summary_by_group_GEx$baseline_2000_mean <- rowMeans(by_group_GEx$baseline_2000)
+summary_by_group_GEx$baseline_2000_SD <- apply(by_group_GEx$baseline_2000, 1, sd, na.rm = FALSE)
+
+summary_by_group_GEx$final_2000_mean <- rowMeans(by_group_GEx$final_2000)
+summary_by_group_GEx$final_2000_SD <- apply(by_group_GEx$final_2000, 1, sd, na.rm = FALSE)
+
+summary_by_group_GEx$baseline_4000_mean <- rowMeans(by_group_GEx$baseline_4000)
+summary_by_group_GEx$baseline_4000_SD <- apply(by_group_GEx$baseline_4000, 1, sd, na.rm = FALSE)
+
+summary_by_group_GEx$final_4000_mean <- rowMeans(by_group_GEx$final_4000)
+summary_by_group_GEx$final_4000_SD <- apply(by_group_GEx$final_4000, 1, sd, na.rm = FALSE)
+
 dim(summary_by_group_GEx)
 head(summary_by_group_GEx)
-summary_by_group_GEx <- data.frame('baseline_placebo_mean' = rowMeans(by_group_GEx$placebo_baseline))
+tail(summary_by_group_GEx)
+colnames(summary_by_group_GEx)
+row.names(summary_by_group_GEx)[1:10]
 
-summary_by_group_GEx$baseline_placebo_mean <- as.data.frame('baseline_placebo_mean' = ,
-                                                            rowMeans(by_group_GEx$placebo_baseline))
-summary_by_group_GEx$final_placebo_mean
-summary_by_group_GEx$baseline_2000_mean
-summary_by_group_GEx$final_2000_mean
-summary_by_group_GEx$baseline_4000_mean
-summary_by_group_GEx$final_4000_mean
-  
+# Sanity:
+identical(row.names(by_group_GEx$placebo_baseline), row.names(summary_by_group_GEx))
+
 # Basic distribution plots for a few
+hist(as.numeric(by_group_GEx$placebo_baseline[1, ]))
+hist(as.numeric(by_group_GEx$placebo_baseline[2, ]))
+hist(summary_by_group_GEx$baseline_placebo_mean)
+hist(summary_by_group_GEx$baseline_placebo_SD)
+############
 
+############
+# Merge tables
+head(all_GEx_comparisons)
+head(summary_by_group_GEx)
+dim(all_GEx_comparisons)
+dim(summary_by_group_GEx)
+colnames(all_GEx_comparisons)
+colnames(summary_by_group_GEx)
+row.names(all_GEx_comparisons)[1:10]
+all_GEx_comparisons$probe_ID[1:10]
+row.names(summary_by_group_GEx)[1:10]
 
+# Sanity:
+identical(as.character(all_GEx_comparisons$probe_ID),
+          as.character(row.names(summary_by_group_GEx)))
+row.names(all_GEx_comparisons) <- as.character(all_GEx_comparisons$probe_ID)
+summary_by_group_GEx$probe_ID <- row.names(summary_by_group_GEx)
 
+identical(row.names(all_GEx_comparisons), row.names(summary_by_group_GEx))
+identical(as.character(all_GEx_comparisons$probe_ID), as.character(summary_by_group_GEx$probe_ID))
+
+# TO DO: continue from here
+# Merge to get final table
+# Sort out variable types and column to merge by:
+head(summary_by_group_GEx$probe_ID)
+head(all_GEx_comparisons$probe_ID)
+length(unique(summary_by_group_GEx$probe_ID))
+dim(summary_by_group_GEx)
+
+all_GEx_comparisons$probe_ID <- as.character(all_GEx_comparisons$probe_ID)
+all_GEx_comparisons$probes_by_symbol <- as.character(all_GEx_comparisons$probes_by_symbol)
+all_GEx_comparisons$probes_by_ENTREZID_RE <- as.character(all_GEx_comparisons$probes_by_ENTREZID_RE)
+str(summary_by_group_GEx)
+str(all_GEx_comparisons)
+
+# Merge:
+final_table <- merge(summary_by_group_GEx, all_GEx_comparisons, by = 'probe_ID')
+dim(final_table)
+dim(summary_by_group_GEx)
+dim(all_GEx_comparisons)
+head(final_table)[, c(1:5, 15:20)]
+tail(final_table)[, c(1:5, 15:20)]
+
+# Check order of columns after merging
+colnames(final_table)
+# Move 
+final_table <- final_table[, moveme(names(final_table), "probes_by_symbol after probe_ID")]
+final_table <- final_table[, moveme(names(final_table), "probes_by_ENTREZID_RE after probes_by_symbol")]
+colnames(final_table)
+############
+
+############
+# Create separate table for ST1B with 'main comparisons' only:
+main_comps <- c(
+  'joint_pairedtreated_2000+4000',
+  'joint_pairedtreated_placebo',
+  'treatment_joint_vd_def_50treated_2000+4000',
+  'treatment_joint_vd_def_50treated_placebo',
+  'treatment_joint_vd_deltatreated_2000+4000',
+  'UI2000minusplacebo',
+  'UI4000minusplacebo')
+
+get_main_comps <- function(pattern, df, df2) {
+  cols <- grep(pattern = pattern, colnames(df), fixed = TRUE)
+  colnames(df)[cols]
+  df_temp <- df[, c(1, cols)]
+  df2 <- merge(df2, df_temp, by = 'probe_ID')
+  return(df2)
+}
+
+colnames(final_table)[1:5]
+ST1B_GEx_main_comparisons <- as.data.frame(final_table[, c('probe_ID',
+                                                           'probes_by_symbol',
+                                                           'probes_by_ENTREZID_RE')])
+head(ST1B_GEx_main_comparisons)
+for (i in main_comps) {
+  print(i)
+  ST1B_GEx_main_comparisons <- get_main_comps(i, final_table, ST1B_GEx_main_comparisons)
+}
+
+dim(ST1B_GEx_main_comparisons)
+head(ST1B_GEx_main_comparisons)
+tail(ST1B_GEx_main_comparisons)
+colnames(ST1B_GEx_main_comparisons)
 ############
 #############################
 
 #############################
-# Write to disk:
-write.table(all_GEx_comparisons, '../all_GEx_comparisons.tsv', sep='\t', 
-            quote=F, na='NA', col.names=NA, row.names=TRUE)
+# Write files to disk:
+write.table(final_table, '../ST1C_GEx_all_comparisons.tsv', sep = '\t', 
+            quote = F, na = 'NA', col.names = NA, row.names = TRUE)
+write.table(ST1B_GEx_main_comparisons, '../ST1B_GEx_main_comparisons.tsv', sep = '\t', 
+            quote = F, na = 'NA', col.names = NA, row.names = TRUE)
 #############################
 
 
@@ -315,7 +426,7 @@ write.table(all_GEx_comparisons, '../all_GEx_comparisons.tsv', sep='\t',
 #The end:
 
 # To save R workspace with all objects to use at a later time:
-save.image(file=R_session_saved_image, compress='gzip')
+save.image(file = R_session_saved_image, compress = 'gzip')
 sessionInfo()
 
 q()
