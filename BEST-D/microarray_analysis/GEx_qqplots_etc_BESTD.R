@@ -105,16 +105,64 @@ dev.off()
 # placebo paired. This is without account for time (i.e. placebo itself as a control) and 
 # that the joint group is roughly twice the size of the placebo group (as the 2000 and 4000 
 # arms have been placed together here).
-# However, there is a consistent deviation from around 10-3 to lower p-values in the treated groups.
+# However, there is a consistent deviation from around 10^-3 to lower p-values in the treated groups.
 
-# TO DO: continue from here
+
 qqplot(y = final_table$`t.joint_pairedtreated_2000+4000`,
        final_table$t.joint_pairedtreated_placebo)
 abline(coef = c(0, 1))
-# t-statistics 
-
+# The distribution of t-statistics seems almost identical between joint treated and placebo paired.
+# 
 # Together with SF7 plot (histograms of raw p-values) it would seem that drug response
 # is heterogeneic but effects are small and compared to placebo non-significant.
+# If their is higher variance than expecter, more samples would be required to detect differences.
+#########
+
+#########
+#  Q-Q plots of t statistics with limma
+library(limma)
+
+#########
+# Example:
+# #  See also lmFit examples
+# 
+# #  Simulate gene expression data,
+# #  6 microarrays and 100 genes with one gene differentially expressed
+# set.seed(2004); invisible(runif(100))
+# M <- matrix(rnorm(100*6,sd=0.3),100,6)
+# M[1,] <- M[1,] + 1
+# fit <- lmFit(M)
+# 
+# #  Moderated t-statistic
+# fit <- eBayes(fit)
+# topTable(fit)
+# 
+# #  Ordinary t-statistic
+# ordinary.t <- fit$coef / fit$stdev.unscaled / fit$sigma
+# 
+# #  Q-Q plots of t statistics
+# #  Points off the line may be differentially expressed
+# par(mfrow=c(1,2))
+# qqt(ordinary.t, df=fit$df.residual, main="Ordinary t")
+# abline(0,1)
+# qqt(fit$t, df=fit$df.total,main="Moderated t")
+# abline(0,1)
+# par(mfrow=c(1,1))
+#########
+
+#########
+# TO DO: continue from here:
+#  Ordinary t-statistic
+ordinary.t <- fit$coef / fit$stdev.unscaled / fit$sigma
+
+#  Points off the line may be differentially expressed
+# par(mfrow = c(1, 2))
+# qqt(ordinary.t, df = fit$df.residual, main = "Ordinary t")
+# abline(0, 1)
+# qqt(fit$t, df = fit$df.total, main = "Moderated t")
+qqt(final_table$`t.joint_pairedtreated_2000+4000`, main = "Moderated t")
+# abline(0, 1)
+# par(mfrow = c(1, 1))
 #########
 
 

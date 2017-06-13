@@ -417,11 +417,24 @@ head(ST1B_GEx_main_comparisons)
 tail(ST1B_GEx_main_comparisons)
 colnames(ST1B_GEx_main_comparisons)
 ############
+
+############
+# Get version without variance columns for final_table (which is ST1C):
+cols <- grep(pattern = '_var', fixed = TRUE, colnames(final_table))
+colnames(final_table)[cols]
+dim(final_table)
+final_table_no_var <- final_table[, -c(cols)]
+dim(final_table_no_var)
+grep(pattern = '_var', fixed = TRUE, colnames(final_table_no_var))
+
+############
 #############################
 
 #############################
 # Write files to disk:
-write.table(final_table, '../ST1C_GEx_all_comparisons.tsv', sep = '\t', 
+# write.table(final_table, '../ST1C_GEx_all_comparisons.tsv', sep = '\t', 
+#             quote = F, na = 'NA', col.names = NA, row.names = TRUE)
+write.table(final_table_no_var, '../ST1C_GEx_all_comparisons.tsv', sep = '\t', 
             quote = F, na = 'NA', col.names = NA, row.names = TRUE)
 write.table(ST1B_GEx_main_comparisons, '../ST1B_GEx_main_comparisons.tsv', sep = '\t', 
             quote = F, na = 'NA', col.names = NA, row.names = TRUE)
