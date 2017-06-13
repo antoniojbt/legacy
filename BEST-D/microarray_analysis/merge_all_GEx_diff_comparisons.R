@@ -32,7 +32,7 @@ print(paste('Working directory :', getwd()))
 
 # Load results from 02_microarrayxxx file, saved as RData object:
 # Re-load a previous R session, data and objects:
-# load('R_session_saved_image_pheno_file_check.RData', verbose=T)
+load('R_session_saved_image_diff_expression_merge_tables.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_diff_expression_merge_tables', '.RData', sep='')
