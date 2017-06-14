@@ -32,7 +32,7 @@ print(paste('Working directory :', getwd()))
 
 # Load results from 02_microarrayxxx file, saved as RData object:
 # Re-load a previous R session, data and objects:
-load('R_session_saved_image_diff_expression_merge_tables.RData', verbose=T)
+# load('R_session_saved_image_diff_expression_merge_tables.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_diff_expression_merge_tables', '.RData', sep='')
@@ -381,6 +381,7 @@ colnames(final_table)
 final_table <- final_table[, moveme(names(final_table), "probes_by_symbol after probe_ID")]
 final_table <- final_table[, moveme(names(final_table), "probes_by_ENTREZID_RE after probes_by_symbol")]
 colnames(final_table)
+colnames(final_table)[1:10]
 ############
 
 ############
@@ -426,8 +427,8 @@ dim(final_table)
 final_table_no_var <- final_table[, -c(cols)]
 dim(final_table_no_var)
 grep(pattern = '_var', fixed = TRUE, colnames(final_table_no_var))
-
 ############
+
 #############################
 
 #############################
@@ -445,6 +446,8 @@ write.table(ST1B_GEx_main_comparisons, '../ST1B_GEx_main_comparisons.tsv', sep =
 #The end:
 
 # To save R workspace with all objects to use at a later time:
+# saved_image name gets overwritten as loading a different image above, renaming:
+R_session_saved_image <- paste('R_session_saved_image_diff_expression_merge_tables', '.RData', sep='')
 save.image(file = R_session_saved_image, compress = 'gzip')
 sessionInfo()
 

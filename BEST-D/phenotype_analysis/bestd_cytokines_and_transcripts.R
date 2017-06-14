@@ -75,7 +75,7 @@ getwd()
 ##TO DO extract parameters:
 
 # Re-load a previous R session, data and objects:
-load('../data.dir/R_session_saved_image_cytokines.RData', verbose=T)
+# load('../data.dir/R_session_saved_image_cytokines.RData', verbose=T)
 
 # Filename to save current R session, data and objects at the end:
 R_session_saved_image <- paste('R_session_saved_image_cytokines','.RData', sep='')
@@ -593,6 +593,20 @@ ggplot(data = cormat_melted, aes(x = Var1, y = Var2, fill = value)) +
         plot.title = element_text(hjust = 0.5),
         legend.title = element_blank())
 ggsave('cytokines_heatmap_vitd.png')
+
+# TO DO:
+# Get lower triangle of the correlation matrix
+get_lower_tri<-function(cormat){
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
+# 
 #########
 
 #########
