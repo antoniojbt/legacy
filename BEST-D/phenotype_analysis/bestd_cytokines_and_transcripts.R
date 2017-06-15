@@ -532,47 +532,176 @@ ggplot(data = cormat_melted, aes(x = Var1, y = Var2, fill = value)) +
         # legend.title = element_text('Spearman rho')
         )
 ggsave('cytokines_heatmap.png')
+#########
 
-# Add vitamin D levels:
-# Plot correlations between cytokines:
-colnames(all_data)
-head(all_data)
-str(as.data.frame(all_data[, c(31, 44, 88:97)]))
-cormat <- round(cor(as.data.frame(all_data[, c(31, 44, 88:97)]), 
+#########
+# Add vitamin D levels and separate by arm for heatmap (as above)
+colnames(all_data)[1:10]
+head(all_data)[1:5, 1:5]
+all_data[1:5, c(3, 108, 31, 44, 88:97)]
+str(as.data.frame(all_data[, c(3, 108, 31, 44, 88:97)]))
+
+# Separate by arm:
+heatmap_df <- all_data[, c(3, 108, 31, 44, 88:97)]
+dim(heatmap_df)
+head(heatmap_df)
+colnames(heatmap_df)
+# Do for all variables:
+df <- heatmap_df
+for (i in colnames(df)[3:ncol(df)]) {
+  print(i)
+  var_name <- sprintf('%s_placebo', i)
+  print(var_name)
+  df[, var_name] <- ifelse(df$arm2 == 'Placebo', df[, i], 'NA')
+  var_name <- sprintf('%s_2000IU', i)
+  df[, var_name] <- ifelse(df$arm2 == '2000_IU', df[, i], 'NA')
+  var_name <- sprintf('%s_4000IU', i)
+  df[, var_name] <- ifelse(df$arm2 == '4000_IU', df[, i], 'NA')
+}
+heatmap_df <- df
+colnames(heatmap_df)
+head(heatmap_df)
+# Correct variable types:
+str(heatmap_df)
+for (i in colnames(heatmap_df)[3:ncol(heatmap_df)]) {
+  heatmap_df[, i] <- as.numeric(heatmap_df[, i])
+  }
+# Drop global variables:
+colnames(heatmap_df)[1:15]
+dim(heatmap_df)
+heatmap_df <- heatmap_df[, -c(3:14)]
+dim(heatmap_df)
+head(heatmap_df)
+colnames(heatmap_df)[1:15]
+
+# Plot correlations between cytokines
+# Set up correlation matrix:
+colnames(heatmap_df)
+cormat <- round(cor(as.data.frame(heatmap_df[, c(3:ncol(heatmap_df))]), 
                     use = "pairwise.complete.obs", 
                     method = 'pearson'), 2)
 class(cormat)
-cormat
+head(cormat)
+dim(cormat)
+
+# Get p-values
+# http://www.sthda.com/english/wiki/correlation-matrix-a-quick-start-guide-to-analyze-format-and-visualize-a-correlation-matrix-using-r-software#compute-correlation-matrix
+library(Hmisc)
+cormat2 <- rcorr(as.matrix(heatmap_df[, c(3:ncol(heatmap_df))]),
+                 type = 'pearson')
+class(cormat2)
+head(cormat2)
+dim(cormat2$r)
+dim(cormat2$P)
+
+# flattenCorrMatrix <- function(cormat, pmat) {
+#   ut <- upper.tri(cormat)
+#   data.frame(
+#     row = rownames(cormat)[row(cormat)[ut]],
+#     column = rownames(cormat)[col(cormat)[ut]],
+#     cor  =(cormat)[ut],
+#     p = pmat[ut]
+#   )
+# }
+# 
+# cormat2 <- flattenCorrMatrix(cormat2$r, cormat2$P)
+# head(cormat2)
+# dim(cormat2)
+
+# Prepare for heatmap:
+cormat <- cormat2$r
 cormat_melted <- melt(cormat)
 head(cormat_melted)
+cormat_melted
 str(cormat_melted)
 class(cormat_melted)
-# Rename variables:
-vars_to_label <- c('vitd0',
-                   'vitd12',
-                   'Ln_IFNgamma0',
-                   'Ln_IFNgamma12',
-                   'Ln_IL10_0',
-                   'Ln_IL10_12',
-                   'Ln_IL6_0',
-                   'Ln_IL6_12',
-                   'Ln_IL8_0',
-                   'Ln_IL8_12',
-                   'Ln_TNFalpha0',
-                   'Ln_TNFalpha12')
+dim(cormat_melted)
+plyr::count(cormat_melted$Var1)
+# P-values separately:
+cormat_P <- cormat2$P
+cormat_melted_P <- melt(cormat_P)
+head(cormat_melted_P)
+cormat_melted_P
+dim(cormat_melted_P)
+plyr::count(cormat_melted_P$Var1)
+# Sanity:
+identical(rownames(cormat), rownames(cormat_P))
+identical(rownames(cormat_melted), rownames(cormat_melted_P))
 
-vars_labels <- c('25(OH)D baseline',
-                 '25(OH)D 12m',
-                 'IFNg baseline',
-                 'IFNg 12m',
-                 'IL10 baseline',
-                 'IL10 12m',
-                 'IL6 baseline',
-                 'IL6 12m',
-                 'IL8 baseline',
-                 'IL8 12m',
-                 'TNFa baseline',
-                 'TNFa 12m')
+# Rename variables:
+vars_to_label <- c('vitd0_placebo',
+                   'vitd0_2000IU',
+                   'vitd0_4000IU',
+                   'vitd12_placebo',
+                   'vitd12_2000IU',
+                   'vitd12_4000IU',
+                   'Ln_IFNgamma0_placebo',
+                   'Ln_IFNgamma0_2000IU',
+                   'Ln_IFNgamma0_4000IU',
+                   'Ln_IL10_0_placebo',
+                   'Ln_IL10_0_2000IU',
+                   'Ln_IL10_0_4000IU',
+                   'Ln_IL6_0_placebo',
+                   'Ln_IL6_0_2000IU',
+                   'Ln_IL6_0_4000IU',
+                   'Ln_IL8_0_placebo',
+                   'Ln_IL8_0_2000IU',
+                   'Ln_IL8_0_4000IU',
+                   'Ln_TNFalpha0_placebo',
+                   'Ln_TNFalpha0_2000IU',
+                   'Ln_TNFalpha0_4000IU',
+                   'Ln_IFNgamma12_placebo',
+                   'Ln_IFNgamma12_2000IU',
+                   'Ln_IFNgamma12_4000IU',
+                   'Ln_IL10_12_placebo',
+                   'Ln_IL10_12_2000IU',
+                   'Ln_IL10_12_4000IU',
+                   'Ln_IL6_12_placebo',
+                   'Ln_IL6_12_2000IU',
+                   'Ln_IL6_12_4000IU',
+                   'Ln_IL8_12_placebo',
+                   'Ln_IL8_12_2000IU',
+                   'Ln_IL8_12_4000IU',
+                   'Ln_TNFalpha12_placebo',
+                   'Ln_TNFalpha12_2000IU',
+                   'Ln_TNFalpha12_4000IU')
+
+vars_labels <- c('25(OH)D baseline Placebo',
+                 '25(OH)D baseline 2000 IU',
+                 '25(OH)D baseline 4000 IU',
+                 '25(OH)D 12m Placebo',
+                 '25(OH)D 12m 2000 IU',
+                 '25(OH)D 12m 4000 IU',
+                 'IFNg baseline Placebo',
+                 'IFNg baseline 2000 IU',
+                 'IFNg baseline 4000 IU',
+                 'IL10 baseline Placebo',
+                 'IL10 baseline 2000 IU',
+                 'IL10 baseline 4000 IU',
+                 'IL6 baseline Placebo',
+                 'IL6 baseline 2000 IU',
+                 'IL6 baseline 4000 IU',
+                 'IL8 baseline Placebo',
+                 'IL8 baseline 2000 IU',
+                 'IL8 baseline 4000 IU',
+                 'TNFa baseline Placebo',
+                 'TNFa baseline 2000 IU',
+                 'TNFa baseline 4000 IU',
+                 'IFNg 12m Placebo',
+                 'IFNg 12m 2000 IU',
+                 'IFNg 12m 4000 IU',
+                 'IL10 12m Placebo',
+                 'IL10 12m 2000 IU',
+                 'IL10 12m 4000 IU',
+                 'IL6 12m Placebo',
+                 'IL6 12m 2000 IU',
+                 'IL6 12m 4000 IU',
+                 'IL8 12m Placebo',
+                 'IL8 12m 2000 IU',
+                 'IL8 12m 4000 IU',
+                 'TNFa 12m Placebo',
+                 'TNFa 12m 2000 IU',
+                 'TNFa 12m 4000 IU')
 
 df <- cormat_melted
 df$Var1 <- factor(df$Var1, levels = vars_to_label, labels = vars_labels)
@@ -583,30 +712,135 @@ summary(cormat_melted)
 plyr::count(cormat_melted$Var1)
 plyr::count(cormat_melted$Var2)
 class(cormat_melted)
+# P-values:
+df <- cormat_melted_P
+df$Var1 <- factor(df$Var1, levels = vars_to_label, labels = vars_labels)
+df$Var2 <- factor(df$Var2, levels = vars_to_label, labels = vars_labels)
+summary(df)
+cormat_melted_P <- df
+summary(cormat_melted_P)
+plyr::count(cormat_melted_P$Var1)
+plyr::count(cormat_melted_P$Var2)
+class(cormat_melted_P)
+
 # Plot:
+gg_heatmap <- function(data_cormat_melted) {
+  ggplot(data = data_cormat_melted, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile(color = "light grey") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1, 1), space = "Lab", 
+                       name = "Pearson correlation (colour scale)\nand unadjusted P-values (numbers)") +
+  labs(title = 'Circulating cytokines and 25(OH)D by arm and timepoint', y = '', x = '') +
+  # theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
+        plot.title = element_text(hjust = 0.5)
+  ) +
+  coord_fixed()
+  }
+# gg_heatmap(cormat_melted)
+# gg_heatmap(cormat_melted_P) # To test, but legend, etc., not appropriate
+
+# Nicer heatmap
 # Improve with: 
 # http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
-ggplot(data = cormat_melted, aes(x = Var1, y = Var2, fill = value)) + 
-  geom_tile() +
-  labs(title = 'Circulating cytokines', y = '', x = '') +
-  theme(axis.text.x = element_text(angle=90, vjust = 0.5),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_blank())
-ggsave('cytokines_heatmap_vitd.png')
-
-# TO DO:
-# Get lower triangle of the correlation matrix
+# Get the triangles only for the heatmap:
 get_lower_tri<-function(cormat){
   cormat[upper.tri(cormat)] <- NA
   return(cormat)
 }
-# Get upper triangle of the correlation matrix
+# Get upper triangle of the correlation matrix:
 get_upper_tri <- function(cormat){
   cormat[lower.tri(cormat)]<- NA
   return(cormat)
 }
+upper_tri <- get_upper_tri(cormat)
+upper_tri
+cormat_melted_triangle <- melt(upper_tri, na.rm = TRUE)
+# P-values:
+cormat_melted_triangle_P <- melt(get_upper_tri(cormat_P), na.rm = TRUE)
+# Rename variables (as above) for new cormat melted object:
+df <- cormat_melted_triangle
+df$Var1 <- factor(df$Var1, levels = vars_to_label, labels = vars_labels)
+df$Var2 <- factor(df$Var2, levels = vars_to_label, labels = vars_labels)
+cormat_melted_triangle <- df
+summary(cormat_melted_triangle)
+# P-values:
+df <- cormat_melted_triangle_P
+df$Var1 <- factor(df$Var1, levels = vars_to_label, labels = vars_labels)
+df$Var2 <- factor(df$Var2, levels = vars_to_label, labels = vars_labels)
+cormat_melted_triangle_P <- df
+summary(cormat_melted_triangle_P)
+# Heatmap:
+gg_heatmap(cormat_melted_triangle)
+gg_heatmap(cormat_melted_triangle_P) # For testing
 
+# Add correlation coefficients to plot:
+# Round numbers:
+cormat_melted_triangle$value <- round(cormat_melted_triangle$value, 2)
+cormat_melted_triangle_P$value <- round(cormat_melted_triangle_P$value, 2)
+# View(cormat_melted_triangle_P)
+gg_heatmap(cormat_melted_triangle) + 
+  # geom_text(aes(Var2, Var1, label = value),
+  #           color = "black", size = 3) +
+  # Write p-values instead:
+  geom_text(data = cormat_melted_triangle_P,
+            aes(Var2, Var1, label = value),
+            color = "black", size = 3) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_rect(),
+    axis.ticks = element_blank(),
+    legend.justification = c(1, 0),
+    legend.position = c(0.5, 0.8),
+    legend.direction = "horizontal") +
+  guides(fill = guide_colorbar(barwidth = 12, barheight = 2,
+                               title.position = "top", title.hjust = 0.5)) #+
+  # theme(text = element_text(size = 12))
+ggsave('cytokines_heatmap_vitd_by_arm_nicer.pdf', width = 13, height = 13)
+dev.off()
+#########
+
+#########
+# If adding hclust ordering: (this errored for me, didn't take further)
+# # Reorder the correlation matrix to see any clustering
+# cormat[1:5, 1:5]
+# dim(cormat)
+# # View(cormat)
+# summary(cormat)
+# sum(is.infinite(cormat))
 # 
+# dd <- as.dist((1 - cormat) / 2)
+# dd2 <- dist(cormat)
+# summary(dd)
+# summary(dd2)
+# sum(is.infinite(dd2))
+# dd[1:10]
+# dd2[1:10]
+# hclust(dd2)
+# 
+# reorder_cormat <- function(cormat){
+#   # Use correlation between variables as distance
+#   dd <- as.dist((1 - cormat) / 2)
+#   hc <- hclust(dd)#, method = 'complete')
+#   cormat <-cormat[hc$order, hc$order]
+# }
+# 
+# class(dd)
+# length(dd)
+# length(which(is.na(dd) == TRUE))
+# 
+# # Reorder the correlation matrix:
+# cormat_ordered <- reorder_cormat(cormat)
+# upper_tri <- get_upper_tri(cormat_ordered)
+# # Melt the correlation matrix
+# melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# # Create a ggheatmap
+# gg_heatmap(cormat_melted_triangle)
+# # Print the heatmap
+# print(ggheatmap)
 #########
 
 #########
