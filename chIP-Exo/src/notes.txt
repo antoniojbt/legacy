@@ -1,0 +1,224 @@
+# General analytical pipeline for exo data:
+# 
+# QC --> Mapping --> Peak calling and QC ENCODE metrics --> Motif finding --> Annotation and integration --> Study specific questions
+# 
+# In pipelines:
+# 
+# pipeline_fastqc 
+# --> pipeline_mapping.py with BWA and STAMPY and QC with SAMTools and Picard (mark duplicates, multiple metrics, estimate library complexity, uniquely mapped reads)
+# --> (this pipeline, peaks) uses MACS2, GEM, GeneTrack
+# --> (this pipeline, QC) ENCODE metrics (sequencing saturation curve, # peaks, # peaks with motifs, # reads in peaks, FRiP, IDR, saturation, etc.) and separately visualise with IGV 
+# --> pipeline_intervals.py;
+# --> motif searching: PipelineMotifs.py, Motifs.py; check specific tools in src (run grep again on /ifs/devel/antoniob/src/*)
+# --> Study specific pipeline (allele specific events)
+ 
+# Questions:
+# - Relate peak locations to known genomic features (TSS, introns, exons, etc.; genetic variation); - Motif discovery and degeneracy?; - Allele specific binding; - Expression levels of assocaited genes; - Motif cluster analysis; - Evolution analysis 
+
+
+# @follows
+# @transforms
+# Third task (? if required to process BAM files [normalise, mask regions] and check quality after this):
+# Prepare input files
+#     process BAM files if required (mask regions, de-duplicate, normalise, etc.) (unnecessary? Check options per peakcaller better):
+#         Functions: makeMask(infile,outfile) #fileter reads if required
+#                    prepareBAMforPeakCalling(infiles,outfile) #remove unmapped reads, deduplicate if necessary, etc.
+#                    To normalise according to file with the lowest number of reads: countReadsInBAM(infile,outfile), minReads(infiles,outfile) #gets the lowest number of reads, normalizeBAM(infiles, outfile) # generates files with the same number of reads. 
+#     
+#     check quality of BAM data if necessary:
+#         Function: loadDuplicationStats(infiles,outfile) # Maybe unnecessary as could check during pipeline_mapping.py
+#                   buildBAMStats(infile, outfile)
+#                   loadBAMStats(infiles, outfile)
+#                   checkDataQuality(infile, outfile) # uses peakranger in pipeline_peakcalling.py; estimates noise rate
+#                   loadDataQuality(infiles, outfile)
+#                   checkLibraryComplexity(infile, outfile) # uses peakranger again; do these run without calling peaks in peakranger?
+
+
+# @follows
+# @transforms
+# Fourth task:
+# # Use lax thresholds if IDR analysis will follow peak calling.
+# Call peaks: call peaks, load results, summarise results, load summary, load specific peak caller functions (ie motif searching for GEM, quality calls with SPP, etc.).
+# 
+#     Run GEM
+#     Run MACS2
+#     Run GeneTrack (tag count estimation, minimum number of replicate reproducibility, peak pair distance estimation, peak calling, remove singletons, peak pairing)
+
+
+# @follows
+# @transforms
+# Fifth task:
+# Run quality control:
+#     Total peaks called; read and peak distribution across the genome (Landt et al. 2012 F3A)
+# 
+#     Reproducibility: IDR R package # Plot Landt el al 2012 F6A, B and C; Run IDR on pseudoreplicates if no true replicates available or not appropriate; ENCODE cut-off = number of bound regions identified in IDR comparison between replicates must be at least 50% of the number of regions identified in an IDR comparison between pseudoreplicates of random partition of reads from all replicates. Apply flowchart Landt et al 2012 F7D to eliminate low quality samples.
+# 
+#     Background estimation: FRiP #fraction of reads in peaks (Landt et al 2012 F4C, chIP-seq cut-off >1%). 
+#     Sequencing depth: call Saturation # Fraction of total peaks called vs. number of mapped reads; peak median enrichment vs. number of mapped reads (Landt et al. 2012 F3B, F3C)
+# 
+#     Library complexity estimation: load from mapping statistics (Picard tools) (=fraction of DNA fragments that are non-redundant [Landt et al. 2012, F4A]); show IGV shot of mapped reads; calculate the non redundant fraciont (NRF; =ratio between the number of positions in the genome that uniquely mappable reads map to and the total number of uniquely mappable reads. Aim for an NRF of 0.8 for 10 million reads [(Landt et al. 2012, F7C, E and F])
+# 
+#     PCR artefacts estimation: tool?
+# 
+#     Motif enrichment: number of peaks with recognisable motif, plot Landt et al 2012 F5F; check Johnson, Mortazavi et al Science 2007.
+#     
+
+
+# @follows
+# @transforms
+# Sixth task:
+# Collate peak calling results
+#     Generate bed files
+#     Peaks: number, height?, location, p-values, FDR values
+#     Test/Report reproducibility between replicates
+
+
+# @follows
+# Seventh task:
+#     Compare ChIP-seq to ChIP-Exo:
+#         Number of shared peaks, differences in location, peak height (fold enrichment)
+#         Background noise comparison, read depth required, resolution, motifs found
+#         
+
+# <codecell>
+
+
+# <rawcell>
+
+# @follows
+# Eighth task:
+# Create report and publish (Landt et al 2012 Reporting guidelines (Box 4)):
+#     
+# Metadata
+#     Investigator, organism, or cell line, experimental protocol (or reference to a known protocol).
+#     Indication as to whether an experiment is a technical or biological replicate.
+#     Catalog and lot number for any antibody used. If not a commercial antibody, indicate the precise source of the antibody.
+#     Information used to characterize the antibody, including summary of results (images of immunoblots, immunofluorescence, list of proteins identified by mass spec, etc.).
+#     Peak calling algorithm and parameters used, including threshold and reference genome used to map peaks.
+#     A summary of the number of reads and number of targets for each replicate and for the merged data set.
+#     Criteria that were used to validate the quality of the resultant data (i.e., overlap results or IDR).
+#     Experimental validation results (e.g., qPCR).
+#     Link to the control track that was used (if applicable).
+#     An explanation if the experiment fails to meet any of the standards.
+# 
+# High-throughput sequencing data
+#     Image files from sequencing experiments do not need to be stored.
+#     Raw data (FASTQ files) should be submitted to both GEO and SRA.
+#     Each replicate should be submitted independently.
+#     Target region and peak calling results to GEO.
+# 
+# Point source peaks
+# 
+#     Peak position, defined as a single base pair.
+#     Start and end positions, defined as specific base pairs.
+#     Signal value (e.g., fold enrichment) using an algorithm chosen by the submitter.
+#     Significance/accuracy measures:
+#         P-value determined using a method chosen by the submitter.
+#         Q-value (false discovery rate correction) determined using a method chosen by the submitter.
+#     Other methods and data as applicable
+
+
+# Next steps:
+#     
+# Motif finding --> Annotation and integration --> Study specific questions (allele specific binding)
+
+
+
+
+Fastq QC
+
+BAM QC
+
+Peaks QC
+
+Overlap analysis with the VDR LCL chIP-seq data
+
+Annotation:
+	Enrichment analyses of ENCODE and other data: LCL annotations for all peaks and population specific peaks. 
+
+	Motif analysis: all, population specific, canonical, non-canonical  
+
+	Metagene analsyis, surrounding sequence (TATA, TATA-like, other TF co-loc).  
+
+DE across populations and individuals
+
+Trio analysis: heritability
+
+Allele specific binding analysis 
+
+- Regarding variants and binding, I think we'll need to test SNPs within motifs/peaks but also those at a distance, at least up to 50 bp or more (PMID:22300769). Mapping is crucial for this of course, BWA/Stampy as discussed may be the best alternative, possibly with lax/inclusive settings and posterior filtering.
+
+- The HLA is key, we should come back to this when possible. Imputation may require other methods (check https://oxfordhla.well.ox.ac.uk/hla/publications; this group has been working on this for a while) 
+
+- We will want to annotate peaks fully further down the line: characterise motifs (canonical + non-canonical), cross with ENCODE data and regulatory regions, test co-localisation with other TFs (TF hubs, which and where for VDR for example), enrichment at enhancer regions, pathways for nearest genes, relation to ncRNAs, regions of selection, etc., and of course look very closely at disease variants/intervals. 
+
+-Disease
+
+- Evolution
+
+-Neanderthals
+
+- Software: TRAP (binding affinity), iRegulon, MANorm, Allele-seq, etc
+
+- Extras: Genomic architecture of TF binding
+
+Resources:
+
+- GWAS catalogue: 
+http://www.genome.gov/gwastudies/ 
+- ENCODE Uniform peak calling tracks: 
+http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeAwgTfbsUniform/ 
+- It might be worth looking at the CGAT annotation and motifs pipelines as they could save some time/provide a starting point 
+- Some web tools that have centralised functional studies/make predictions: 
+http://regulome.stanford.edu/index 
+http://jjwanglab.org/gwas3d 
+http://eqtl.uchicago.edu/cgi-bin/gbrowse/eqtl/
+Nature eQTL Dermitzakis
+
+
+Formaldehyde chemistry papers: peak height, width?
+
+http://www.sciencedirect.com/science/article/pii/S0968000499015352
+http://pubs.acs.org/doi/abs/10.1021/bi00677a029
+http://jcp.bmj.com/content/64/11/960.long#ref-1
+http://informahealthcare.com/doi/full/10.1080/10520290701488113
+http://www.ncbi.nlm.nih.gov/pubmed/17987439
+http://link.springer.com/protocol/10.1007/978-1-59745-000-3_12/fulltext.html
+http://www.hindawi.com/journals/bmri/2010/927585/
+http://onlinelibrary.wiley.com/doi/10.1002/jms.1415/full
+
+
+Figure 1 GR paper with GAT
+Table 2 numbers of peaks per sample, per population, r2
+Figure 2 motif sequence logo
+Figure 3 Gat cross with GWAS data
+Figure 6 evolution analysis
+
+Gene expression and disease
+
+ENCODE:
+Chromatin states
+DHS sites
+CTCF
+H3K4me3 and H3K27ac sites when compared with H3K4me1 sites
+ChIP exo Nautre 2013 extended data fig 1a, b (ENCODE architecture and genes
+having VDR site <500 bp from TSS); Ext. data F6 candidate core promoter
+distances from VDR binding site; Ext data table 1 sequencing statistics
+DNA methylation sites?
+Blocks that encompass VDR binding regions?
+
+
+
+Compare to CpG content
+
+
+All TFs
+
+
+
+
+
+
+
+
+

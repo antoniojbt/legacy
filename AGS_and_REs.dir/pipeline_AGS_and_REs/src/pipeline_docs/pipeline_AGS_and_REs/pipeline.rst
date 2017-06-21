@@ -1,0 +1,22 @@
+.. _AGS_and_REspipeline:
+
+=============================
+AGS_and_REs pipeline
+=============================
+
+Contents:
+
+.. toctree::
+   :maxdepth: 2
+
+   pipeline/Methods.rst
+   pipeline/Dummy.rst
+  
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
+

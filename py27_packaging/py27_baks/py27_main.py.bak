@@ -1,0 +1,32 @@
+'''
+Wrapper to execute main script function
+'''
+
+import sys
+import os
+
+import py27_packaging
+
+_ROOT = os.path.abspath(os.path.dirname(__file__))
+
+sys.path.append(_ROOT)
+
+try:
+    print(dir(py27_packaging))
+
+    print(py27_packaging.__loader__)
+    py27_packaging.__loader__
+
+    print(py27_packaging.load_entry_point)
+    py27_packaging.load_entry_point
+
+except AttributeError:
+    print('AttributeError')
+    continue
+
+print('Hello, this works')
+
+py27_packaging.doSuperTest()
+
+py27_packaging.main()
+
