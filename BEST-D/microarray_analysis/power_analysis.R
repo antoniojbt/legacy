@@ -1,5 +1,5 @@
 #############################
-# Post-hoc power analysis of gene expression microarray data
+# Power analysis of gene expression microarray data
 # Antonio J Berlanga-Taylor
 # 02 Aug 2016
 # BEST-D project differential expression power analysis
@@ -183,7 +183,7 @@ power.multi(
 
 
 #############################
-# Use the SSPA library for post-hoc (or pilot data) estimates
+# Use the SSPA library for pilot data estimates
 
 # Read in the file with the sample membership information (group membership, replicate number, 
 # treatment status, etc.) to be able to create a design and contrast (done above for PCA plots).
