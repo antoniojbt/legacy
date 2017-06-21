@@ -1,0 +1,18 @@
+syntax: glob
+
+CGAT.egg-info/*
+build/*
+_static/*
+_build/*
+_cache/*
+htaccess
+csvdb
+conf.py
+*[#]*
+*.c
+*.pyxbldc
+*.orig
+*.pyc
+*~
+*.so
+distribute-*
