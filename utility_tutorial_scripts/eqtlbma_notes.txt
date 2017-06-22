@@ -1,0 +1,99 @@
+###########
+#Notes for running eqtlbma
+###########
+
+###########
+# See:
+# https://github.com/timflutre/eqtlbma/wiki
+# and manual:
+# https://github.com/timflutre/eqtlbma/blob/master/doc/manual_eqtlbma.pdf?raw=true
+###########
+
+###########
+# Install:
+# with zip file (https://github.com/timflutre/eqtlbma/releases/download/v1.3.1/eqtlbma-1.3.1.zip)
+
+# using (check version and location of zlib):
+$LD_LIBRARY_PATH
+
+./configure --prefix=/ifs/apps/bio/eqtlbma-1.3.1 LDFLAGS=-L/ifs/apps/system/zlib-1.2.8/lib
+make
+make check
+make install
+###########
+
+###########
+# Inputs are like MatrixEQTL: genotype (one file), expression (several files for tissues for example), covariates, SNP coords, gene coords:
+# Individuals as columns, values as rows. Values are numeric.
+# Coords are bed files.
+# It seems to only allow one covariates file though.
+
+# VCF can be an input see p. 7
+# Only tests cis regions
+# Use --analysis join option to test all subgroups together
+# If so, specify the error, eg for different individuals in the different groups: --error uvlr
+# To save summary stats use --outss
+# Specify how many genes to analyse vefore writing output (to save memory): --wrtsize
+# To save Bayes factors per configuration use --outw 
+# This are saved as grids (which are needed for the --analysis join option as specified by
+--gridL and --gridS# along with two files containing the grids over which the Bayes factors are averaged. 
+# Unless running a meta-analysis use --bfs "abf"
+# to specify which Bayes factors we want to compute, “approximated Bayes factor”
+
+
+# If > 20,000 genes and > 5 million SNPs run in parallel, see p. 12.
+# TO DO: check analysis variations from p. 12 onwards
+ 
+###########
+
+
+###########
+# Steps:
+# Compute the Bayes factors assessing the support in the data for each gene-SNP pair being an eQTL:
+
+eqtlbma_bf \--geno list_genotypes.txt \--scoord snp_coords.bed.gz \--exp list_explevels.txt \--gcoord gene_coords.bed.gz \--anchor TSS \--cis 1000 \--out out_eqtlbma \--analys join \--covar list_covariates.txt \--gridL grid_phi2_oma2_general.txt \--gridS grid_phi2_oma2_with-configs.txt \--bfs all \--error mvlr \>& stdout_eqtlbma_bf.txt &
+
+
+# Output contains the Bayes factor for each configuration of each gene-SNP pair (in rows) and each grid point (in columns):
+
+zcat out_eqtlbma_l10abfs_raw.txt.gz | head
+
+# Use this as input to fit the hierarchical model with an EM algorithm and get maximum-likelihood estimates of hyper-parameters, most importantly the configuration probabilities:
+eqtlbma_hm \--data "out_eqtlbma_l10abfs_raw.txt.gz" \--nsubgrp 3 \--dim 7 \--ngrid 10 \--out out_eqtlbma_hm.txt.gz \>& stdout_eqtlbma_hm.txt &
+
+
+# The output file “out eqtlbma hm.txt.gz” contains the estimates as meta-data (commented lines starting with a hashtag “#”). 
+
+zcat out_eqtlbma_hm.txt.gz | head
+
+# Extract these estimates before calculating the posterior probabilities of interest:
+zcat out_eqtlbma_hm.txt.gz | grep "#grid" | cut -f2 > grid_weights.txtzcat out_eqtlbma_hm.txt.gz | grep "#config" \| awk '{split($1,a,"."); print a[2]"\t"$2}' > config_weights.txt# Finally launch the third program, eqtlbma_avg_bfs:
+
+# TO DO: to obtain the posterior probabilities, we need an estimate of the probability for a gene to have no eQTL in any tissue, 0. As this quantity is hard to estimate accurately with the EM algorithm, we usually perform permutations using eqtlbma_bf (see below). But for now, as this can take some time, we will use its true value, as indicated in the output file “stdout tutorial eqtlbma.txt”.eqtlbma_avg_bfs \--in "out_eqtlbma_l10abfs_raw.txt.gz" \
+--gwts grid_weights.txt \--nsubgrp 3 \--dim 7 \--cwts config_weights.txt \--save post \--pi0 0.3 \--post a+b+c+d \--bestdim \--alldim \--out out_eqtlbma_avg_bfs.txt.gz \>& stdout_eqtlbma_avg_bfs.txt &
+
+
+# The output file “out_eqtlbma_avg_bfs.txt.gz” contains the posterior probability for the gene to have an eQTL in at least one tissue (column 3), the posterior for a SNP to be “the” eQTL (column 4), the posterior for the eQTL to be active in a given tissue (columns 6-8) and the posterior for the eQTL to be active in a given configuration (columns 9-15).
+
+zcat out_eqtlbma_avg_bfs.txt.gz | head
+
+###########
+
+###########
+# TO DO:
+# Estimate pi0 (probability of a gene having no eQTL in any tissue)
+# see p.4 
+# First we keep only the transcription start site (TSS) of each gene:zcat gene_coords.bed.gz \| awk 'BEGIN{OFS="\t"} \{printf "%s\t%s\t%s", $1,$2,$2+1; \for(i=4;i<=NF;++i)printf "\t%s", $i; printf "\n"}' \| gzip > gene_coords_TSS.bed.gz# Then we split the genes in batches:nbBatches="100"; rm -rf lists_genes; mkdir lists_genes; cd lists_genes; \zcat ../gene_coords_TSS.bed.gz | split \-l $(echo "scale=0; $(zcat ../gene_coords_TSS.bed.gz | wc -l)/${nbBatches}" | bc -l) \--suffix-length=3 --numeric-suffixes=1 --additional-suffix=.bed \--filter='gzip > $FILE.gz' - list_genes_; cd ..Then we make a file containing all cis SNPs per batch of genes:rm -rf lists_snps; mkdir lists_snps; \seq -w 1 $(ls lists_genes/* | wc -l) | \parallel 'i={}; bedtools window -w 1000 \-a lists_genes/list_genes_${i}.bed.gz \-b snp_coords.bed.gz | \
+cut -f10 | sort -V | uniq | gzip > lists_snps/list_snps_${i}.txt.gz'# Finally we draw one seed per batch (to make permutations reproducible):nbSeeds=$(ls lists_genes/* | wc -l); \echo "set.seed(1859); x <- sample.int(n=1000000, size=${nbSeeds}); \write(x, gzfile(\"list_seeds.txt.gz\"), 1)" \| R --vanilla --quiet
+
+
+# For the gene-level p-values, we can now perform permutations in parallel (note also in the command-line below that each batch is run on 4 threads):echo "eqtlbma_bf_parallel.bash --p2b ~/bin/eqtlbma_bf --geneD lists_genes \--snpD lists_snps --seedF list_seeds.txt.gz --geno list_genotypes.txt \--scoord snp_coords.bed.gz --exp list_explevels.txt --anchor TSS --cis 1000 \--out out_eqtlbma --analys join --covar list_covariates.txt \--gridL grid_phi2_oma2_general.txt --gridS grid_phi2_oma2_with-configs.txt \--bfs all --error mvlr --nperm 10000 --trick 2 --tricut 10 --pbf all --thread 4" \| qsub -cwd -j y -V -l h_vmem=8g -N stdout_eqtlbma_bf-perm -t 1-100 -pe simple_pe 4# Once all jobs are finished, let us check that they all ran successfully:
+ls stdout_eqtlbma_bf-perm.o*.* | while read f; do \if [ $(grep -c "END" $f) != 2 ]; then echo $f; fi; done# We can then open R and estimate 0 with the qvalue package:setwd("~/tutorial_eqtlbma")f <- Sys.glob("out_eqtlbma_[0-9][0-9][0-9]_joinPermPvals.txt.gz")d <- do.call(rbind, lapply(f, function(fi){read.table(fi, header=TRUE, stringsAsFactor=FALSE)}))hist(d$join.perm.pval, xlim=c(0,1), breaks=100)library(qvalue)qobj <- qvalue(p=d$join.perm.pval, fdr.level=0.05, robust=TRUE, pi0.method="smoother")qobj$pi0called.nulls.pval <- ! qobj$significant
+
+# We can now use this estimate of 0 to compute the various posterior probabilities ofinterest with eqtlbma_avg_bfs as shown above. 
+# Alternative procedures are EBF or QBF, see p. 5 and 6.
+# As shown in the preprint of Wen (2013), the EBF/QBF procedures are much less computationally intensive than obtaining p-values by permutations, hence being tractable even for large datasets, while still conservatively controlling a given FDR level.
+###########
+
+
+

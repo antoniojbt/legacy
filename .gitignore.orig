@@ -1,0 +1,44 @@
+<<<<<<< HEAD
+# Mac OS X and others:
+=======
+# Ignore:
+>>>>>>> remotes/cgat_projects/master
+*.tar
+*.gz
+.dir_bash_history
+*.dir_bash_history
+.DS_Store
+<<<<<<< HEAD
+.ipynb_checkpoints
+
+# Vim:
+*~
+*.swp
+
+# Compiled python modules:
+*.pyc
+
+# Ptyhon packaging, setuptools, eggs, etc.:
+MANIFEST
+PKG-INFO
+*.egg-info
+__pycache__
+*.egg
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+
+# Sphinx:
+docs/_build
+docs/_static
+docs/_templates
+=======
+>>>>>>> remotes/cgat_projects/master

@@ -1,0 +1,82 @@
+Title
+========================================================
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring web pages (click the **MD** toolbar button for help on Markdown).
+
+When you click the **Knit HTML** button a web page will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+You can also embed plots, for example:
+
+```{r fig.width=7, fig.height=6}
+plot(cars)
+```
+
+Set working directory and file locations:
+```{r}
+working_dir <- ("/ifs/projects/antoniob/VD_1ry_cells.dir/analysis.dir/")
+setwd(working_dir)
+script_dir <- ("/ifs/devel/antoniob/projects/VD_1ry_cells.dir")
+script_dir
+script_file <- file.path(script_dir,"VD_1ry_cells_gene_expression.Rmd")
+script_file
+data <- ('status_summary_modified.tsv')
+```
+
+Direct output to file as well as printing to screen (plots aren't redirected though, each done separately). Input is not echoed to the output file either.
+```{r}
+output_file <- file(paste("R_sessions_output_",Sys.Date(),".txt", sep=""))
+output_file
+sink(output_file, append=TRUE, split=TRUE, type = c("output", "message"))
+
+#If the script can run from end to end, use source() with echo to execute and save all input to the output file (and not truncate 150+ character lines):
+#source(script_file, echo=TRUE, max.deparse.length=10000)
+
+#Record start of session:
+Sys.time()
+```
+
+Update packages if necessary and load them:
+```{r}
+#source("http://bioconductor.org/biocLite.R")
+#biocLite("BiocUpgrade")
+library(ggplot2)
+```
+
+```{r}
+read <- read.table(data, header=TRUE, sep='\t')
+head(read)
+```
+
+```{r}
+ggplot(data=read, aes(x=read$Process)) + geom_bar(stat="bin")
+```
+
+Plot all categories by pre vs post processing
+```{r}
+read[,3]<-factor(read[,3],levels=c("pass","warn","fail"),ordered=FALSE)
+read[,4]<-factor(read[,4],levels=c("pass","warn","fail"),ordered=FALSE)
+read[,5]<-factor(read[,5],levels=c("pass","warn","fail"),ordered=FALSE)
+
+read_2=read[,c(3,4,5)] # for testing just a few columns
+
+freq=table(col(read_2), as.matrix(read_2)) # get the counts of each factor level
+
+#Create a data frame, melt and plot:
+
+#Names=c("Food","Music","People")     # create list of names
+#data=data.frame(cbind(freq),Names)   # combine them into a data frame
+#data=data[,c(5,3,1,2,4)]             # sort columns
+
+# melt the data frame for plotting
+#data.m <- melt(data, id.vars='Names')
+
+# plot everything
+ggplot(data.m, aes(read$Processed, value)) +   
+  geom_bar(aes(fill = variable), position = "dodge", stat="identity")
+
+```
+
+```{r}
+```
+
+
