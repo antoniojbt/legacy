@@ -1,1 +1,0 @@
-/ifs/devel/antoniob/src/projects/ChIP-Exo/src/pipeline_exo/conf.py

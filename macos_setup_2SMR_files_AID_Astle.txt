@@ -1,0 +1,63 @@
+Set up files and scripts for MR
+Astle
+AID
+
+
+##############################
+# Astle data
+
+# scripts:
+ln -s /Users/antonio/Documents/github.dir/AntonioJBT/pipeline_MR/pipeline_MR/pipeline_MR.py .
+cp /Users/antonio/Documents/github.dir/AntonioJBT/pipeline_MR/pipeline_MR/configuration/pipeline.yml .
+ln -s /Users/antonio/Documents/github.dir/AntonioJBT/pipeline_MR/scripts/run_2SMR.R .
+
+# exposure data:
+ln -s ../sICAM_cytokines_instruments_pqtl_1e-4_notclumped.2SMR_tsv exposure.2SMR_tsv
+
+# exposure instruments
+ln -s ../IDs_only_sICAM_cytokines_instruments_pqtl_1e-4_notclumped.txt exposure_instruments.txt
+
+# outcome data:
+ln -s /Users/antonio/Documents/quickstart_projects/data.nosync/external/MR_data/astle_2SMR/*.out_2SMR_tsv.gz .
+##############################
+
+
+##############################
+# AID data:
+
+# exposure data:
+ln -s ~/Documents/quickstart_projects/data/project_data/external_restricted_access/Ville_cytokine_instruments/ville_to_2SMR/sICAM_cytokines_instruments_pqtl_1e-4_notclumped.2SMR_tsv exposure.2SMR_tsv
+
+# exposure instruments
+ln -s ~/Documents/quickstart_projects/data/project_data/external_restricted_access/Ville_cytokine_instruments/ville_to_2SMR/IDs_only_sICAM_cytokines_instruments_pqtl_1e-4_notclumped.txt exposure_instruments.txt
+
+# scripts:
+ln -s /Users/antonio/Documents/github.dir/AntonioJBT/pipeline_MR/pipeline_MR/pipeline_MR.py .
+cp /Users/antonio/Documents/github.dir/AntonioJBT/pipeline_MR/pipeline_MR/configuration/pipeline.yml .
+ln -s /Users/antonio/Documents/github.dir/AntonioJBT/pipeline_MR/scripts/run_2SMR.R .
+
+# Get LD reference to run locally:
+ln -s /Users/antonio/Documents/quickstart_projects/data.nosync/external/LD_reference_IEUGWASR/1kg.v3/EUR.* .
+
+# outcome data:
+# First set of files from Katie:
+ln -sf ~/Documents/quickstart_projects/data/external/MR_data/AID_GWAS_DATA/*/*2SMR_tsv.gz .
+# Second set of files from Katie from McGowan HMG 2019 data:
+ln -s ~/Documents/quickstart_projects/data/external/MR_data/AID_GWAS_DATA/GWAS_DATA_new_Katie_24_May_2020_McGowan_2019/*/*2SMR_tsv.gz .
+
+# Rename files as left wrong suffix:
+rename -s 2SMR_tsv.gz out_2SMR_tsv.gz *2SMR_tsv.gz
+
+# Remove files with issues:
+rm -f chronic_pain-bgen.stats.gz.2SMR_tsv.gz deLange_IBD_build37.f.out_2SMR_tsv.gz Eczema_Dermatitis_Neale2017_20002_1452.gwas.imputed_v3.both_sexes.tsv.gz.out_2SMR_tsv.gz Asthma_DoctorDiagnosed_Neale2017_22127.gwas.imputed_v3.both_sexes.tsv.gz.out_2SMR_tsv.gz 
+
+# Files with issues/further processing:
+~/Documents/quickstart_projects/data/external/MR_data/AID_GWAS_DATA/files_with_issues/
+
+# Remove all results:
+rm -rf *rg_2SMR_tsv *header 2SMR_analysis output_summary ripgrepped_SNPs pipeline.log 
+
+
+
+# Also check headers are actually OK, eg beta for ORs in one or two, etc.
+##############################

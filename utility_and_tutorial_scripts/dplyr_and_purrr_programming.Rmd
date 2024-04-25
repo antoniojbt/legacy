@@ -1,0 +1,310 @@
+### A note on dplyr programming
+
+Programming with dplyr isn't straightforward because of standard and non-standard evaluation. For an introduction to programming with dplyr see:
+- https://cran.r-project.org/web/packages/dplyr/vignettes/programming.html
+
+Also check the following examples and use of quo_name(), enquo() and UQ() from lazyeval:
+- https://stackoverflow.com/questions/44018893/r-lazyeval-pass-parameters-to-dplyrfilter
+- https://stackoverflow.com/questions/41783396/passing-arguments-to-dplyr-summarize-function?rq=1
+- https://cran.r-project.org/web/packages/lazyeval/vignettes/lazyeval-old.html
+- https://github.com/hadley/lazyeval
+- https://www.r-bloggers.com/what-is-tidy-eval-and-why-should-i-care/
+
+In particular, note that because of differences in how dplyr evaluates expressions (using NSE):
+- silent errors can occur if the variable is not in the dataframe but has been defined in the global environment. Use `.data` to avoid this.
+- dplyr automatically “quotes” inputs, hence they are not referentially transparent
+- use either `quo()` to quote (unquoted) inputs without evaluating them (returns a variant of a formula called quosure) in the function call or `enquo()` inside the user-defined function (but inputs must be passed unquoted)
+- use `!!` or `UQ()` to unquote inputs inside functions such as `filter` and `group_by` (regardless of whether having used `quo` or `enquo`).
+- You can wrap everything inside `quo` to debug dplyr
+- use `quo_name()` to convert the input expression to a string (needs to be accompanied by `:=` to make a valid expression (see the programming vignette)).
+- use `quos()`, `!!!` and `...` to capture multiple variables.
+
+Note that dplyr doesn't support working with column indices:
+	- https://github.com/tidyverse/dplyr/issues/1462
+
+If you really need to create functions which will be called from other functions, see:
+	- http://adv-r.had.co.nz/Computing-on-the-language.html#calling-from-another-function
+
+Some example from one of the tutorials here:
+```{r dplyr_prog}
+df <- tibble(
+	g1 = c(1, 1, 2, 2, 2),
+	g2 = c(1, 2, 1, 2, 1),
+	a = sample(5),
+	b = sample(5)
+)
+
+df %>%
+	group_by(g1) %>%
+	summarise(a = mean(a))
+
+my_summarise <- function(df, group_var) {
+	df %>%
+		group_by(!! group_var) %>%
+		summarise(a = mean(a))
+}
+
+my_summarise(df, quo(g1)) # with quo
+my_summarise(df, g1) # no quo
+
+my_summarise2 <- function(df, group_var) {
+	group_var <- enquo(group_var)
+	print(group_var)
+
+	df %>%
+		group_by(!! group_var) %>%
+		summarise(a = mean(a))
+}
+
+my_summarise2(df, 'g4') # we get a silent error
+my_summarise2(df, g1) # no quo because enquo was used inside the function definition
+my_summarise2(df, g4) # no quo because enquo was used inside the function definition
+
+# Provide different inputs
+# Test using quo and enquo:
+my_var <- quo(a)
+my_var
+summarise(df, mean = mean(!! my_var), sum = sum(!! my_var), n = n())
+# Make into a function:
+my_summarise3 <- function(df, expr) {
+	expr <- enquo(expr)
+	summarise(df,
+						mean = mean(!! expr),
+						sum = sum(!! expr),
+						n = n()
+	)
+}
+my_summarise3(df, a)
+```
+
+# With dplyr programming rules in mind, we can get a summary for variables depending on their type and whether we want to filter particular strings:
+```{r}
+# Use dplyr to get summary counts for chr and numeric columns with and without filtering contingency codes:
+# chr no filter needed:
+input_data %>%
+	select(TAKES_INTENSE_EXERCISE) %>%
+	# filter(!(TAKES_INTENSE_EXERCISE %in% contingency_all)) %>%
+	count(TAKES_INTENSE_EXERCISE)
+
+# num !conting:
+input_data %>%
+	select(C_REACTIVE_PROTEIN) %>%
+	filter(!(C_REACTIVE_PROTEIN %in% contingency_all)) %>%
+	summary()
+
+# num !conting:
+input_data %>%
+	select(C_REACTIVE_PROTEIN) %>%
+	filter((C_REACTIVE_PROTEIN %in% contingency_all)) %>%
+	count(C_REACTIVE_PROTEIN)
+
+# Create a function to get the counts for contigency codes:
+# contingency_all, contingency_chr, contingency_dates, contingency_numeric
+# This will return a tibble as output and can be piped into other functions
+# chr cols don't need filtering but numeric cols are summarised differently depending on the filter
+filter_contingency_dplyr <- function(df, col_in, filter_codes, filt) {
+	col_in <- enquo(col_in)
+	check_class <- sapply(df[, uq(quo_name(col_in))], class)[[1]]# has to be lower-case uq...?
+	if (filt == TRUE & check_class == "numeric") {
+		# Case for numeric and filtering:
+		df %>%
+			select(UQ(col_in)) %>%
+			filter(!(UQ(col_in) %in% filter_codes)) %>%
+			summary()
+	}
+	else if (filt == FALSE & check_class == "numeric") {
+		# Case for numeric and no filtering:
+		df %>%
+			select(UQ(col_in)) %>%
+			filter((UQ(col_in) %in% filter_codes)) %>%
+			count(UQ(col_in))
+	} else if ((filt == FALSE  | filt == TRUE) & check_class == "character") {
+		# Case for character and no filtering (option doesn't matter):
+		df %>%
+			select(UQ(col_in)) %>%
+			count(UQ(col_in))
+	} else {
+		print(sprintf('Could not figure out type of column, etc. Class, column and filter options were: %s, %s, %s', check_class, quo_name(col_in), filt))
+	}
+}
+filter_contingency_dplyr(df = input_data,
+												 col_in = TAKES_INTENSE_EXERCISE, # has to be unquoted
+												 filter_codes = contingency_all,
+												 filt = T)
+
+filter_contingency_dplyr(df = input_data,
+												 col_in = C_REACTIVE_PROTEIN, # has to be unquoted
+												 filter_codes = contingency_all,
+												 filt = T)
+
+# The next step here would be to use for loops, apply family or purrr::map functions to get the summaries for all columns. This turns out to be problematic though as differences in dplyr's NSE, R's SE and lack of support for using column indices intead of strings in tidyverse (with good reason) make it harder to generalise functions.
+```
+
+After that exciting trip we're back to programming the same function but in base R with the purpose of calling it from other functions:
+```{r}
+filter_contingency <- function(df, col_in, filter_codes, filt) {
+check_class <- sapply(df[, col_in], class)[[1]]
+conds_class_num <- (check_class == "numeric" |
+# check_class == "double" |
+check_class == "integer")
+if (filt == TRUE & conds_class_num) {
+# Case for numeric and filtering (which leaves only the non-NA/non-contingency values):
+filter_index <- which(!df[[col_in]] %in% filter_codes)
+# df[filter_index, col_in]
+summary(df[filter_index, col_in])
+}
+else if (filt == FALSE & conds_class_num) {
+# Case for numeric and no filtering (which actually leaves only the contingency codes so we get an idea of the reasons for missing values):
+filter_index <- which(df[[col_in]] %in% filter_codes)
+as.data.frame(table(df[filter_index, col_in]))
+} else if ((filt == FALSE  | filt == TRUE) & check_class == "character") {
+# Case for character and no filtering (option doesn't matter as counts will give information for all unique values):
+	as.data.frame(table(df[, col_in]))
+} else {
+	print(sprintf('Could not figure out type of column, etc.
+								Class, column and filter options were: %s, %s, %s',
+								check_class, quo_name(col_in), filt))
+}
+}
+# Search for the column number you want based on a partial match
+names(input_data)
+# pattern_col <- 'REACT'
+pattern_col <- 'TAKES'
+col_num <- grep(names(input_data), pattern = pattern_col)
+col_num
+# Check:
+print(names(input_data)[col_num])
+print(names(input_data)[78])
+
+filter_contingency(df = input_data,
+									 col_in = 1,
+									 filter_codes = contingency_all,
+									 filt = F)
+
+filter_contingency(df = input_data,
+									 col_in = 106,
+									 filter_codes = contingency_all,
+									 filt = T)
+```
+
+
+We can use the `filter_contingency` function to print outputs for all our columns using a loop, apply family or purrr::map functions. Note that in this raw/unprocessed dataset we are only expecting to have character and numeric or integer columns.
+```{r}
+filter_contingency(df = input_data,
+																 col_in = col_index,
+																 filter_codes = contingency_all,
+																 filt = T)
+# Create a list to hold all the results:
+out <- vector("list", length(input_data))
+# names(out) <- names(input_data)
+# out
+
+df <- input_data
+# Run once with the filter on (to exclude all the contigency codes):
+for (i in seq_along(df)) {
+	col_name <- names(df)[[i]]
+	col_index <- i
+	print(col_name)
+	print(col_index)
+	out[[i]] <- filter_contingency(df = input_data,
+																 col_in = col_index,
+																 filter_codes = contingency_all,
+																 filt = T)
+}
+# Run without filter (leaving only the non-NA/non-contingency values) but only for numeric to avoid duplication of chr columns (as these values are counted separately regardless of filter):
+df <- df %>% select_if(is.numeric)
+for (i in seq_along(df)) {
+	col_name <- names(df)[[i]]
+	col_index <- i
+	print(col_name)
+	print(col_index)
+  out[[i]] <- filter_contingency(df = input_data,
+																 col_in = col_index,
+																 filter_codes = contingency_all,
+																 filt = F)
+}
+
+class(out)
+length(out)
+glimpse(out)
+summary(out)
+out$C_REACTIVE_PROTEIN
+out$CIGARETTES_PER_DAY
+```
+
+
+```{r}
+# TO DO: continue here, use functions above and run through all columns:
+input_data[, 1:10] %>%
+	map(.x = col_in,
+			.f = filter_contingency,
+			df = input_data,
+			filter_codes = contingency_all,
+			filt = TRUE)
+
+summary_contingency <- as.tibble(input_data %>%
+																 	map_df(.f = filter_contingency,
+																 				 .x = col_in,
+																 				 df = input_data,
+																 				 filter_codes = contingency_all,
+																 				 filt = TRUE) %>%
+																 	do.call(rbind, .)
+)
+
+input_data_summaries <- as.tibble(input_numeric %>%
+																		map(~which((. %in% contingency_numeric))) %>%
+																		map_df(~input_numeric[[.]]) %>%
+																		map(summary) %>%
+																		do.call(rbind, .)
+)
+```
+
+# Summary functions:
+```{r}
+df <- input_numeric
+df %>%
+	summarise_all(funs(list(quantile(., probs = c(0.25, 0.5, 0.75), na.rm = TRUE),
+													median(., na.rm = TRUE),
+													mean(., na.rm = TRUE),
+													mad(., na.rm = TRUE),
+													sd(., na.rm = TRUE),
+													IQR(., na.rm = TRUE),
+													min(., na.rm = TRUE),
+													max(., na.rm = TRUE),
+													var(., na.rm = TRUE)
+	)
+	)
+	) %>%
+	unnest %>%
+	transpose %>%
+	setNames(., c('25%', '50%', '75%',
+								'median',
+								'mean',
+								'mad',
+								'sd',
+								'IQR',
+								'min',
+								'max',
+								'var'
+	)
+	) %>%
+	map_df(unlist) %>%
+	bind_cols(data.frame(vars = names(df)), .) %>%
+	head
+
+(as.data.frame(list(quantile(df$BODY_MASS_INDEX, probs = c(0.25, 0.5, 0.75), na.rm = TRUE), median(df$BODY_MASS_INDEX, na.rm = TRUE))))
+
+df %>%
+	map(summary)
+funs(quantile(., probs = c(0.25, 0.5, 0.75), na.rm = TRUE), median(., na.rm = TRUE)
+)
+)
+) %>%
+	unnest %>%
+	transpose %>%
+	setNames(., c('25%', '50%', '75%', 'median')
+	) %>%
+	map_df(unlist) %>%
+	bind_cols(data.frame(vars = names(df)), .) %>%
+	head
+```
